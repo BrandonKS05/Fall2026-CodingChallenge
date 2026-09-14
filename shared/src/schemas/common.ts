@@ -38,7 +38,7 @@ export const apiErrorCodeSchema = z.enum([
 export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>;
 
 /** Envelope for every non-2xx response. */
-export const apiErrorSchema = z.object({
+export const apiErrorResponseSchema = z.object({
   error: z.object({
     code: apiErrorCodeSchema,
     message: z.string(),
@@ -46,7 +46,7 @@ export const apiErrorSchema = z.object({
     details: z.unknown().optional(),
   }),
 });
-export type ApiError = z.infer<typeof apiErrorSchema>;
+export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
 
 /** Rejects a PATCH body where every field is undefined. */
 export const atLeastOneField = (value: Record<string, unknown>): boolean =>

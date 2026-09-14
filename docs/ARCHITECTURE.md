@@ -32,4 +32,6 @@ container.ts is the composition root and the only module that imports infrastruc
 
 | Pattern | Where | What it lets us swap |
 | ------- | ----- | -------------------- |
-| (filled in as each pattern is implemented) | | |
+| Adapter | `backend/src/infrastructure/logging/pinoLogger.ts` | pino sits behind the `Logger` port; services never import pino |
+| Chain of Responsibility | `backend/src/app.ts` middleware order | add or remove cross-cutting steps (auth, rate limits) without touching routes |
+| Composition root (dependency injection) | `backend/src/container.ts` | swap any infrastructure implementation in one place |
