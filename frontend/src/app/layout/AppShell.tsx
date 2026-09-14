@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { NavLink } from 'react-router';
+import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { cn } from '@/lib/utils';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
@@ -35,6 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-1">
+            <NotificationBell />
             <ThemeToggle />
             <UserMenu />
           </div>

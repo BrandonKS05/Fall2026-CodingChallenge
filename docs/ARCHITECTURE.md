@@ -168,3 +168,16 @@ blurred underneath while the 640px image loads, sized by the real aspect ratio s
 Arriving from a board's "Add images" button carries `?board=<id>`, which turns Save into a one-click
 action into that board; otherwise Save opens the board picker, which can also create a board inline.
 A 409 from the API (already on that board) is shown as saved rather than as an error.
+
+### Sharing and notifications
+
+The share panel (`features/sharing/components/SharePanel.tsx`) is role-aware: owners create or revoke
+the link and manage members; other members see the link, the list, and a Leave button. It receives the
+board as a prop from the page, and the link mutations patch the cached board with the visibility change
+the server applies (private becomes link-only), so the panel updates without waiting for the refetch.
+`/s/:slug` renders the read-only shared board and, for members, a link into the full editor.
+
+Notifications poll the inbox every 15 seconds while signed in (`features/notifications/queries.ts`),
+which is enough for "someone added to your board" and needs no socket. Marking read is optimistic so the
+badge clears at once. `text.ts` turns each notification type into one sentence from the reader's point
+of view ("Grace added you to Kitchens").

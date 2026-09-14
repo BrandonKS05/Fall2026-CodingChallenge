@@ -14,6 +14,7 @@ import { ItemGrid, ItemGridSkeleton } from '@/features/items/components/ItemGrid
 import { useAddItem, useRemoveItem } from '@/features/items/queries';
 import { ApiError } from '@/lib/api';
 import { pluralize } from '@/lib/format';
+import { SharePanel } from '@/features/sharing/components/SharePanel';
 import { BoardSettingsDialog } from '../components/BoardSettingsDialog';
 import { VisibilityBadge } from '../components/VisibilityBadge';
 import { useBoard, useBoards } from '../queries';
@@ -90,6 +91,7 @@ export default function BoardPage() {
               <ImagePlusIcon /> Add images
             </Link>
           )}
+          {user && collection.role && <SharePanel board={collection} currentUserId={user.id} />}
           {collection.role === 'owner' && <BoardSettingsDialog board={collection} />}
         </div>
       </div>
