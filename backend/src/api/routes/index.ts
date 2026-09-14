@@ -4,9 +4,11 @@ import { createAuthRouter } from './auth.routes.js';
 import { createCollectionsRouter, createExploreRouter } from './collections.routes.js';
 import { createHealthRouter } from './health.routes.js';
 import { createImagesRouter } from './images.routes.js';
+import { createNotificationsRouter } from './notifications.routes.js';
 import { createSearchRouter } from './search.routes.js';
+import { createSharedRouter } from './share.routes.js';
 
-/** Mounts every resource router under /api. Feature routers are added here as they land. */
+/** Mounts every resource router under /api. */
 export function createApiRouter(container: Container): Router {
   const api = Router();
 
@@ -17,8 +19,10 @@ export function createApiRouter(container: Container): Router {
   api.use('/auth', createAuthRouter(container));
   api.use('/collections', createCollectionsRouter(container));
   api.use('/explore', createExploreRouter(container));
+  api.use('/shared', createSharedRouter(container));
   api.use('/search', createSearchRouter(container));
   api.use('/images', createImagesRouter(container));
+  api.use('/notifications', createNotificationsRouter(container));
 
   return api;
 }

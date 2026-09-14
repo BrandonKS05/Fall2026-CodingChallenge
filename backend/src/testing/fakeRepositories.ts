@@ -3,6 +3,7 @@ import { InMemoryCollectionRepository } from './fakes/InMemoryCollectionReposito
 import { InMemoryImageRepository } from './fakes/InMemoryImageRepository.js';
 import { InMemoryItemRepository } from './fakes/InMemoryItemRepository.js';
 import { InMemoryMembershipRepository } from './fakes/InMemoryMembershipRepository.js';
+import { InMemoryNotificationRepository } from './fakes/InMemoryNotificationRepository.js';
 import { InMemoryUserRepository } from './fakes/InMemoryUserRepository.js';
 
 export function createFakeRepositories() {
@@ -11,5 +12,6 @@ export function createFakeRepositories() {
   const images = new InMemoryImageRepository();
   const items = new InMemoryItemRepository(images, users);
   const collections = new InMemoryCollectionRepository(users, memberships, items);
-  return { users, memberships, images, items, collections };
+  const notifications = new InMemoryNotificationRepository(users, collections);
+  return { users, memberships, images, items, collections, notifications };
 }

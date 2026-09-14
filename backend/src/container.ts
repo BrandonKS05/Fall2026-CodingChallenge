@@ -15,6 +15,7 @@ import { JoseTokenService } from './infrastructure/auth/JoseTokenService.js';
 import { createDatabase, type Database } from './infrastructure/db/client.js';
 import { DatabaseHealthIndicator } from './infrastructure/db/DatabaseHealthIndicator.js';
 import { createDrizzleRepositories } from './infrastructure/db/repositories/index.js';
+import { InMemoryEventBus } from './infrastructure/events/InMemoryEventBus.js';
 import { CachedImageProvider } from './infrastructure/images/CachedImageProvider.js';
 import { PixabayImageProvider } from './infrastructure/images/pixabay/PixabayImageProvider.js';
 import {
@@ -23,6 +24,7 @@ import {
   createRequestLogger,
 } from './infrastructure/logging/pinoLogger.js';
 import { createStorage } from './infrastructure/storage/storageFactory.js';
+import type { EventBus } from './ports/EventBus.js';
 import type { HealthIndicator } from './ports/HealthIndicator.js';
 import type { FetchFn } from './ports/HttpFetch.js';
 import type { ImageProvider } from './ports/ImageProvider.js';
@@ -35,12 +37,16 @@ import { AuthService } from './services/AuthService.js';
 import { CollectionService } from './services/CollectionService.js';
 import { ImageService } from './services/ImageService.js';
 import { ItemService } from './services/ItemService.js';
+import { NotificationService } from './services/NotificationService.js';
+import { ShareService } from './services/ShareService.js';
 
 export interface Services {
   auth: AuthService;
   collections: CollectionService;
   images: ImageService;
   items: ItemService;
+  share: ShareService;
+  notifications: NotificationService;
 }
 
 export interface Container {
@@ -68,6 +74,7 @@ export interface ContainerOverrides {
   storage?: StorageBackend;
   imageProvider?: ImageProvider;
   fetchFn?: FetchFn;
+  eventBus?: EventBus;
 }
 
 /** backend/ on disk, so relative paths in configuration resolve the same from any working directory. */
@@ -85,6 +92,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
   const passwordHasher = overrides.passwordHasher ?? new Argon2PasswordHasher();
   const tokens = overrides.tokens ?? new JoseTokenService(env.JWT_SECRET, SESSION_TTL_SECONDS);
   const fetchFn = overrides.fetchFn ?? fetch;
+  const events = overrides.eventBus ?? new InMemoryEventBus(logger);
   const storage = overrides.storage ?? createStorage(env, BACKEND_ROOT);
   // Decorator: every provider call goes through the 24-hour cache Pixabay's terms require.
   const imageProvider =
@@ -108,8 +116,16 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     collections: repositories.collections,
     memberships: repositories.memberships,
     items: repositories.items,
+    events,
     logger,
   });
+  const notifications = new NotificationService({
+    notifications: repositories.notifications,
+    memberships: repositories.memberships,
+    logger,
+  });
+  // Observer: notifications react to board events without the publishers knowing.
+  notifications.register(events);
   const services: Services = {
     auth: new AuthService({ users: repositories.users, passwordHasher, tokens, logger }),
     collections,
@@ -119,8 +135,18 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
       collectionRepository: repositories.collections,
       collectionService: collections,
       imageService: images,
+      events,
       logger,
     }),
+    share: new ShareService({
+      collections: repositories.collections,
+      memberships: repositories.memberships,
+      users: repositories.users,
+      collectionService: collections,
+      events,
+      logger,
+    }),
+    notifications,
   };
 
   return {

@@ -42,6 +42,7 @@ container.ts is the composition root and the only module that imports infrastruc
 | Decorator | `infrastructure/images/CachedImageProvider.ts` | wraps any ImageProvider with the 24-hour cache Pixabay requires and coalesces identical concurrent searches |
 | Adapter | `infrastructure/images/pixabay/pixabayAdapter.ts` | translates Pixabay's response into the domain's ProviderImage, validated with zod at the boundary |
 | Factory | `infrastructure/storage/storageFactory.ts` | selects the storage strategy from STORAGE_DRIVER; nothing else knows which one is running |
+| Observer | `ports/EventBus.ts`, `infrastructure/events/InMemoryEventBus.ts`, `services/NotificationService.ts` | board changes are published as domain events; notifications subscribe, and publishers never know who listens |
 
 ## Error flow
 
@@ -111,3 +112,18 @@ Pixabay within 24 hours and identical concurrent queries share one request.
 
 `PIXABAY_BASE_URL` can point at a mock server for local verification without a key; download URLs on
 `localhost` are allowed over plain http for the same reason.
+
+## Events and notifications
+
+Services publish domain events (`domain/events`) after a board changes: `item.added`, `item.updated`,
+`item.removed`, `collection.updated`, `member.added`. `NotificationService.register(bus)` subscribes to
+all of them and writes one notification per member other than the actor. The in-memory bus runs
+handlers concurrently and logs a failing handler instead of failing the request, so a notification
+problem can never break a save. Because the port is just `publish` and `subscribe`, a queue-backed
+bus could replace the in-memory one without touching any publisher or subscriber.
+
+## Timestamps
+
+`updated_at` and `read_at` are written with the database's `now()`, never the Node clock. App and
+database servers rarely agree on the time to the millisecond (a Docker VM and its host included), and
+boards are ordered by activity, so the database must own the clock.

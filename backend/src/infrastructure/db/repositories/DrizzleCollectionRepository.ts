@@ -144,7 +144,7 @@ export class DrizzleCollectionRepository implements CollectionRepository {
   async update(id: string, patch: CollectionPatch): Promise<Collection> {
     const [row] = await this.db
       .update(collections)
-      .set({ ...patch, updatedAt: new Date() })
+      .set({ ...patch, updatedAt: sql`now()` })
       .where(eq(collections.id, id))
       .returning();
     if (!row) throw new NotFoundError('Collection', id);
@@ -169,7 +169,7 @@ export class DrizzleCollectionRepository implements CollectionRepository {
   }
 
   async touch(id: string): Promise<void> {
-    await this.db.update(collections).set({ updatedAt: new Date() }).where(eq(collections.id, id));
+    await this.db.update(collections).set({ updatedAt: sql`now()` }).where(eq(collections.id, id));
   }
 
   async delete(id: string): Promise<void> {

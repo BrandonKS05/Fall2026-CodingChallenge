@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ForbiddenError, NotFoundError } from '../domain/errors/index.js';
 import { CollectionService } from './CollectionService.js';
 import { silentLogger } from '../testing/fakes/fakeAuth.js';
+import { RecordingEventBus } from '../testing/fakes/RecordingEventBus.js';
 import { createFakeRepositories } from '../testing/fakeRepositories.js';
 
 describe('CollectionService', () => {
@@ -12,7 +13,7 @@ describe('CollectionService', () => {
 
   beforeEach(async () => {
     repos = createFakeRepositories();
-    service = new CollectionService({ ...repos, logger: silentLogger });
+    service = new CollectionService({ ...repos, events: new RecordingEventBus(), logger: silentLogger });
     ownerId = (await repos.users.create({ email: 'o@x.com', displayName: 'Owner', passwordHash: 'h' })).id;
     otherId = (await repos.users.create({ email: 'e@x.com', displayName: 'Else', passwordHash: 'h' })).id;
   });

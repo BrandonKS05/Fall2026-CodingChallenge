@@ -2,6 +2,7 @@ import type { CollectionRepository } from './CollectionRepository.js';
 import type { ImageRepository } from './ImageRepository.js';
 import type { ItemRepository } from './ItemRepository.js';
 import type { MembershipRepository } from './MembershipRepository.js';
+import type { NotificationRepository } from './NotificationRepository.js';
 import type { UserRepository } from './UserRepository.js';
 
 export type * from './UserRepository.js';
@@ -18,4 +19,5 @@ export interface Repositories {
   memberships: MembershipRepository;
   images: ImageRepository;
   items: ItemRepository;
+  notifications: NotificationRepository;
 }

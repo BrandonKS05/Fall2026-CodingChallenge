@@ -79,7 +79,7 @@ export class DrizzleItemRepository implements ItemRepository {
     try {
       const [row] = await this.db
         .update(collectionItems)
-        .set({ ...patch, updatedAt: new Date() })
+        .set({ ...patch, updatedAt: sql`now()` })
         .where(eq(collectionItems.id, id))
         .returning();
       if (!row) throw new NotFoundError('Item', id);

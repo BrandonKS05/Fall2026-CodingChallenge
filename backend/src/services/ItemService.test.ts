@@ -4,6 +4,7 @@ import { silentLogger } from '../testing/fakes/fakeAuth.js';
 import { createFakeFetch, FAKE_JPEG } from '../testing/fakes/fakeFetch.js';
 import { FakeImageProvider, fakeProviderImage } from '../testing/fakes/FakeImageProvider.js';
 import { InMemoryStorage } from '../testing/fakes/InMemoryStorage.js';
+import { RecordingEventBus } from '../testing/fakes/RecordingEventBus.js';
 import { createFakeRepositories } from '../testing/fakeRepositories.js';
 import { CollectionService } from './CollectionService.js';
 import { ImageService } from './ImageService.js';
@@ -13,6 +14,7 @@ describe('ItemService', () => {
   let repos: ReturnType<typeof createFakeRepositories>;
   let collections: CollectionService;
   let service: ItemService;
+  let events: RecordingEventBus;
   let owner: string;
   let editor: string;
   let viewer: string;
@@ -24,7 +26,8 @@ describe('ItemService', () => {
 
   beforeEach(async () => {
     repos = createFakeRepositories();
-    collections = new CollectionService({ ...repos, logger: silentLogger });
+    events = new RecordingEventBus();
+    collections = new CollectionService({ ...repos, events, logger: silentLogger });
     const imageService = new ImageService({
       images: repos.images,
       providers: { pixabay: new FakeImageProvider(['1', '2', '3'].map((id) => fakeProviderImage(id))) },
@@ -41,6 +44,7 @@ describe('ItemService', () => {
       collectionRepository: repos.collections,
       collectionService: collections,
       imageService,
+      events,
       logger: silentLogger,
     });
 

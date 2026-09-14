@@ -5,6 +5,8 @@
 import type { CollectionItem, ItemDetail } from '../domain/entities/CollectionItem.js';
 import type { ImageProviderName } from '../domain/entities/Image.js';
 import { NotFoundError } from '../domain/errors/index.js';
+import { createEvent } from '../domain/events/index.js';
+import type { EventBus } from '../ports/EventBus.js';
 import type { Logger } from '../ports/Logger.js';
 import type { CollectionRepository } from '../ports/repositories/CollectionRepository.js';
 import type { ItemPatch, ItemRepository } from '../ports/repositories/ItemRepository.js';
@@ -16,6 +18,7 @@ export interface ItemServiceDeps {
   collectionRepository: CollectionRepository;
   collectionService: CollectionService;
   imageService: ImageService;
+  events: EventBus;
   logger: Logger;
 }
 
@@ -55,6 +58,9 @@ export class ItemService {
     });
     await this.deps.collectionRepository.touch(collectionId);
     this.log.info({ collectionId, itemId: item.id, actorId }, 'Item added');
+    await this.deps.events.publish(
+      createEvent('item.added', { collectionId, actorId, itemId: item.id, imageId: image.id }),
+    );
     return this.detailOf(item.id);
   }
 
@@ -85,6 +91,9 @@ export class ItemService {
     await this.deps.collectionRepository.touch(collectionId);
     if (moving) await this.deps.collectionRepository.touch(target);
     this.log.info({ collectionId, itemId, actorId, moved: moving }, 'Item updated');
+    await this.deps.events.publish(
+      createEvent('item.updated', { collectionId, actorId, itemId, moved: moving }),
+    );
     return this.detailOf(updated.id);
   }
 
@@ -94,6 +103,7 @@ export class ItemService {
     await this.deps.items.delete(itemId);
     await this.deps.collectionRepository.touch(collectionId);
     this.log.info({ collectionId, itemId, actorId }, 'Item removed');
+    await this.deps.events.publish(createEvent('item.removed', { collectionId, actorId, itemId }));
   }
 
   /** The item must exist and belong to the board in the URL, or it is a 404. */

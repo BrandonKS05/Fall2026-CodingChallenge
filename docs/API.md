@@ -21,6 +21,15 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | PATCH | /api/collections/:id/items/:itemId | done |
 | DELETE | /api/collections/:id/items/:itemId | done |
 | GET | /api/images/:id | done |
+| POST | /api/collections/:id/share-link | done |
+| DELETE | /api/collections/:id/share-link | done |
+| GET | /api/shared/:slug | done |
+| GET | /api/collections/:id/members | done |
+| POST | /api/collections/:id/members | done |
+| PATCH | /api/collections/:id/members/:userId | done |
+| DELETE | /api/collections/:id/members/:userId | done |
+| GET | /api/notifications | done |
+| POST | /api/notifications/read | done |
 
 Health runs every registered indicator. Returns 200 with `status: "ok"` when all pass, otherwise 503 with `status: "degraded"`.
 
@@ -128,3 +137,33 @@ An item is an image on a board:
 | `GET /api/images/:id` | none | Streams the stored file with `Cache-Control: public, max-age=31536000, immutable`. |
 
 `GET /api/collections/:id` now returns the board's items ordered by `position`, then newest first.
+
+## Sharing
+
+Two ways to share a board. A **share link** lets anyone with the URL view it. **Members** are accounts
+that collaborate with a role.
+
+| Endpoint | Auth | Notes |
+| --- | --- | --- |
+| `POST /api/collections/:id/share-link` | owner | Returns `{ slug }`, creating it on first call. A `private` board becomes `unlisted` so the link works; `public` boards are unchanged. Idempotent. |
+| `DELETE /api/collections/:id/share-link` | owner | 204. An `unlisted` board goes back to `private`; a `public` one stays public. |
+| `GET /api/shared/:slug` | optional | Same shape as `GET /api/collections/:id`. `role` is filled in when the viewer happens to be a member. 404 for an unknown or revoked slug. |
+| `GET /api/collections/:id/members` | member | `{ members: [{ userId, email, displayName, role, joinedAt }] }`, owner first. Non-members get 403 even on public boards. |
+| `POST /api/collections/:id/members` | owner | `{ email, role? }` where role is `editor` (default) or `viewer`. 201 with the member. 404 if no account has that email, 409 if already a member. |
+| `PATCH /api/collections/:id/members/:userId` | owner | `{ role }`. The owner's own role cannot change (400). |
+| `DELETE /api/collections/:id/members/:userId` | owner, or the member themselves | 204. Members may leave; the owner cannot be removed (400). |
+
+The frontend builds the share URL from the slug (for example `/s/<slug>`), so the API stays host-agnostic.
+
+## Notifications
+
+Every change to a board notifies its other members: `item_added`, `item_updated`, `item_removed`,
+`collection_updated`, and `member_added` (which also reaches the person invited).
+
+| Endpoint | Auth | Notes |
+| --- | --- | --- |
+| `GET /api/notifications` | required | `{ notifications, unreadCount }`, newest first, 50 at most. Each has `type`, `collection: { id, title }`, `actor: { id, displayName }`, `payload`, `readAt`, `createdAt`. |
+| `POST /api/notifications/read` | required | `{ ids?: [] }` marks those read, or everything when `ids` is omitted. 204. |
+
+`payload` carries what the type needs: `itemId` and `imageId` for item events (so a thumbnail can be
+shown via `/api/images/:imageId`), `changes` for board updates, `userId` and `role` for invitations.

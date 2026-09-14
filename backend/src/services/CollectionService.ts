@@ -7,7 +7,9 @@ import type { Collection, CollectionSummary } from '../domain/entities/Collectio
 import type { ItemDetail } from '../domain/entities/CollectionItem.js';
 import type { CollectionRole } from '../domain/entities/Membership.js';
 import { ForbiddenError, NotFoundError } from '../domain/errors/index.js';
+import { createEvent } from '../domain/events/index.js';
 import { canEditItems, canManage, canView } from '../domain/policies/collectionAccess.js';
+import type { EventBus } from '../ports/EventBus.js';
 import type { Logger } from '../ports/Logger.js';
 import type {
   CollectionPatch,
@@ -21,6 +23,7 @@ export interface CollectionServiceDeps {
   collections: CollectionRepository;
   memberships: MembershipRepository;
   items: ItemRepository;
+  events: EventBus;
   logger: Logger;
 }
 
@@ -91,6 +94,9 @@ export class CollectionService {
     await this.authorize(collectionId, actorId, 'manage');
     await this.deps.collections.update(collectionId, patch);
     this.log.info({ collectionId, actorId }, 'Collection updated');
+    await this.deps.events.publish(
+      createEvent('collection.updated', { collectionId, actorId, changes: Object.keys(patch) }),
+    );
     return this.summaryOf(collectionId, actorId);
   }
 
