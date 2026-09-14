@@ -12,6 +12,8 @@ import { PageSkeleton } from '@/components/common/PageSkeleton';
 
 const DiscoverPage = lazy(() => import('@/features/search/pages/DiscoverPage'));
 const BoardsPage = lazy(() => import('@/features/collections/pages/BoardsPage'));
+const BoardPage = lazy(() => import('@/features/collections/pages/BoardPage'));
+const ExplorePage = lazy(() => import('@/features/collections/pages/ExplorePage'));
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'));
 
@@ -29,6 +31,9 @@ export const router = createBrowserRouter([
     ),
     children: [
       { path: '/', element: page(<DiscoverPage />) },
+      { path: '/explore', element: page(<ExplorePage />) },
+      // Board pages are readable by non-members when unlisted or public, so the API decides, not the router.
+      { path: '/boards/:id', element: page(<BoardPage />) },
       { path: '/login', element: page(<LoginPage />) },
       { path: '/register', element: page(<RegisterPage />) },
       {

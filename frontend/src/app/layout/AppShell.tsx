@@ -7,6 +7,7 @@ import { UserMenu } from './UserMenu';
 
 const links = [
   { to: '/', label: 'Discover', end: true },
+  { to: '/explore', label: 'Explore' },
   { to: '/boards', label: 'My boards' },
 ];
 

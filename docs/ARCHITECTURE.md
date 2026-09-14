@@ -149,3 +149,11 @@ need a user wrap in `RequireAuth`, which returns visitors to where they were aft
 
 In development Vite proxies `/api` to the backend so cookies stay first-party. Tests sit beside the
 component they cover (`Name.test.tsx`).
+
+### Optimistic updates
+
+Item and board mutations (`features/items/queries.ts`, `features/collections/queries.ts`) update the
+TanStack Query cache in `onMutate`, keep a snapshot, roll back in `onError`, and invalidate in
+`onSettled`, so removing, captioning, and renaming feel instant and a failed request restores the
+previous state. Removing an image offers Undo in the toast, which re-saves the same provider image
+with its caption and tags; the backend reuses the stored file, so undo costs no new download.

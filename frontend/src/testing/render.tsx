@@ -30,20 +30,45 @@ export function renderWithProviders(ui: ReactElement, { route = '/', ...options 
   return { queryClient, ...render(ui, { wrapper: Wrapper, ...options }) };
 }
 
-/** A fetch stub that answers by method and path, recording every call. */
-export function stubApi(routes: Record<string, { status?: number; body?: unknown }>) {
-  const calls: { method: string; path: string; body: unknown }[] = [];
+export interface StubCall {
+  method: string;
+  path: string;
+  body: unknown;
+}
+
+export interface StubResponse {
+  status?: number;
+  body?: unknown;
+}
+
+/** A static answer, or a function so the stub can reflect earlier calls (e.g. a list after a delete). */
+export type StubRoute = StubResponse | ((call: StubCall) => StubResponse);
+
+/** A fetch stub that answers by "METHOD /path" (query string ignored), recording every call. */
+export function stubApi(routes: Record<string, StubRoute>) {
+  const calls: StubCall[] = [];
   const fetchMock = async (input: string | URL | Request, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     const path = url.replace(/^https?:\/\/[^/]+/, '').replace(/\?.*$/, '');
     const method = init?.method ?? 'GET';
-    calls.push({ method, path, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+    const call: StubCall = { method, path, body: init?.body ? JSON.parse(String(init.body)) : undefined };
+    calls.push(call);
+
     const route = routes[`${method} ${path}`];
-    if (!route) return new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: `no stub for ${method} ${path}` } }), { status: 404 });
-    const status = route.status ?? 200;
-    return route.body === undefined
+    if (!route) {
+      return new Response(
+        JSON.stringify({ error: { code: 'NOT_FOUND', message: `no stub for ${method} ${path}` } }),
+        { status: 404, headers: { 'content-type': 'application/json' } },
+      );
+    }
+    const response = typeof route === 'function' ? route(call) : route;
+    const status = response.status ?? 200;
+    return response.body === undefined
       ? new Response(null, { status: status === 200 ? 204 : status })
-      : new Response(JSON.stringify(route.body), { status, headers: { 'content-type': 'application/json' } });
+      : new Response(JSON.stringify(response.body), {
+          status,
+          headers: { 'content-type': 'application/json' },
+        });
   };
   return { fetchMock, calls };
 }
