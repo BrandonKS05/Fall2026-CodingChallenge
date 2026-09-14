@@ -11,6 +11,7 @@ import { ZodError } from 'zod';
 import { DomainError } from '../../domain/errors/index.js';
 import type { Logger } from '../../ports/Logger.js';
 import { ApiError } from '../http/ApiError.js';
+import { toValidationDetails } from '../http/validationDetails.js';
 
 interface ErrorHandlerOptions {
   /** Include real error messages in 500 responses. Never enable in production. */
@@ -47,7 +48,7 @@ export function createErrorHandler(
 function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error;
   if (error instanceof DomainError) return fromDomainError(error);
-  if (error instanceof ZodError) return ApiError.validation(error.issues);
+  if (error instanceof ZodError) return ApiError.validation(toValidationDetails(error.issues));
   if (isClientError(error)) return new ApiError(error.status, 'VALIDATION_ERROR', error.message);
   return ApiError.internal(error instanceof Error ? error.message : 'Unknown error');
 }

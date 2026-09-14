@@ -51,7 +51,7 @@ describe('auth routes', () => {
       .post('/api/auth/register')
       .send({ email: 'not-an-email', password: 'short', displayName: '' });
     expect(res.status).toBe(400);
-    const paths = res.body.error.details.map((issue: { path: string[] }) => issue.path.join('.'));
+    const paths = res.body.error.details.map((issue: { path: string }) => issue.path);
     expect(paths).toEqual(
       expect.arrayContaining(['body.email', 'body.password', 'body.displayName']),
     );

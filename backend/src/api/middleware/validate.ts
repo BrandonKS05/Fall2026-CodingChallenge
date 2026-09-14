@@ -10,6 +10,7 @@
 import type { RequestHandler, Response } from 'express';
 import type { ZodType } from 'zod';
 import { ApiError } from '../http/ApiError.js';
+import { toValidationDetails, type ValidationDetail } from '../http/validationDetails.js';
 
 export interface Validated<TBody = unknown, TQuery = unknown, TParams = unknown> {
   body: TBody;
@@ -28,7 +29,7 @@ const PARTS = ['body', 'query', 'params'] as const;
 export function validate(schemas: ValidationSchemas): RequestHandler {
   return (req, res, next) => {
     const validated: Validated = { body: req.body, query: req.query, params: req.params };
-    const issues: unknown[] = [];
+    const issues: ValidationDetail[] = [];
 
     for (const part of PARTS) {
       const schema = schemas[part];
@@ -37,9 +38,7 @@ export function validate(schemas: ValidationSchemas): RequestHandler {
       if (result.success) {
         validated[part] = result.data;
       } else {
-        issues.push(
-          ...result.error.issues.map((issue) => ({ ...issue, path: [part, ...issue.path] })),
-        );
+        issues.push(...toValidationDetails(result.error.issues, part));
       }
     }
 

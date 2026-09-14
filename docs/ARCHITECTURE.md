@@ -75,3 +75,12 @@ Every feature follows the same path, using auth as the example:
 
 Tests mirror the layers: service tests use in-memory fakes, route tests use the real adapters with an
 in-memory repository, and `tests/integration` runs the Drizzle repositories against Postgres (`pnpm test:db`).
+
+## Authorization
+
+`CollectionService.authorize(collectionId, actorId, level)` is the single enforcement point. It loads
+the board and the actor's membership, then applies the pure policy functions in
+`domain/policies/collectionAccess.ts` for the requested level (`view`, `edit`, `manage`). Every service
+that touches a board, including items and sharing, calls it first, so a rule changes in one file.
+Unknown boards raise `NotFoundError`; insufficient roles raise `ForbiddenError` with a message that
+says what role would have been needed.

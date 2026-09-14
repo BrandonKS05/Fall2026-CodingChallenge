@@ -25,9 +25,11 @@ import type { PasswordHasher } from './ports/PasswordHasher.js';
 import type { Repositories } from './ports/repositories/index.js';
 import type { TokenService } from './ports/TokenService.js';
 import { AuthService } from './services/AuthService.js';
+import { CollectionService } from './services/CollectionService.js';
 
 export interface Services {
   auth: AuthService;
+  collections: CollectionService;
 }
 
 export interface Container {
@@ -68,6 +70,11 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
 
   const services: Services = {
     auth: new AuthService({ users: repositories.users, passwordHasher, tokens, logger }),
+    collections: new CollectionService({
+      collections: repositories.collections,
+      memberships: repositories.memberships,
+      logger,
+    }),
   };
 
   return {

@@ -35,7 +35,7 @@ describe('validate middleware', () => {
     const res = await request(buildApp()).post('/things?page=0').send({ title: '' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
-    const paths = res.body.error.details.map((issue: { path: string[] }) => issue.path.join('.'));
+    const paths = res.body.error.details.map((issue: { path: string }) => issue.path);
     expect(paths).toEqual(expect.arrayContaining(['body.title', 'query.page']));
   });
 });

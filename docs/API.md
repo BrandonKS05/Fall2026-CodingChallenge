@@ -10,6 +10,12 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | POST | /api/auth/login | done |
 | POST | /api/auth/logout | done |
 | GET | /api/auth/me | done |
+| GET | /api/collections | done |
+| POST | /api/collections | done |
+| GET | /api/collections/:id | done (items arrive with the items slice) |
+| PATCH | /api/collections/:id | done |
+| DELETE | /api/collections/:id | done |
+| GET | /api/explore | done |
 
 Health runs every registered indicator. Returns 200 with `status: "ok"` when all pass, otherwise 503 with `status: "degraded"`.
 
@@ -53,3 +59,28 @@ production. Register and login are rate limited to 20 attempts per 15 minutes pe
 | `GET /api/auth/me` | none | 200 `{ user }` for a valid session, otherwise 401. |
 
 `user` is `{ id, email, displayName, createdAt }`. Emails are trimmed and lowercased before use.
+
+## Collections
+
+A collection (board) is returned as:
+
+```json
+{ "id": "…", "owner": { "id": "…", "displayName": "Ada" }, "title": "Kitchen ideas",
+  "description": "", "visibility": "private", "shareSlug": null,
+  "previewImageIds": [], "itemCount": 0, "role": "owner",
+  "createdAt": "…", "updatedAt": "…" }
+```
+
+`role` is the requesting user's role (`owner`, `editor`, `viewer`) or `null` for a non-member.
+`previewImageIds` holds up to four recent image ids for the cover mosaic, each viewable at `/api/images/:id`.
+
+| Endpoint | Auth | Notes |
+| --- | --- | --- |
+| `GET /api/collections` | required | Boards the user owns or was added to, most recently updated first. `{ collections }` |
+| `POST /api/collections` | required | `{ title, description?, visibility? }` → 201 with the board. The caller becomes owner. |
+| `GET /api/collections/:id` | optional | `{ collection, items }`. Members always see it; non-members only if `unlisted` or `public`, otherwise 403. |
+| `PATCH /api/collections/:id` | required | Any of `title`, `description`, `visibility`. Owner only (403 otherwise). Empty body is 400. |
+| `DELETE /api/collections/:id` | required | Owner only. 204. Items and memberships cascade. |
+| `GET /api/explore?page=&perPage=` | optional | Public boards, newest first. `perPage` is capped at 50. `{ collections }` |
+
+Validation failures return `details` as `[{ path, code, message }]`, where `path` names the request part, e.g. `body.title` or `params.id`.
