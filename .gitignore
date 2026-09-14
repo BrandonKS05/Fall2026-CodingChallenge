@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files (keep the examples)
+.env
+.env.*
+!.env.example
+
+# Local image storage written by the backend's LocalDiskStorage
+backend/storage/
+
+# Tooling output
+coverage/
+.vite/
+.eslintcache
+
+# Logs
+logs/
+*.log
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

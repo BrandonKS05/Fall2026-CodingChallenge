@@ -1,0 +1,5 @@
+# Workspace packages. Root scripts fan out to these with `pnpm -r`.
+packages:
+  - frontend
+  - backend
+  - shared

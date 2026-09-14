@@ -1,0 +1,27 @@
+{
+  "name": "trove",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Image saving and sharing app - Change++ Fall 2026 coding challenge",
+  "packageManager": "pnpm@10.29.2",
+  "engines": {
+    "node": ">=20.19",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --stream run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter backend run db:migrate",
+    "db:seed": "pnpm --filter backend run db:seed"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.0"
+  }
+}
