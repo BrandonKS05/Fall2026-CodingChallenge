@@ -3,6 +3,7 @@ import { authResponseSchema } from '@trove/shared';
 import type { Express } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { FakeOAuthProvider } from '../../testing/fakes/FakeOAuthProvider.js';
 import { InMemoryUserRepository } from '../../testing/fakes/InMemoryUserRepository.js';
 import { buildTestApp } from '../../testing/testApp.js';
 
@@ -11,9 +12,7 @@ const account = { email: 'Grace@Example.com', password: 'hopper-1906', displayNa
 function sessionCookie(res: request.Response): string {
   const header = res.headers['set-cookie'];
   const cookies = Array.isArray(header) ? header : [header ?? ''];
-  const session = cookies.find((cookie) => cookie.startsWith('trove_session='));
-  if (!session) throw new Error('no session cookie in response');
-  return session;
+  return cookies.find((cookie) => cookie.startsWith('trove_session=')) ?? '';
 }
 
 describe('auth routes', () => {
@@ -103,5 +102,75 @@ describe('auth routes', () => {
     users.delete(registered.body.user.id);
     const me = await request(app).get('/api/auth/me').set('Cookie', sessionCookie(registered));
     expect(me.body).toEqual({ user: null });
+  });
+});
+
+describe('Google sign-in routes', () => {
+  const profile = { providerId: 'g-42', email: 'grace@example.com', emailVerified: true, displayName: 'Grace' };
+
+  function buildGoogleApp() {
+    const users = new InMemoryUserRepository();
+    const google = new FakeOAuthProvider({ 'good-code': profile });
+    const app = buildTestApp({ repositories: { users }, oauth: { google } });
+    return { app, users, google };
+  }
+
+  function stateCookie(res: request.Response): string {
+    const header = res.headers['set-cookie'];
+    const cookies = Array.isArray(header) ? header : [header ?? ''];
+    return cookies.find((cookie) => cookie.startsWith('trove_oauth_state=')) ?? '';
+  }
+
+  it('advertises configured providers', async () => {
+    expect((await request(buildGoogleApp().app).get('/api/auth/providers')).body).toEqual({ google: true });
+    expect((await request(buildTestApp({ oauth: {} })).get('/api/auth/providers')).body).toEqual({ google: false });
+  });
+
+  it('starts by setting a state cookie and redirecting to Google', async () => {
+    const { app, google } = buildGoogleApp();
+    const res = await request(app).get('/api/auth/google');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/^https:\/\/accounts\.google\.test\/auth\?state=/);
+    expect(stateCookie(res)).toMatch(/HttpOnly/i);
+    expect(google.authorizationCalls[0]?.redirectUri).toBe('http://localhost:5173/api/auth/google/callback');
+  });
+
+  it('completes the round trip: valid state and code start a session', async () => {
+    const { app, users } = buildGoogleApp();
+    const start = await request(app).get('/api/auth/google');
+    const state = new URL(start.headers.location ?? '').searchParams.get('state') ?? '';
+
+    const callback = await request(app)
+      .get(`/api/auth/google/callback?code=good-code&state=${encodeURIComponent(state)}`)
+      .set('Cookie', stateCookie(start));
+    expect(callback.status).toBe(302);
+    expect(callback.headers.location).toBe('http://localhost:5173/boards');
+    expect(sessionCookie(callback)).toMatch(/HttpOnly/i);
+    expect(await users.findByGoogleId('g-42')).toMatchObject({ email: 'grace@example.com', passwordHash: null });
+
+    const me = await request(app).get('/api/auth/me').set('Cookie', sessionCookie(callback));
+    expect(me.body.user.displayName).toBe('Grace');
+  });
+
+  it('sends the browser back to login with a reason when the state, code, or consent is wrong', async () => {
+    const { app } = buildGoogleApp();
+    const start = await request(app).get('/api/auth/google');
+    const cookie = stateCookie(start);
+
+    const tampered = await request(app).get('/api/auth/google/callback?code=good-code&state=forged').set('Cookie', cookie);
+    expect(tampered.headers.location).toBe('http://localhost:5173/login?error=oauth_state');
+
+    const denied = await request(app).get('/api/auth/google/callback?error=access_denied').set('Cookie', cookie);
+    expect(denied.headers.location).toBe('http://localhost:5173/login?error=google_denied');
+
+    const state = new URL(start.headers.location ?? '').searchParams.get('state') ?? '';
+    const badCode = await request(app).get(`/api/auth/google/callback?code=nope&state=${state}`).set('Cookie', cookie);
+    expect(badCode.headers.location).toBe('http://localhost:5173/login?error=google_failed');
+    expect(sessionCookie(badCode)).toBe('');
+  });
+
+  it('answers 302 to login when Google is not configured', async () => {
+    const res = await request(buildTestApp({ oauth: {} })).get('/api/auth/google');
+    expect(res.headers.location).toBe('http://localhost:5173/login?error=google_unavailable');
   });
 });

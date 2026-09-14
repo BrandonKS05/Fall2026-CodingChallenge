@@ -7,8 +7,8 @@ import { createRateLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 
 export function createAuthRouter(container: Container): Router {
-  const { env, services, repositories, tokens } = container;
-  const controller = createAuthController({ auth: services.auth, env });
+  const { env, services, repositories, tokens, oauth } = container;
+  const controller = createAuthController({ auth: services.auth, env, google: oauth.google });
 
   // Brute-force protection on the credential endpoints. Relaxed under test so suites can exercise the routes.
   const credentialLimiter = createRateLimiter({
@@ -22,5 +22,8 @@ export function createAuthRouter(container: Container): Router {
   router.post('/logout', controller.logout);
   // Visitors get { user: null } rather than a 401, so the client can probe the session quietly.
   router.get('/me', optionalAuth({ tokens, users: repositories.users }), controller.me);
+  router.get('/providers', controller.providers);
+  router.get('/google', credentialLimiter, controller.googleStart);
+  router.get('/google/callback', credentialLimiter, controller.googleCallback);
   return router;
 }

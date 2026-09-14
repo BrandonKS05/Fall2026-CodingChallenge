@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { toPublicUser, type PublicUser, type User } from '../domain/entities/User.js';
 import { AuthenticationError, ConflictError } from '../domain/errors/index.js';
 import type { Logger } from '../ports/Logger.js';
+import type { OAuthProfile } from '../ports/OAuthProvider.js';
 import type { PasswordHasher } from '../ports/PasswordHasher.js';
 import type { UserRepository } from '../ports/repositories/UserRepository.js';
 import type { TokenService } from '../ports/TokenService.js';
@@ -58,12 +59,43 @@ export class AuthService {
 
   async login(input: LoginInput): Promise<AuthResult> {
     const user = await this.deps.users.findByEmail(input.email);
+    if (user && user.passwordHash === null) {
+      throw new AuthenticationError('This account signs in with Google');
+    }
     // Verify against a decoy when the email is unknown, so response time does not reveal which emails exist.
     const hash = user?.passwordHash ?? (await this.getDecoyHash());
     const valid = await this.deps.passwordHasher.verify(hash, input.password);
     if (!user || !valid) throw new AuthenticationError();
     this.log.info({ userId: user.id }, 'User logged in');
     return this.startSession(user);
+  }
+
+  /**
+   * Signs in with an identity provider's verified profile. Matches by provider
+   * id first, then links by verified email, and otherwise creates the account.
+   */
+  async loginWithOAuth(profile: OAuthProfile): Promise<AuthResult> {
+    if (!profile.emailVerified) {
+      throw new AuthenticationError('Google has not verified that email address');
+    }
+    const byProvider = await this.deps.users.findByGoogleId(profile.providerId);
+    if (byProvider) return this.startSession(byProvider);
+
+    const byEmail = await this.deps.users.findByEmail(profile.email);
+    if (byEmail) {
+      const linked = await this.deps.users.linkGoogle(byEmail.id, profile.providerId);
+      this.log.info({ userId: linked.id }, 'Google account linked');
+      return this.startSession(linked);
+    }
+
+    const created = await this.deps.users.create({
+      email: profile.email,
+      displayName: profile.displayName,
+      passwordHash: null,
+      googleId: profile.providerId,
+    });
+    this.log.info({ userId: created.id }, 'User registered with Google');
+    return this.startSession(created);
   }
 
   /** Resolves the session's user, or throws when the account no longer exists. */

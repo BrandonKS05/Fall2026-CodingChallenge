@@ -54,3 +54,13 @@ export function useLogout() {
     },
   });
 }
+
+/** Which sign-in buttons to show. Configuration, so it never goes stale within a visit. */
+export function useAuthProviders() {
+  return useQuery({
+    queryKey: ['auth', 'providers'] as const,
+    queryFn: () => authApi.providers(),
+    staleTime: Number.POSITIVE_INFINITY,
+    meta: { silentError: true },
+  });
+}

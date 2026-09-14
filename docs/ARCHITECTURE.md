@@ -39,6 +39,7 @@ container.ts is the composition root and the only module that imports infrastruc
 | Repository | `backend/src/ports/repositories/*` (interfaces), `infrastructure/db/repositories/*` (Drizzle) | Postgres for any store; services never see SQL |
 | Strategy | `backend/src/ports/PasswordHasher.ts`, `ports/TokenService.ts` | argon2 and jose sit behind these as adapters; AuthService never imports either |
 | Strategy | `ports/ImageProvider.ts`, `ports/StorageBackend.ts` | Pixabay for Unsplash; local disk for S3, R2, or Supabase; the services only see the ports |
+| Strategy | `ports/OAuthProvider.ts`, `infrastructure/auth/GoogleOAuthProvider.ts` | Google today, any OpenID Connect provider tomorrow; AuthService only ever sees a verified profile |
 | Decorator | `infrastructure/images/CachedImageProvider.ts` | wraps any ImageProvider with the 24-hour cache Pixabay requires and coalesces identical concurrent searches |
 | Adapter | `infrastructure/images/pixabay/pixabayAdapter.ts` | translates Pixabay's response into the domain's ProviderImage, validated with zod at the boundary |
 | Factory | `infrastructure/storage/storageFactory.ts` | selects the storage strategy from STORAGE_DRIVER; nothing else knows which one is running |

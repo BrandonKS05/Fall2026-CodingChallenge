@@ -8,12 +8,21 @@ import { loginRequestSchema, registerRequestSchema, type LoginRequest, type Regi
 import { z } from 'zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ApiError } from '@/lib/api';
-import { useLogin, useRegister } from '../queries';
+import { useAuthProviders, useLogin, useRegister } from '../queries';
 import { FormField } from './FormField';
+import { GoogleButton } from './GoogleButton';
+
+/** Reasons the Google callback can send the browser back with. */
+const OAUTH_ERRORS: Record<string, string> = {
+  google_denied: 'Google sign-in was cancelled.',
+  oauth_state: 'That sign-in attempt expired. Please try again.',
+  google_failed: 'Google sign-in did not work. Try again, or use your password.',
+  google_unavailable: 'Google sign-in is not set up on this server.',
+};
 
 type Mode = 'login' | 'register';
 
@@ -50,7 +59,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const location = useLocation();
   const login = useLogin();
   const register = useRegister();
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  const providers = useAuthProviders();
+  const oauthError = OAUTH_ERRORS[params.get('error') ?? ''] ?? null;
+  const [serverError, setServerError] = useState<string | null>(oauthError);
   const text = copy[mode];
   const pending = login.isPending || register.isPending;
 
@@ -82,7 +94,17 @@ export function AuthForm({ mode }: { mode: Mode }) {
         <CardTitle>{text.title}</CardTitle>
         <CardDescription>{text.description}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {providers.data?.google && (
+          <>
+            <GoogleButton />
+            <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden>
+              <span className="h-px flex-1 bg-border" />
+              or
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        )}
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           {mode === 'register' && (
             <FormField

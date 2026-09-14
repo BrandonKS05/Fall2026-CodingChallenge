@@ -60,3 +60,44 @@ describe('AuthService', () => {
     await expect(service.getUser(user.id)).rejects.toBeInstanceOf(AuthenticationError);
   });
 });
+
+describe('AuthService with Google', () => {
+  let users: InMemoryUserRepository;
+  let service: AuthService;
+  const profile = { providerId: 'g-1', email: 'ada@example.com', emailVerified: true, displayName: 'Ada' };
+
+  beforeEach(() => {
+    users = new InMemoryUserRepository();
+    service = new AuthService({
+      users,
+      passwordHasher: new FakePasswordHasher(),
+      tokens: new FakeTokenService(),
+      logger: silentLogger,
+    });
+  });
+
+  it('creates a password-less account on first Google sign-in and reuses it afterwards', async () => {
+    const first = await service.loginWithOAuth(profile);
+    expect(first.user.email).toBe('ada@example.com');
+    expect((await users.findById(first.user.id))?.passwordHash).toBeNull();
+
+    const second = await service.loginWithOAuth({ ...profile, email: 'changed@example.com' });
+    expect(second.user.id).toBe(first.user.id);
+  });
+
+  it('links Google to an existing password account with the same verified email', async () => {
+    const registered = await service.register({ email: 'ada@example.com', password: 'correct horse', displayName: 'Ada' });
+    const viaGoogle = await service.loginWithOAuth(profile);
+    expect(viaGoogle.user.id).toBe(registered.user.id);
+    expect((await users.findById(registered.user.id))?.googleId).toBe('g-1');
+    // The password still works after linking.
+    await expect(service.login({ email: 'ada@example.com', password: 'correct horse' })).resolves.toBeDefined();
+  });
+
+  it('refuses unverified emails and password logins to Google-only accounts', async () => {
+    await expect(service.loginWithOAuth({ ...profile, emailVerified: false })).rejects.toBeInstanceOf(AuthenticationError);
+    await service.loginWithOAuth(profile);
+    await expect(service.login({ email: 'ada@example.com', password: 'anything' })).rejects.toThrow(/signs in with Google/);
+    await expect(service.register({ email: 'ada@example.com', password: 'password-123', displayName: 'Dup' })).rejects.toBeInstanceOf(ConflictError);
+  });
+});

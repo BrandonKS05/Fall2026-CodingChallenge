@@ -35,6 +35,13 @@ const envSchema = z
     /** Browser origin allowed to call the API with credentials. */
     CORS_ORIGIN: z.url().default('http://localhost:5173'),
 
+    /** Public origin of the frontend; OAuth callbacks and post-login redirects point here. */
+    APP_URL: z.url().default('http://localhost:5173'),
+
+    /** Both present enables "Continue with Google"; both absent hides it. */
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+
     /** Selects the StorageBackend strategy. See infrastructure/storage. */
     STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
     STORAGE_LOCAL_DIR: z.string().default('./storage'),
@@ -45,6 +52,13 @@ const envSchema = z
     S3_SECRET_ACCESS_KEY: z.string().optional(),
   })
   .superRefine((env, ctx) => {
+    if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['GOOGLE_CLIENT_SECRET'],
+        message: 'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together',
+      });
+    }
     if (env.STORAGE_DRIVER !== 's3') return;
     const required = ['S3_BUCKET', 'S3_REGION', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const;
     for (const key of required) {

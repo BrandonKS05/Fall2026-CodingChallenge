@@ -44,3 +44,9 @@ export const sessionResponseSchema = z.object({
   user: userSchema.nullable(),
 });
 export type SessionResponse = z.infer<typeof sessionResponseSchema>;
+
+/** Which sign-in methods the server has configured, so the client shows only working buttons. */
+export const authProvidersResponseSchema = z.object({
+  google: z.boolean(),
+});
+export type AuthProvidersResponse = z.infer<typeof authProvidersResponseSchema>;

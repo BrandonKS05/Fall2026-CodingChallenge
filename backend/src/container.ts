@@ -11,6 +11,7 @@ import pkg from '../package.json' with { type: 'json' };
 import type { Env } from './config/env.js';
 import { SESSION_TTL_SECONDS } from './config/session.js';
 import { Argon2PasswordHasher } from './infrastructure/auth/Argon2PasswordHasher.js';
+import { GoogleOAuthProvider } from './infrastructure/auth/GoogleOAuthProvider.js';
 import { JoseTokenService } from './infrastructure/auth/JoseTokenService.js';
 import { createDatabase, type Database } from './infrastructure/db/client.js';
 import { DatabaseHealthIndicator } from './infrastructure/db/DatabaseHealthIndicator.js';
@@ -29,6 +30,7 @@ import type { HealthIndicator } from './ports/HealthIndicator.js';
 import type { FetchFn } from './ports/HttpFetch.js';
 import type { ImageProvider } from './ports/ImageProvider.js';
 import type { Logger } from './ports/Logger.js';
+import type { OAuthProvider } from './ports/OAuthProvider.js';
 import type { PasswordHasher } from './ports/PasswordHasher.js';
 import type { Repositories } from './ports/repositories/index.js';
 import type { StorageBackend } from './ports/StorageBackend.js';
@@ -49,6 +51,11 @@ export interface Services {
   notifications: NotificationService;
 }
 
+/** Identity providers that are configured. Absent means the button is hidden. */
+export interface OAuthProviders {
+  google?: OAuthProvider | undefined;
+}
+
 export interface Container {
   env: Env;
   logger: Logger;
@@ -59,6 +66,7 @@ export interface Container {
   repositories: Repositories;
   passwordHasher: PasswordHasher;
   tokens: TokenService;
+  oauth: OAuthProviders;
   services: Services;
   /** Releases pooled connections. Called once on shutdown. */
   dispose(): Promise<void>;
@@ -75,6 +83,7 @@ export interface ContainerOverrides {
   imageProvider?: ImageProvider;
   fetchFn?: FetchFn;
   eventBus?: EventBus;
+  oauth?: OAuthProviders;
 }
 
 /** backend/ on disk, so relative paths in configuration resolve the same from any working directory. */
@@ -93,6 +102,11 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
   const tokens = overrides.tokens ?? new JoseTokenService(env.JWT_SECRET, SESSION_TTL_SECONDS);
   const fetchFn = overrides.fetchFn ?? fetch;
   const events = overrides.eventBus ?? new InMemoryEventBus(logger);
+  const oauth: OAuthProviders =
+    overrides.oauth ??
+    (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? { google: new GoogleOAuthProvider({ clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET, fetchFn }) }
+      : {});
   const storage = overrides.storage ?? createStorage(env, BACKEND_ROOT);
   // Decorator: every provider call goes through the 24-hour cache Pixabay's terms require.
   const imageProvider =
@@ -158,6 +172,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     repositories,
     passwordHasher,
     tokens,
+    oauth,
     services,
     dispose: () => database.close(),
   };

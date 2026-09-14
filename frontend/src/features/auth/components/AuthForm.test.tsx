@@ -28,7 +28,7 @@ describe('AuthForm', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
     expect(await screen.findAllByRole('alert')).toHaveLength(2);
-    expect(api.calls).toHaveLength(0);
+    expect(api.calls.filter((call) => call.method === 'POST')).toHaveLength(0);
   });
 
   it('logs in, normalizes the email, and moves on to the boards page', async () => {
@@ -38,7 +38,7 @@ describe('AuthForm', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
     expect(await screen.findByText('Boards page')).toBeInTheDocument();
-    expect(api.calls[0]).toMatchObject({ method: 'POST', path: '/api/auth/login', body: { email: 'ada@example.com' } });
+    expect(api.calls.find((call) => call.method === 'POST')).toMatchObject({ path: '/api/auth/login', body: { email: 'ada@example.com' } });
   });
 
   it('shows the server message for bad credentials', async () => {
@@ -50,5 +50,28 @@ describe('AuthForm', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Invalid email or password'));
+  });
+});
+
+describe('AuthForm with Google', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows the Google button when the server has it configured', async () => {
+    vi.stubGlobal('fetch', stubApi({ 'GET /api/auth/providers': { body: { google: true } } }).fetchMock);
+    renderWithProviders(<AuthForm mode="login" />);
+    expect(await screen.findByRole('link', { name: 'Continue with Google' })).toHaveAttribute('href', '/api/auth/google');
+  });
+
+  it('hides the Google button when it is not configured', async () => {
+    vi.stubGlobal('fetch', stubApi({ 'GET /api/auth/providers': { body: { google: false } } }).fetchMock);
+    renderWithProviders(<AuthForm mode="register" />);
+    await screen.findByRole('button', { name: 'Sign up' });
+    expect(screen.queryByRole('link', { name: 'Continue with Google' })).not.toBeInTheDocument();
+  });
+
+  it('explains why a Google sign-in came back', async () => {
+    vi.stubGlobal('fetch', stubApi({ 'GET /api/auth/providers': { body: { google: true } } }).fetchMock);
+    renderWithProviders(<AuthForm mode="login" />, { route: '/login?error=google_denied' });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Google sign-in was cancelled.');
   });
 });

@@ -2,18 +2,28 @@
  * Auth controller. Controllers are thin: read validated input, call one
  * service method, present the result. No business rules live here.
  */
-import type { LoginRequest, RegisterRequest } from '@trove/shared';
+import { randomBytes } from 'node:crypto';
+import type { AuthProvidersResponse, LoginRequest, RegisterRequest } from '@trove/shared';
 import type { RequestHandler } from 'express';
+import { z } from 'zod';
 import type { Env } from '../../config/env.js';
+import type { OAuthProvider } from '../../ports/OAuthProvider.js';
 import type { AuthService } from '../../services/AuthService.js';
-import { clearSessionCookie, setSessionCookie } from '../http/session.js';
+import {
+  clearOAuthStateCookie,
+  clearSessionCookie,
+  OAUTH_STATE_COOKIE_NAME,
+  setOAuthStateCookie,
+  setSessionCookie,
+} from '../http/session.js';
 import { optionalUser } from '../middleware/authenticate.js';
 import { getValidated } from '../middleware/validate.js';
 import { presentAuth, presentSession } from '../presenters/user.presenter.js';
 
 export interface AuthControllerDeps {
   auth: AuthService;
-  env: Pick<Env, 'NODE_ENV'>;
+  env: Pick<Env, 'NODE_ENV' | 'APP_URL'>;
+  google?: OAuthProvider | undefined;
 }
 
 export interface AuthController {
@@ -21,9 +31,22 @@ export interface AuthController {
   login: RequestHandler;
   logout: RequestHandler;
   me: RequestHandler;
+  providers: RequestHandler;
+  googleStart: RequestHandler;
+  googleCallback: RequestHandler;
 }
 
-export function createAuthController({ auth, env }: AuthControllerDeps): AuthController {
+/** Google's callback query. Everything is optional because a denied consent has only `error`. */
+const callbackQuerySchema = z.object({
+  code: z.string().optional(),
+  state: z.string().optional(),
+  error: z.string().optional(),
+});
+
+export function createAuthController({ auth, env, google }: AuthControllerDeps): AuthController {
+  const redirectUri = `${env.APP_URL}/api/auth/google/callback`;
+  const backToLogin = (reason: string) => `${env.APP_URL}/login?error=${reason}`;
+
   return {
     register: async (_req, res) => {
       const { body } = getValidated<RegisterRequest>(res);
@@ -46,6 +69,52 @@ export function createAuthController({ auth, env }: AuthControllerDeps): AuthCon
 
     me: (_req, res) => {
       res.json(presentSession(optionalUser(res)));
+    },
+
+    providers: (_req, res) => {
+      const body: AuthProvidersResponse = { google: google !== undefined };
+      res.json(body);
+    },
+
+    /** Step 1: remember a random state in a cookie and send the browser to Google. */
+    googleStart: (_req, res) => {
+      if (!google) {
+        res.redirect(backToLogin('google_unavailable'));
+        return;
+      }
+      const state = randomBytes(16).toString('base64url');
+      setOAuthStateCookie(res, state, env);
+      res.redirect(google.authorizationUrl({ state, redirectUri }));
+    },
+
+    /** Step 2: Google sends the browser back with a code; trade it for a profile and start a session. */
+    googleCallback: async (req, res) => {
+      const expectedState: unknown = req.cookies?.[OAUTH_STATE_COOKIE_NAME];
+      clearOAuthStateCookie(res, env);
+
+      const query = callbackQuerySchema.safeParse(req.query);
+      if (!google || !query.success) {
+        res.redirect(backToLogin('google_failed'));
+        return;
+      }
+      if (query.data.error) {
+        res.redirect(backToLogin('google_denied'));
+        return;
+      }
+      if (!query.data.code || !query.data.state || query.data.state !== expectedState) {
+        res.redirect(backToLogin('oauth_state'));
+        return;
+      }
+
+      try {
+        const profile = await google.exchangeCode({ code: query.data.code, redirectUri });
+        const result = await auth.loginWithOAuth(profile);
+        setSessionCookie(res, result.token, env);
+        res.redirect(`${env.APP_URL}/boards`);
+      } catch {
+        // The browser is mid-redirect; a JSON envelope would be unreadable here.
+        res.redirect(backToLogin('google_failed'));
+      }
     },
   };
 }

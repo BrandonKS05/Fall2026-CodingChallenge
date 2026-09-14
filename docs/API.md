@@ -10,6 +10,9 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | POST | /api/auth/login | done |
 | POST | /api/auth/logout | done |
 | GET | /api/auth/me | done |
+| GET | /api/auth/providers | done |
+| GET | /api/auth/google | done |
+| GET | /api/auth/google/callback | done |
 | GET | /api/collections | done |
 | POST | /api/collections | done |
 | GET | /api/collections/:id | done |
@@ -167,3 +170,17 @@ Every change to a board notifies its other members: `item_added`, `item_updated`
 
 `payload` carries what the type needs: `itemId` and `imageId` for item events (so a thumbnail can be
 shown via `/api/images/:imageId`), `changes` for board updates, `userId` and `role` for invitations.
+
+## Sign in with Google
+
+Available when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set; `GET /api/auth/providers`
+returns `{ google: true }` so the client knows to show the button.
+
+| Endpoint | Notes |
+| --- | --- |
+| `GET /api/auth/google` | Sets a short-lived `trove_oauth_state` cookie and redirects the browser to Google's consent screen. |
+| `GET /api/auth/google/callback` | Google redirects here with `code` and `state`. The state must match the cookie. The code is exchanged server-side, the ID token is verified against Google's keys, and the account is matched by Google id, else linked by verified email, else created without a password. On success the session cookie is set and the browser is redirected to `APP_URL/boards`; on failure to `APP_URL/login?error=<reason>` where reason is `google_denied`, `oauth_state`, `google_failed`, or `google_unavailable`. |
+
+Register `<APP_URL>/api/auth/google/callback` (for local development `http://localhost:5173/api/auth/google/callback`)
+as an authorized redirect URI in the Google Cloud console. Google-only accounts cannot log in with a
+password; the login endpoint says so with a 401.
