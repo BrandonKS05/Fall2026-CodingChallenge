@@ -63,6 +63,8 @@ function fromDomainError(error: DomainError): ApiError {
       return ApiError.conflict(error.message);
     case 'invalid':
       return ApiError.validation(undefined, error.message);
+    case 'unauthenticated':
+      return ApiError.unauthorized(error.message);
   }
 }
 

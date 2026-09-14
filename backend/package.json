@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/infrastructure/db/migrate.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test:db": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@trove/shared": "workspace:*",
@@ -24,7 +25,10 @@
     "pino-http": "^11.0.0",
     "zod": "^4.6.0",
     "drizzle-orm": "^0.45.2",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "@node-rs/argon2": "^2.2.1",
+    "jose": "^6.2.12",
+    "express-rate-limit": "^8.7.0"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",

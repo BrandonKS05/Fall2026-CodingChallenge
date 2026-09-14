@@ -6,6 +6,10 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | Method | Path | Status |
 | ------ | ---- | ------ |
 | GET | /api/health | done |
+| POST | /api/auth/register | done |
+| POST | /api/auth/login | done |
+| POST | /api/auth/logout | done |
+| GET | /api/auth/me | done |
 
 Health runs every registered indicator. Returns 200 with `status: "ok"` when all pass, otherwise 503 with `status: "degraded"`.
 
@@ -34,3 +38,18 @@ Every non-2xx response has this shape. Clients switch on `code`, never on `messa
 | INTERNAL_ERROR | 500 | Unexpected failure; message is generic in production |
 
 Every response also carries an `x-request-id` header, generated or propagated from the caller, that appears in the server logs.
+
+## Authentication
+
+Sessions are JWTs in an `httpOnly`, `SameSite=Lax` cookie named `trove_session`, valid for 7 days.
+The browser sends it automatically; the frontend never reads or stores the token. `Secure` is set in
+production. Register and login are rate limited to 20 attempts per 15 minutes per client.
+
+| Endpoint | Body | Response |
+| --- | --- | --- |
+| `POST /api/auth/register` | `{ email, password (8+), displayName }` | 201 `{ user }` and sets the cookie. 409 if the email is taken. |
+| `POST /api/auth/login` | `{ email, password }` | 200 `{ user }` and sets the cookie. 401 for bad credentials, with the same message whether or not the email exists. |
+| `POST /api/auth/logout` | none | 204 and clears the cookie. |
+| `GET /api/auth/me` | none | 200 `{ user }` for a valid session, otherwise 401. |
+
+`user` is `{ id, email, displayName, createdAt }`. Emails are trimmed and lowercased before use.

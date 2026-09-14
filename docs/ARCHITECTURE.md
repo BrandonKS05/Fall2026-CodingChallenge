@@ -37,6 +37,7 @@ container.ts is the composition root and the only module that imports infrastruc
 | Composition root (dependency injection) | `backend/src/container.ts` | swap any infrastructure implementation in one place |
 | Strategy | `backend/src/ports/HealthIndicator.ts`, `infrastructure/db/DatabaseHealthIndicator.ts` | one indicator per dependency; the health route aggregates whatever the container registers |
 | Repository | `backend/src/ports/repositories/*` (interfaces), `infrastructure/db/repositories/*` (Drizzle) | Postgres for any store; services never see SQL |
+| Strategy | `backend/src/ports/PasswordHasher.ts`, `ports/TokenService.ts` | argon2 and jose sit behind these as adapters; AuthService never imports either |
 
 ## Error flow
 
@@ -59,3 +60,18 @@ test asserts they match the API contract.
 | `collection_items` | An image inside a board | Unique per `(collection_id, image_id)`; `position` for ordering; `added_by` kept on user deletion via `restrict` |
 | `collection_members` | Roles | The owner also has an `owner` row, so authorization is one lookup for every role |
 | `notifications` | Inbox | Composite index on `(recipient_id, read_at, created_at)` serves both the unread badge and the list |
+
+## Anatomy of a feature slice
+
+Every feature follows the same path, using auth as the example:
+
+1. `api/routes/auth.routes.ts` declares the endpoints and the middleware chain for each: rate limit, `validate` with a schema from `@trove/shared`, `requireAuth`.
+2. `api/controllers/auth.controller.ts` reads the validated input, calls one service method, and hands the result to a presenter. No business rules.
+3. `services/AuthService.ts` holds the rules (duplicate emails, credential checks, decoy hashing) and depends only on ports.
+4. `ports/` declare what the service needs: `UserRepository`, `PasswordHasher`, `TokenService`.
+5. `infrastructure/` supplies the implementations: `DrizzleUserRepository`, `Argon2PasswordHasher`, `JoseTokenService`.
+6. `api/presenters/user.presenter.ts` converts domain objects into the response shapes promised by the contract.
+7. `container.ts` wires 4 and 5 together once. Tests replace any piece through `ContainerOverrides`.
+
+Tests mirror the layers: service tests use in-memory fakes, route tests use the real adapters with an
+in-memory repository, and `tests/integration` runs the Drizzle repositories against Postgres (`pnpm test:db`).

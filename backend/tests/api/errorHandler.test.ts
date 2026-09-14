@@ -3,6 +3,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createErrorHandler } from '../../src/api/middleware/errorHandler.js';
 import {
+  AuthenticationError,
   ConflictError,
   ForbiddenError,
   InvalidOperationError,
@@ -24,6 +25,9 @@ function buildApp(exposeInternals: boolean) {
   app.get('/invalid', () => {
     throw new InvalidOperationError('Owners cannot leave their own board');
   });
+  app.get('/unauthenticated', () => {
+    throw new AuthenticationError();
+  });
   app.get('/boom', () => {
     throw new Error('database exploded');
   });
@@ -38,6 +42,7 @@ describe('error handler domain mapping', () => {
     ['/forbidden', 403, 'FORBIDDEN', 'You do not have permission to do this'],
     ['/conflict', 409, 'CONFLICT', 'Email already registered'],
     ['/invalid', 400, 'VALIDATION_ERROR', 'Owners cannot leave their own board'],
+    ['/unauthenticated', 401, 'UNAUTHORIZED', 'Invalid email or password'],
   ])('%s -> %i %s', async (path, status, code, message) => {
     const res = await request(buildApp(true)).get(path);
     expect(res.status).toBe(status);

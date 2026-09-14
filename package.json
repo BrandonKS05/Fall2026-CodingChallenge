@@ -20,7 +20,8 @@
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @trove/backend run db:migrate",
     "db:seed": "pnpm --filter @trove/backend run db:seed",
-    "db:generate": "pnpm --filter @trove/backend run db:generate"
+    "db:generate": "pnpm --filter @trove/backend run db:generate",
+    "test:db": "pnpm --filter @trove/backend run test:db"
   },
   "devDependencies": {
     "prettier": "^3.6.0"

@@ -3,7 +3,7 @@
  * responses at the edge by the error handler. The domain never imports from
  * the api layer, so these carry a `kind` rather than a status code.
  */
-export type DomainErrorKind = 'not_found' | 'forbidden' | 'conflict' | 'invalid';
+export type DomainErrorKind = 'not_found' | 'forbidden' | 'conflict' | 'invalid' | 'unauthenticated';
 
 export abstract class DomainError extends Error {
   abstract readonly kind: DomainErrorKind;
@@ -38,4 +38,13 @@ export class ConflictError extends DomainError {
 /** A request that is well-formed but not allowed by the domain rules. */
 export class InvalidOperationError extends DomainError {
   readonly kind = 'invalid';
+}
+
+/** Bad credentials or a session whose user no longer exists. Deliberately vague. */
+export class AuthenticationError extends DomainError {
+  readonly kind = 'unauthenticated';
+
+  constructor(message = 'Invalid email or password') {
+    super(message);
+  }
 }
