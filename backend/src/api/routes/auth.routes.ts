@@ -2,7 +2,7 @@ import { loginRequestSchema, registerRequestSchema } from '@trove/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { createAuthController } from '../controllers/auth.controller.js';
-import { requireAuth } from '../middleware/authenticate.js';
+import { optionalAuth } from '../middleware/authenticate.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 
@@ -20,6 +20,7 @@ export function createAuthRouter(container: Container): Router {
   router.post('/register', credentialLimiter, validate({ body: registerRequestSchema }), controller.register);
   router.post('/login', credentialLimiter, validate({ body: loginRequestSchema }), controller.login);
   router.post('/logout', controller.logout);
-  router.get('/me', requireAuth({ tokens, users: repositories.users }), controller.me);
+  // Visitors get { user: null } rather than a 401, so the client can probe the session quietly.
+  router.get('/me', optionalAuth({ tokens, users: repositories.users }), controller.me);
   return router;
 }

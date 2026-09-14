@@ -127,3 +127,25 @@ bus could replace the in-memory one without touching any publisher or subscriber
 `updated_at` and `read_at` are written with the database's `now()`, never the Node clock. App and
 database servers rarely agree on the time to the millisecond (a Docker VM and its host included), and
 boards are ordered by activity, so the database must own the clock.
+
+## Frontend
+
+`frontend/` is a Vite single-page app: React 19, TypeScript, Tailwind v4 with shadcn/ui (Base UI
+primitives), TanStack Query for server state, React Router for navigation, react-hook-form with the
+zod schemas from `@trove/shared` for forms.
+
+| Folder | Role |
+| --- | --- |
+| `src/app/` | Composition root: `providers.tsx` (query client, theme, tooltips, toasts), `router.tsx` (lazy routes), `layout/` (shell, nav, user menu) |
+| `src/lib/api/` | The one HTTP gateway (`HttpClient` facade over fetch), `ApiError`, and the query-key factory. Features never call fetch. |
+| `src/features/<name>/` | One slice per feature: `api.ts` (typed calls), `queries.ts` (TanStack hooks), `components/`, `pages/`. Slices never import each other. |
+| `src/components/ui/` | Generated shadcn primitives. `src/components/common/` holds app-level composites (EmptyState, PageHeader, PageSkeleton). |
+| `src/testing/` | `render.tsx` renders with the real providers and a memory router; `stubApi` answers fetch by method and path. |
+
+Rules: all HTTP goes through `lib/api`; error toasts are global unless a query or mutation sets
+`meta.silentError` (forms show errors inline); the session is a query (`useSession`) where a 401 is a
+normal null answer, and mutations update it directly so the UI never waits for a refetch; routes that
+need a user wrap in `RequireAuth`, which returns visitors to where they were after login.
+
+In development Vite proxies `/api` to the backend so cookies stay first-party. Tests sit beside the
+component they cover (`Name.test.tsx`).

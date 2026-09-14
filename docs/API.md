@@ -70,7 +70,7 @@ production. Register and login are rate limited to 20 attempts per 15 minutes pe
 | `POST /api/auth/register` | `{ email, password (8+), displayName }` | 201 `{ user }` and sets the cookie. 409 if the email is taken. |
 | `POST /api/auth/login` | `{ email, password }` | 200 `{ user }` and sets the cookie. 401 for bad credentials, with the same message whether or not the email exists. |
 | `POST /api/auth/logout` | none | 204 and clears the cookie. |
-| `GET /api/auth/me` | none | 200 `{ user }` for a valid session, otherwise 401. |
+| `GET /api/auth/me` | none | 200 `{ user }` for a valid session, `{ user: null }` otherwise. Never 401, so the client can probe quietly. |
 
 `user` is `{ id, email, displayName, createdAt }`. Emails are trimmed and lowercased before use.
 

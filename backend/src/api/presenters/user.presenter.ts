@@ -1,5 +1,5 @@
 /** Presenters turn domain objects into the shapes promised by @trove/shared. */
-import type { AuthResponse, User as UserDto } from '@trove/shared';
+import type { AuthResponse, SessionResponse, User as UserDto } from '@trove/shared';
 import type { PublicUser } from '../../domain/entities/User.js';
 
 export function presentUser(user: PublicUser): UserDto {
@@ -13,4 +13,8 @@ export function presentUser(user: PublicUser): UserDto {
 
 export function presentAuth(user: PublicUser): AuthResponse {
   return { user: presentUser(user) };
+}
+
+export function presentSession(user: PublicUser | null): SessionResponse {
+  return { user: user ? presentUser(user) : null };
 }

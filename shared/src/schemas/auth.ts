@@ -38,3 +38,9 @@ export const authResponseSchema = z.object({
   user: userSchema,
 });
 export type AuthResponse = z.infer<typeof authResponseSchema>;
+
+/** GET /auth/me: a visitor is a normal answer, not an error, so `user` is null rather than a 401. */
+export const sessionResponseSchema = z.object({
+  user: userSchema.nullable(),
+});
+export type SessionResponse = z.infer<typeof sessionResponseSchema>;

@@ -7,9 +7,9 @@ import type { RequestHandler } from 'express';
 import type { Env } from '../../config/env.js';
 import type { AuthService } from '../../services/AuthService.js';
 import { clearSessionCookie, setSessionCookie } from '../http/session.js';
-import { currentUser } from '../middleware/authenticate.js';
+import { optionalUser } from '../middleware/authenticate.js';
 import { getValidated } from '../middleware/validate.js';
-import { presentAuth } from '../presenters/user.presenter.js';
+import { presentAuth, presentSession } from '../presenters/user.presenter.js';
 
 export interface AuthControllerDeps {
   auth: AuthService;
@@ -45,7 +45,7 @@ export function createAuthController({ auth, env }: AuthControllerDeps): AuthCon
     },
 
     me: (_req, res) => {
-      res.json(presentAuth(currentUser(res)));
+      res.json(presentSession(optionalUser(res)));
     },
   };
 }

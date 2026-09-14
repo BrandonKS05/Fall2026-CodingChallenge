@@ -73,9 +73,10 @@ describe('auth routes', () => {
     expect(bad.body.error.code).toBe('UNAUTHORIZED');
   });
 
-  it('serves /me only with a valid session', async () => {
+  it('answers /me with the user, or null for anyone without a valid session', async () => {
     const anonymous = await request(app).get('/api/auth/me');
-    expect(anonymous.status).toBe(401);
+    expect(anonymous.status).toBe(200);
+    expect(anonymous.body).toEqual({ user: null });
 
     const registered = await request(app).post('/api/auth/register').send(account);
     const me = await request(app).get('/api/auth/me').set('Cookie', sessionCookie(registered));
@@ -85,7 +86,7 @@ describe('auth routes', () => {
     const tampered = await request(app)
       .get('/api/auth/me')
       .set('Cookie', 'trove_session=not-a-real-token');
-    expect(tampered.status).toBe(401);
+    expect(tampered.body).toEqual({ user: null });
   });
 
   it('logs out by clearing the cookie', async () => {
@@ -101,6 +102,6 @@ describe('auth routes', () => {
     const registered = await request(app).post('/api/auth/register').send(account);
     users.delete(registered.body.user.id);
     const me = await request(app).get('/api/auth/me').set('Cookie', sessionCookie(registered));
-    expect(me.status).toBe(401);
+    expect(me.body).toEqual({ user: null });
   });
 });
