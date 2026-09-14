@@ -6,7 +6,10 @@ import { createHealthRouter } from './health.routes.js';
 export function createApiRouter(container: Container): Router {
   const api = Router();
 
-  api.use('/health', createHealthRouter({ version: container.version }));
+  api.use(
+    '/health',
+    createHealthRouter({ version: container.version, indicators: container.healthIndicators }),
+  );
 
   return api;
 }

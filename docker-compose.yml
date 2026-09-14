@@ -1,5 +1,5 @@
 # Local development database only. The app itself runs with `pnpm dev`.
-# Host port defaults to 5433 so it does not clash with a Postgres already on 5432.
+# Host port defaults to 5434 so it does not clash with a Postgres already on 5432.
 services:
   db:
     image: postgres:17-alpine
@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: trove
       POSTGRES_DB: trove
     ports:
-      - "${DB_PORT:-5433}:5432"
+      - "${DB_PORT:-5434}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:

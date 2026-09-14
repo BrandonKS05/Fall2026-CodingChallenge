@@ -7,6 +7,13 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | ------ | ---- | ------ |
 | GET | /api/health | done |
 
+Health runs every registered indicator. Returns 200 with `status: "ok"` when all pass, otherwise 503 with `status: "degraded"`.
+
+```json
+{ "status": "ok", "version": "0.1.0", "uptimeSeconds": 12, "timestamp": "2026-09-14T20:40:13.021Z",
+  "checks": { "database": { "status": "ok", "latencyMs": 26 } } }
+```
+
 ## Error envelope
 
 Every non-2xx response has this shape. Clients switch on `code`, never on `message`.

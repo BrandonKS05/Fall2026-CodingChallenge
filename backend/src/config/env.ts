@@ -5,7 +5,13 @@
  * parsed `Env` through the container, which keeps configuration explicit,
  * typed, and easy to override in tests.
  */
+import path from 'node:path';
 import { z } from 'zod';
+
+const databaseUrlSchema = z.url({
+  protocol: /^postgres(ql)?$/,
+  error: 'DATABASE_URL must be a postgres:// connection URL',
+});
 
 const envSchema = z
   .object({
@@ -15,10 +21,7 @@ const envSchema = z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
 
-    DATABASE_URL: z.url({
-      protocol: /^postgres(ql)?$/,
-      error: 'DATABASE_URL must be a postgres:// connection URL',
-    }),
+    DATABASE_URL: databaseUrlSchema,
 
     /** Signs session tokens. Rotating it signs every user out. */
     JWT_SECRET: z
@@ -55,7 +58,11 @@ const envSchema = z
 
 export type Env = z.infer<typeof envSchema>;
 
-/** Thrown when the environment is invalid. server.ts prints it and exits. */
+/** The subset database tooling needs, so `pnpm db:migrate` works before the Pixabay key exists. */
+const databaseEnvSchema = z.object({ DATABASE_URL: databaseUrlSchema });
+export type DatabaseEnv = z.infer<typeof databaseEnvSchema>;
+
+/** Thrown when the environment is invalid. Entry points print it and exit. */
 export class EnvError extends Error {
   constructor(readonly issues: string[]) {
     super(
@@ -65,15 +72,14 @@ export class EnvError extends Error {
   }
 }
 
-/**
- * Parses and validates environment variables.
- * Empty strings count as unset, so a blank line in .env behaves like a missing one.
- */
-export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
+type EnvSource = Record<string, string | undefined>;
+
+/** Empty strings count as unset, so a blank line in .env behaves like a missing one. */
+function parseEnv<T>(schema: z.ZodType<T>, source: EnvSource): T {
   const present = Object.fromEntries(
     Object.entries(source).filter(([, value]) => value !== undefined && value !== ''),
   );
-  const result = envSchema.safeParse(present);
+  const result = schema.safeParse(present);
   if (!result.success) {
     throw new EnvError(
       result.error.issues.map(
@@ -82,4 +88,38 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     );
   }
   return result.data;
+}
+
+export function loadEnv(source: EnvSource = process.env): Env {
+  return parseEnv(envSchema, source);
+}
+
+export function loadDatabaseEnv(source: EnvSource = process.env): DatabaseEnv {
+  return parseEnv(databaseEnvSchema, source);
+}
+
+/**
+ * Loads backend/.env into process.env if it exists. A convenience for local
+ * development; deployed environments set variables directly. Existing
+ * variables win over the file.
+ */
+export function loadDotEnvFile(): void {
+  try {
+    process.loadEnvFile(path.resolve(import.meta.dirname, '..', '..', '.env'));
+  } catch {
+    // No .env file: rely on the process environment.
+  }
+}
+
+/** For entry points: run a loader, and exit with a readable message if the environment is invalid. */
+export function loadEnvOrExit<T>(loader: () => T): T {
+  try {
+    return loader();
+  } catch (error) {
+    if (error instanceof EnvError) {
+      console.error(error.message);
+      process.exit(1);
+    }
+    throw error;
+  }
 }
