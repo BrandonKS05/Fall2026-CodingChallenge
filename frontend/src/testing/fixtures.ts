@@ -1,5 +1,5 @@
 /** Contract-shaped fixtures for component tests. */
-import type { Collection, Item } from '@trove/shared';
+import type { Collection, Item, SearchResult } from '@trove/shared';
 
 const now = new Date('2026-09-14T12:00:00Z').toISOString();
 
@@ -47,3 +47,22 @@ export function itemFixture(overrides: Partial<Item> = {}): Item {
     ...overrides,
   };
 }
+
+export function searchResultFixture(id: string, overrides: Partial<SearchResult> = {}): SearchResult {
+  return {
+    provider: 'pixabay',
+    providerImageId: id,
+    previewUrl: `https://cdn.test/preview/${id}.jpg`,
+    previewWidth: 150,
+    previewHeight: 100,
+    displayUrl: `https://cdn.test/display/${id}.jpg`,
+    width: 1920,
+    height: 1280,
+    tags: ['kitchen', 'oak', `tag${id}`],
+    credit: { name: 'photographer', profileUrl: null },
+    sourceUrl: `https://pixabay.com/photos/${id}/`,
+    ...overrides,
+  };
+}
+
+export const userFixture = { id: 'u1', email: 'ada@example.com', displayName: 'Ada', createdAt: now };

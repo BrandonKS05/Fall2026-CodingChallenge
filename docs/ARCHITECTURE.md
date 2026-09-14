@@ -138,7 +138,7 @@ zod schemas from `@trove/shared` for forms.
 | --- | --- |
 | `src/app/` | Composition root: `providers.tsx` (query client, theme, tooltips, toasts), `router.tsx` (lazy routes), `layout/` (shell, nav, user menu) |
 | `src/lib/api/` | The one HTTP gateway (`HttpClient` facade over fetch), `ApiError`, and the query-key factory. Features never call fetch. |
-| `src/features/<name>/` | One slice per feature: `api.ts` (typed calls), `queries.ts` (TanStack hooks), `components/`, `pages/`. Slices never import each other. |
+| `src/features/<name>/` | One slice per feature: `api.ts` (typed calls), `queries.ts` (TanStack hooks), `components/`, `pages/`. Components and hooks never import another feature; pages may, because pages are where features are composed (Discover uses search results, the items save mutation, and the collections list). |
 | `src/components/ui/` | Generated shadcn primitives. `src/components/common/` holds app-level composites (EmptyState, PageHeader, PageSkeleton). |
 | `src/testing/` | `render.tsx` renders with the real providers and a memory router; `stubApi` answers fetch by method and path. |
 
@@ -157,3 +157,14 @@ TanStack Query cache in `onMutate`, keep a snapshot, roll back in `onError`, and
 `onSettled`, so removing, captioning, and renaming feel instant and a failed request restores the
 previous state. Removing an image offers Undo in the toast, which re-saves the same provider image
 with its caption and tags; the backend reuses the stored file, so undo costs no new download.
+
+### Discover
+
+The query, orientation, and color live in the URL (`/?q=fog&orientation=vertical&color=blue`), so
+searches are shareable and back/forward works; the input debounces before writing the URL. Results
+are an infinite query paged by Pixabay's `page`, auto-loaded by an IntersectionObserver sentinel with
+a "Load more" button as the keyboard and no-observer fallback. Each card paints the 150px preview
+blurred underneath while the 640px image loads, sized by the real aspect ratio so nothing shifts.
+Arriving from a board's "Add images" button carries `?board=<id>`, which turns Save into a one-click
+action into that board; otherwise Save opens the board picker, which can also create a board inline.
+A 409 from the API (already on that board) is shown as saved rather than as an error.

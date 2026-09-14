@@ -90,3 +90,17 @@ export function useRemoveItem(collectionId: string) {
     },
   });
 }
+
+/** Save from search into any board. Invalidates that board so its count and cover update. */
+export function useSaveToBoard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ collectionId, body }: { collectionId: string; body: CreateItemRequest }) =>
+      itemsApi.add(collectionId, body),
+    onSuccess: (_item, { collectionId }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.detail(collectionId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.list() });
+    },
+    meta: { silentError: true },
+  });
+}

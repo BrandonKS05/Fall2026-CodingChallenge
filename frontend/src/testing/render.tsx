@@ -33,6 +33,8 @@ export function renderWithProviders(ui: ReactElement, { route = '/', ...options 
 export interface StubCall {
   method: string;
   path: string;
+  /** Full URL including the query string. */
+  url: string;
   body: unknown;
 }
 
@@ -51,7 +53,7 @@ export function stubApi(routes: Record<string, StubRoute>) {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     const path = url.replace(/^https?:\/\/[^/]+/, '').replace(/\?.*$/, '');
     const method = init?.method ?? 'GET';
-    const call: StubCall = { method, path, body: init?.body ? JSON.parse(String(init.body)) : undefined };
+    const call: StubCall = { method, path, url, body: init?.body ? JSON.parse(String(init.body)) : undefined };
     calls.push(call);
 
     const route = routes[`${method} ${path}`];
