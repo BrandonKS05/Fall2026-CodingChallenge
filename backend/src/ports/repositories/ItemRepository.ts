@@ -6,6 +6,7 @@ export interface NewItem {
   addedById: string;
   caption: string;
   tags: string[];
+  position: number;
 }
 
 export type ItemPatch = Partial<

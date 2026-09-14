@@ -1,4 +1,6 @@
 import type { CollectionRepository } from './CollectionRepository.js';
+import type { ImageRepository } from './ImageRepository.js';
+import type { ItemRepository } from './ItemRepository.js';
 import type { MembershipRepository } from './MembershipRepository.js';
 import type { UserRepository } from './UserRepository.js';
 
@@ -14,4 +16,6 @@ export interface Repositories {
   users: UserRepository;
   collections: CollectionRepository;
   memberships: MembershipRepository;
+  images: ImageRepository;
+  items: ItemRepository;
 }

@@ -1,6 +1,6 @@
 /** Extension point: add a provider here and implement its ImageProvider strategy. */
 export const IMAGE_PROVIDERS = ['pixabay'] as const;
-export type ImageProvider = (typeof IMAGE_PROVIDERS)[number];
+export type ImageProviderName = (typeof IMAGE_PROVIDERS)[number];
 
 export interface ImageCredit {
   name: string;
@@ -13,7 +13,7 @@ export interface ImageCredit {
  */
 export interface Image {
   id: string;
-  provider: ImageProvider;
+  provider: ImageProviderName;
   providerImageId: string;
   /** Key understood by the StorageBackend that holds the file. */
   storageKey: string;

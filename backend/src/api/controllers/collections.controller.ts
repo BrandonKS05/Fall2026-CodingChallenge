@@ -44,8 +44,8 @@ export function createCollectionsController(service: CollectionService): Collect
 
     get: async (_req, res) => {
       const { params } = getValidated<unknown, unknown, IdParams>(res);
-      const summary = await service.get(params.id, optionalUser(res)?.id ?? null);
-      res.json(presentCollectionDetail(summary));
+      const { summary, items } = await service.getDetail(params.id, optionalUser(res)?.id ?? null);
+      res.json(presentCollectionDetail(summary, items));
     },
 
     update: async (_req, res) => {

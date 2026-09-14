@@ -4,6 +4,8 @@ import type {
   CollectionListResponse,
 } from '@trove/shared';
 import type { CollectionSummary } from '../../domain/entities/Collection.js';
+import type { ItemDetail } from '../../domain/entities/CollectionItem.js';
+import { presentItem } from './item.presenter.js';
 
 export function presentCollection(summary: CollectionSummary): CollectionDto {
   return {
@@ -25,10 +27,9 @@ export function presentCollectionList(summaries: CollectionSummary[]): Collectio
   return { collections: summaries.map(presentCollection) };
 }
 
-/** Items are filled in by the items slice; until then a board's detail carries an empty list. */
 export function presentCollectionDetail(
   summary: CollectionSummary,
-  items: CollectionDetailResponse['items'] = [],
+  items: ItemDetail[],
 ): CollectionDetailResponse {
-  return { collection: presentCollection(summary), items };
+  return { collection: presentCollection(summary), items: items.map(presentItem) };
 }

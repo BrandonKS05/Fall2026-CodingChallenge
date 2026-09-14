@@ -1,6 +1,8 @@
 import type { Repositories } from '../../../ports/repositories/index.js';
 import type { Db } from '../client.js';
 import { DrizzleCollectionRepository } from './DrizzleCollectionRepository.js';
+import { DrizzleImageRepository } from './DrizzleImageRepository.js';
+import { DrizzleItemRepository } from './DrizzleItemRepository.js';
 import { DrizzleMembershipRepository } from './DrizzleMembershipRepository.js';
 import { DrizzleUserRepository } from './DrizzleUserRepository.js';
 
@@ -10,5 +12,7 @@ export function createDrizzleRepositories(db: Db): Repositories {
     users: new DrizzleUserRepository(db),
     collections: new DrizzleCollectionRepository(db),
     memberships: new DrizzleMembershipRepository(db),
+    images: new DrizzleImageRepository(db),
+    items: new DrizzleItemRepository(db),
   };
 }

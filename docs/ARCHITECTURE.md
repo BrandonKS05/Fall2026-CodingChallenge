@@ -38,6 +38,10 @@ container.ts is the composition root and the only module that imports infrastruc
 | Strategy | `backend/src/ports/HealthIndicator.ts`, `infrastructure/db/DatabaseHealthIndicator.ts` | one indicator per dependency; the health route aggregates whatever the container registers |
 | Repository | `backend/src/ports/repositories/*` (interfaces), `infrastructure/db/repositories/*` (Drizzle) | Postgres for any store; services never see SQL |
 | Strategy | `backend/src/ports/PasswordHasher.ts`, `ports/TokenService.ts` | argon2 and jose sit behind these as adapters; AuthService never imports either |
+| Strategy | `ports/ImageProvider.ts`, `ports/StorageBackend.ts` | Pixabay for Unsplash; local disk for S3, R2, or Supabase; the services only see the ports |
+| Decorator | `infrastructure/images/CachedImageProvider.ts` | wraps any ImageProvider with the 24-hour cache Pixabay requires and coalesces identical concurrent searches |
+| Adapter | `infrastructure/images/pixabay/pixabayAdapter.ts` | translates Pixabay's response into the domain's ProviderImage, validated with zod at the boundary |
+| Factory | `infrastructure/storage/storageFactory.ts` | selects the storage strategy from STORAGE_DRIVER; nothing else knows which one is running |
 
 ## Error flow
 
@@ -73,8 +77,10 @@ Every feature follows the same path, using auth as the example:
 6. `api/presenters/user.presenter.ts` converts domain objects into the response shapes promised by the contract.
 7. `container.ts` wires 4 and 5 together once. Tests replace any piece through `ContainerOverrides`.
 
-Tests mirror the layers: service tests use in-memory fakes, route tests use the real adapters with an
-in-memory repository, and `tests/integration` runs the Drizzle repositories against Postgres (`pnpm test:db`).
+Tests sit beside the code they cover: `Name.test.ts` for unit and route tests, `Name.db.test.ts` for
+tests that need Postgres (`pnpm test:db`). Service tests use the in-memory fakes from `src/testing/fakes`,
+route tests use the real adapters with in-memory repositories, and the Drizzle repositories are tested
+against the real database.
 
 ## Authorization
 
@@ -84,3 +90,24 @@ the board and the actor's membership, then applies the pure policy functions in
 that touches a board, including items and sharing, calls it first, so a rule changes in one file.
 Unknown boards raise `NotFoundError`; insufficient roles raise `ForbiddenError` with a message that
 says what role would have been needed.
+
+## Image pipeline
+
+Pixabay's terms forbid permanent hotlinking and its image URLs expire after 24 hours, so a saved image
+must be ours. Saving an item (`ItemService.add`) runs:
+
+1. `CollectionService.authorize(..., 'edit')`.
+2. `ImageService.ensureStored(provider, providerImageId)`: return the existing `images` row if this
+   provider image was ever saved before; otherwise look the image up through the provider strategy,
+   download the 1280px file (https only, image types only, size-capped), write it through the
+   `StorageBackend` under `images/<uuid>.<ext>`, and insert the row. If two saves race, the unique
+   index on `(provider, provider_image_id)` makes one insert lose; the loser deletes its file and
+   returns the winner's row.
+3. Insert the `collection_items` row at the next position and touch the board.
+
+`GET /api/images/:id` streams from storage with a one-year immutable cache header, because an image id
+never changes content. Search goes through `CachedImageProvider`, so repeated queries never reach
+Pixabay within 24 hours and identical concurrent queries share one request.
+
+`PIXABAY_BASE_URL` can point at a mock server for local verification without a key; download URLs on
+`localhost` are allowed over plain http for the same reason.

@@ -23,6 +23,11 @@ export function createErrorHandler(
   options: ErrorHandlerOptions,
 ): ErrorRequestHandler {
   return (error: unknown, req, res, _next) => {
+    // A failure mid-stream (e.g. while serving an image) cannot be turned into JSON any more.
+    if (res.headersSent) {
+      res.end();
+      return;
+    }
     const apiError = toApiError(error);
 
     if (apiError.status >= 500) {
@@ -66,6 +71,8 @@ function fromDomainError(error: DomainError): ApiError {
       return ApiError.validation(undefined, error.message);
     case 'unauthenticated':
       return ApiError.unauthorized(error.message);
+    case 'upstream':
+      return ApiError.upstream(error.message);
   }
 }
 

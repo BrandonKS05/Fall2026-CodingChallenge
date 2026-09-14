@@ -4,6 +4,7 @@
  * exactly one place.
  */
 import type { Collection, CollectionSummary } from '../domain/entities/Collection.js';
+import type { ItemDetail } from '../domain/entities/CollectionItem.js';
 import type { CollectionRole } from '../domain/entities/Membership.js';
 import { ForbiddenError, NotFoundError } from '../domain/errors/index.js';
 import { canEditItems, canManage, canView } from '../domain/policies/collectionAccess.js';
@@ -13,12 +14,19 @@ import type {
   CollectionRepository,
   NewCollection,
 } from '../ports/repositories/CollectionRepository.js';
+import type { ItemRepository } from '../ports/repositories/ItemRepository.js';
 import type { MembershipRepository } from '../ports/repositories/MembershipRepository.js';
 
 export interface CollectionServiceDeps {
   collections: CollectionRepository;
   memberships: MembershipRepository;
+  items: ItemRepository;
   logger: Logger;
+}
+
+export interface CollectionDetail {
+  summary: CollectionSummary;
+  items: ItemDetail[];
 }
 
 export type CreateCollectionInput = Omit<NewCollection, 'ownerId'>;
@@ -66,6 +74,13 @@ export class CollectionService {
     if (!summary) throw new NotFoundError('Collection', collectionId);
     if (!canView(summary, summary.role)) throw new ForbiddenError('This board is private');
     return summary;
+  }
+
+  /** The board plus its items, for the board page and the shared-link page. */
+  async getDetail(collectionId: string, viewerId: string | null): Promise<CollectionDetail> {
+    const summary = await this.get(collectionId, viewerId);
+    const items = await this.deps.items.listByCollection(collectionId);
+    return { summary, items };
   }
 
   async update(

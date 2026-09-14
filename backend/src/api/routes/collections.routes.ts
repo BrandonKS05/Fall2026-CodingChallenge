@@ -6,6 +6,7 @@ import {
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { createCollectionsController } from '../controllers/collections.controller.js';
+import { createItemsRouter } from './items.routes.js';
 import { idParams } from '../http/params.js';
 import { optionalAuth, requireAuth } from '../middleware/authenticate.js';
 import { validate } from '../middleware/validate.js';
@@ -28,6 +29,7 @@ export function createCollectionsRouter(container: Container): Router {
     controller.update,
   );
   router.delete('/:id', signedIn, validate({ params: idParams }), controller.remove);
+  router.use('/:id/items', createItemsRouter(container));
   return router;
 }
 

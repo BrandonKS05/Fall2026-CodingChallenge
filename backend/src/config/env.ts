@@ -29,6 +29,8 @@ const envSchema = z
       .min(32, 'JWT_SECRET must be at least 32 characters'),
 
     PIXABAY_API_KEY: z.string({ error: 'PIXABAY_API_KEY is required' }).min(1),
+    /** Override to point at a mock during local verification. */
+    PIXABAY_BASE_URL: z.url().default('https://pixabay.com/api/'),
 
     /** Browser origin allowed to call the API with credentials. */
     CORS_ORIGIN: z.url().default('http://localhost:5173'),

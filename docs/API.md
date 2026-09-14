@@ -12,10 +12,15 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | GET | /api/auth/me | done |
 | GET | /api/collections | done |
 | POST | /api/collections | done |
-| GET | /api/collections/:id | done (items arrive with the items slice) |
+| GET | /api/collections/:id | done |
 | PATCH | /api/collections/:id | done |
 | DELETE | /api/collections/:id | done |
 | GET | /api/explore | done |
+| GET | /api/search | done |
+| POST | /api/collections/:id/items | done |
+| PATCH | /api/collections/:id/items/:itemId | done |
+| DELETE | /api/collections/:id/items/:itemId | done |
+| GET | /api/images/:id | done |
 
 Health runs every registered indicator. Returns 200 with `status: "ok"` when all pass, otherwise 503 with `status: "degraded"`.
 
@@ -84,3 +89,42 @@ A collection (board) is returned as:
 | `GET /api/explore?page=&perPage=` | optional | Public boards, newest first. `perPage` is capped at 50. `{ collections }` |
 
 Validation failures return `details` as `[{ path, code, message }]`, where `path` names the request part, e.g. `body.title` or `params.id`.
+
+## Search
+
+`GET /api/search?q=&page=&perPage=&orientation=&color=` needs no session. Results come from Pixabay
+through a 24-hour cache and are rate limited to 30 requests per minute per client.
+
+```json
+{ "results": [ { "provider": "pixabay", "providerImageId": "195893",
+    "previewUrl": "…150px…", "previewWidth": 150, "previewHeight": 84,
+    "displayUrl": "…640px…", "width": 4000, "height": 2250,
+    "tags": ["blossom", "bloom"], "credit": { "name": "Josch13", "profileUrl": "…" },
+    "sourceUrl": "https://pixabay.com/photos/…" } ],
+  "page": 1, "perPage": 30, "total": 500 }
+```
+
+`previewUrl` and `displayUrl` are the provider's temporary URLs, for display only. Saving sends
+`providerImageId`, never a URL. `orientation` is `all`, `horizontal`, or `vertical`; `color` is one of
+Pixabay's color names. Show "Images from Pixabay" wherever results appear.
+
+## Items
+
+An item is an image on a board:
+
+```json
+{ "id": "…", "collectionId": "…", "caption": "Warm wood", "tags": ["wood"], "position": 0,
+  "addedBy": { "id": "…", "displayName": "Ada" }, "createdAt": "…", "updatedAt": "…",
+  "image": { "id": "…", "url": "/api/images/…", "width": 4000, "height": 2250,
+    "blurhash": null, "palette": [], "tags": ["blossom"], "credit": { "name": "Josch13", "profileUrl": "…" },
+    "sourceUrl": "…", "provider": "pixabay", "providerImageId": "195893" } }
+```
+
+| Endpoint | Auth | Notes |
+| --- | --- | --- |
+| `POST /api/collections/:id/items` | editor or owner | `{ provider, providerImageId, caption?, tags? }`. Downloads the image into storage on first save, reuses it afterwards. 201 with the item. 404 if the provider has no such image, 409 if it is already on the board. |
+| `PATCH /api/collections/:id/items/:itemId` | editor or owner | Any of `caption`, `tags`, `position`, `collectionId`. A different `collectionId` moves the item to that board (needs edit rights there too) and appends it. 409 if the destination already has the image. |
+| `DELETE /api/collections/:id/items/:itemId` | editor or owner | 204. The stored image is kept because other boards may reference it. |
+| `GET /api/images/:id` | none | Streams the stored file with `Cache-Control: public, max-age=31536000, immutable`. |
+
+`GET /api/collections/:id` now returns the board's items ordered by `position`, then newest first.
