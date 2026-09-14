@@ -3,7 +3,7 @@ import type { Notification, NotificationDetail } from '../../domain/entities/Not
 import type {
   NewNotification,
   NotificationRepository,
-} from '../../ports/repositories/NotificationRepository.js';
+} from '../../modules/notifications/ports/NotificationRepository.js';
 import type { InMemoryCollectionRepository } from './InMemoryCollectionRepository.js';
 import type { InMemoryUserRepository } from './InMemoryUserRepository.js';
 

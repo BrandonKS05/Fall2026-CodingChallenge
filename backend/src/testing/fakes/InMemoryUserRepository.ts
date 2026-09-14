@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { User } from '../../domain/entities/User.js';
 import { ConflictError, NotFoundError } from '../../domain/errors/index.js';
-import type { NewUser, UserRepository } from '../../ports/repositories/UserRepository.js';
+import type { NewUser, UserRepository } from '../../modules/auth/ports/UserRepository.js';
 
 /** Port-conformant fake. Mirrors the real repository's contract, including the ConflictError. */
 export class InMemoryUserRepository implements UserRepository {

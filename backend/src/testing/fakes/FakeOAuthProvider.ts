@@ -1,5 +1,5 @@
 import { AuthenticationError } from '../../domain/errors/index.js';
-import type { OAuthProfile, OAuthProvider } from '../../ports/OAuthProvider.js';
+import type { OAuthProfile, OAuthProvider } from '../../modules/auth/ports/OAuthProvider.js';
 
 /** Hands out fixed profiles keyed by code, and records what it was asked. */
 export class FakeOAuthProvider implements OAuthProvider {

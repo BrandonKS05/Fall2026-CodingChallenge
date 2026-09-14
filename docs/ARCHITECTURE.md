@@ -12,15 +12,42 @@ Updated as each piece is implemented.
 | `shared/`   | zod schemas that define the API contract, used by both sides |
 | `docs/`     | This file and the endpoint reference                        |
 
-## Backend dependency rule
+## Backend layout: feature modules
+
+Each feature lives in one folder under `backend/src/modules/` with everything it needs:
 
 ```
-api  -->  services  -->  ports  <--  infrastructure
-                 \        |
-                  \-> domain (framework-free, used by every layer)
-
-container.ts is the composition root and the only module that imports infrastructure.
+modules/<feature>/
+├── <feature>.routes.ts       endpoints and their middleware chain
+├── <feature>.controller.ts   validated input in, one service call, presenter out
+├── <Feature>Service.ts       the use cases and rules
+├── <feature>.presenter.ts    domain objects to contract shapes
+├── ports/                    interfaces the service depends on (repositories, providers)
+└── adapters/                 implementations of those ports (Drizzle, Pixabay, argon2, ...)
 ```
+
+Modules: `health`, `auth`, `collections`, `items`, `images` (search, storage, ingestion), `sharing`,
+`notifications`. Around them sit three shared layers:
+
+| Folder | Role |
+| --- | --- |
+| `domain/` | Shared kernel: entities, events, errors, access policies. Framework-free, used by every module. |
+| `infrastructure/` | Cross-cutting adapters: database client, schema, and migrations; event bus; logging; outbound fetch type. Ports for these sit next to their adapters. |
+| `http/` | Express plumbing every module reuses: `ApiError`, validation, auth, rate limit, and error middleware, cookie helpers, and `router.ts`, which mounts each module. |
+
+### Dependency rule
+
+```
+routes -> controller -> service -> ports <- adapters        (inside a module)
+module -> domain, http, infrastructure                        (a module may use the shared layers)
+module A -> module B                                          (only through B's service or port types)
+container.ts                                                  (the only file that instantiates adapters)
+```
+
+A module never imports another module's adapters. `ItemService` calls `CollectionService.authorize`
+and `ImageService.ensureStored`; it does not know Drizzle or Pixabay exist. Because each module's
+boundary is explicit, any of them could become its own deployable later: the event bus port becomes a
+queue, the images module becomes a worker, and nothing above the boundary changes.
 
 ## Frontend rules
 
@@ -35,21 +62,21 @@ container.ts is the composition root and the only module that imports infrastruc
 | Adapter | `backend/src/infrastructure/logging/pinoLogger.ts` | pino sits behind the `Logger` port; services never import pino |
 | Chain of Responsibility | `backend/src/app.ts` middleware order | add or remove cross-cutting steps (auth, rate limits) without touching routes |
 | Composition root (dependency injection) | `backend/src/container.ts` | swap any infrastructure implementation in one place |
-| Strategy | `backend/src/ports/HealthIndicator.ts`, `infrastructure/db/DatabaseHealthIndicator.ts` | one indicator per dependency; the health route aggregates whatever the container registers |
-| Repository | `backend/src/ports/repositories/*` (interfaces), `infrastructure/db/repositories/*` (Drizzle) | Postgres for any store; services never see SQL |
-| Strategy | `backend/src/ports/PasswordHasher.ts`, `ports/TokenService.ts` | argon2 and jose sit behind these as adapters; AuthService never imports either |
-| Strategy | `ports/ImageProvider.ts`, `ports/StorageBackend.ts` | Pixabay for Unsplash; local disk for S3, R2, or Supabase; the services only see the ports |
-| Strategy | `ports/OAuthProvider.ts`, `infrastructure/auth/GoogleOAuthProvider.ts` | Google today, any OpenID Connect provider tomorrow; AuthService only ever sees a verified profile |
-| Decorator | `infrastructure/images/CachedImageProvider.ts` | wraps any ImageProvider with the 24-hour cache Pixabay requires and coalesces identical concurrent searches |
-| Adapter | `infrastructure/images/pixabay/pixabayAdapter.ts` | translates Pixabay's response into the domain's ProviderImage, validated with zod at the boundary |
-| Factory | `infrastructure/storage/storageFactory.ts` | selects the storage strategy from STORAGE_DRIVER; nothing else knows which one is running |
-| Observer | `ports/EventBus.ts`, `infrastructure/events/InMemoryEventBus.ts`, `services/NotificationService.ts` | board changes are published as domain events; notifications subscribe, and publishers never know who listens |
+| Strategy | `modules/health/HealthIndicator.ts`, `infrastructure/db/DatabaseHealthIndicator.ts` | one indicator per dependency; the health route aggregates whatever the container registers |
+| Repository | `modules/*/ports/*Repository.ts` (interfaces), `modules/*/adapters/Drizzle*Repository.ts` | Postgres for any store; services never see SQL |
+| Strategy | `modules/auth/ports/PasswordHasher.ts`, `modules/auth/ports/TokenService.ts` | argon2 and jose sit behind these as adapters; AuthService never imports either |
+| Strategy | `modules/images/ports/ImageProvider.ts`, `modules/images/ports/StorageBackend.ts` | Pixabay for Unsplash; local disk for S3, R2, or Supabase; the services only see the ports |
+| Strategy | `modules/auth/ports/OAuthProvider.ts`, `modules/auth/adapters/GoogleOAuthProvider.ts` | Google today, any OpenID Connect provider tomorrow; AuthService only ever sees a verified profile |
+| Decorator | `modules/images/adapters/CachedImageProvider.ts` | wraps any ImageProvider with the 24-hour cache Pixabay requires and coalesces identical concurrent searches |
+| Adapter | `modules/images/adapters/pixabay/pixabayAdapter.ts` | translates Pixabay's response into the domain's ProviderImage, validated with zod at the boundary |
+| Factory | `modules/images/adapters/storage/storageFactory.ts` | selects the storage strategy from STORAGE_DRIVER; nothing else knows which one is running |
+| Observer | `infrastructure/events/EventBus.ts`, `infrastructure/events/InMemoryEventBus.ts`, `modules/notifications/NotificationService.ts` | board changes are published as domain events; notifications subscribe, and publishers never know who listens |
 
 ## Error flow
 
 Services and repositories throw domain errors (`backend/src/domain/errors`) that carry a `kind`
 (`not_found`, `forbidden`, `conflict`, `invalid`) and no HTTP knowledge. The error handler
-(`backend/src/api/middleware/errorHandler.ts`) is the single place where kinds become status codes
+(`backend/src/http/middleware/errorHandler.ts`) is the single place where kinds become status codes
 and the shared error envelope. Controllers throw `ApiError` only for HTTP-specific failures.
 
 ## Data model
@@ -67,21 +94,21 @@ test asserts they match the API contract.
 | `collection_members` | Roles | The owner also has an `owner` row, so authorization is one lookup for every role |
 | `notifications` | Inbox | Composite index on `(recipient_id, read_at, created_at)` serves both the unread badge and the list |
 
-## Anatomy of a feature slice
+## Anatomy of a request
 
-Every feature follows the same path, using auth as the example:
+Using auth as the example, a request passes through these files in `modules/auth/`:
 
-1. `api/routes/auth.routes.ts` declares the endpoints and the middleware chain for each: rate limit, `validate` with a schema from `@trove/shared`, `requireAuth`.
-2. `api/controllers/auth.controller.ts` reads the validated input, calls one service method, and hands the result to a presenter. No business rules.
-3. `services/AuthService.ts` holds the rules (duplicate emails, credential checks, decoy hashing) and depends only on ports.
-4. `ports/` declare what the service needs: `UserRepository`, `PasswordHasher`, `TokenService`.
-5. `infrastructure/` supplies the implementations: `DrizzleUserRepository`, `Argon2PasswordHasher`, `JoseTokenService`.
-6. `api/presenters/user.presenter.ts` converts domain objects into the response shapes promised by the contract.
+1. `auth.routes.ts` declares the endpoint and its middleware chain: rate limit, `validate` with a schema from `@trove/shared`, `requireAuth` where needed.
+2. `auth.controller.ts` reads the validated input, calls one service method, and hands the result to a presenter. No business rules.
+3. `AuthService.ts` holds the rules (duplicate emails, credential checks, decoy hashing, Google linking) and depends only on ports.
+4. `ports/` declare what the service needs: `UserRepository`, `PasswordHasher`, `TokenService`, `OAuthProvider`.
+5. `adapters/` implement them: `DrizzleUserRepository`, `Argon2PasswordHasher`, `JoseTokenService`, `GoogleOAuthProvider`.
+6. `user.presenter.ts` converts domain objects into the response shapes promised by the contract.
 7. `container.ts` wires 4 and 5 together once. Tests replace any piece through `ContainerOverrides`.
 
 Tests sit beside the code they cover: `Name.test.ts` for unit and route tests, `Name.db.test.ts` for
 tests that need Postgres (`pnpm test:db`). Service tests use the in-memory fakes from `src/testing/fakes`,
-route tests use the real adapters with in-memory repositories, and the Drizzle repositories are tested
+route tests use the real adapters with in-memory repositories, and the Drizzle adapters are tested
 against the real database.
 
 ## Authorization
@@ -153,7 +180,7 @@ component they cover (`Name.test.tsx`).
 
 ### Optimistic updates
 
-Item and board mutations (`features/items/queries.ts`, `features/collections/queries.ts`) update the
+Item and board mutations (`frontend/src/features/items/queries.ts`, `frontend/src/features/collections/queries.ts`) update the
 TanStack Query cache in `onMutate`, keep a snapshot, roll back in `onError`, and invalidate in
 `onSettled`, so removing, captioning, and renaming feel instant and a failed request restores the
 previous state. Removing an image offers Undo in the toast, which re-saves the same provider image

@@ -1,6 +1,6 @@
-import type { Logger } from '../../ports/Logger.js';
-import type { PasswordHasher } from '../../ports/PasswordHasher.js';
-import type { SessionClaims, TokenService } from '../../ports/TokenService.js';
+import type { Logger } from '../../infrastructure/logging/Logger.js';
+import type { PasswordHasher } from '../../modules/auth/ports/PasswordHasher.js';
+import type { SessionClaims, TokenService } from '../../modules/auth/ports/TokenService.js';
 
 /** Reversible "hash" so unit tests stay fast and readable. */
 export class FakePasswordHasher implements PasswordHasher {

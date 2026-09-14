@@ -3,7 +3,7 @@ import { ConflictError, NotFoundError } from '../../domain/errors/index.js';
 import type {
   MembershipRepository,
   NewMembership,
-} from '../../ports/repositories/MembershipRepository.js';
+} from '../../modules/collections/ports/MembershipRepository.js';
 import type { InMemoryUserRepository } from './InMemoryUserRepository.js';
 
 const ROLE_ORDER: Record<CollectionRole, number> = { owner: 0, editor: 1, viewer: 2 };

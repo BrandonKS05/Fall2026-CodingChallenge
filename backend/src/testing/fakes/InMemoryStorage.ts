@@ -1,5 +1,5 @@
 import { Readable } from 'node:stream';
-import type { StorageBackend, StoredObject } from '../../ports/StorageBackend.js';
+import type { StorageBackend, StoredObject } from '../../modules/images/ports/StorageBackend.js';
 
 export class InMemoryStorage implements StorageBackend {
   readonly objects = new Map<string, { body: Uint8Array; contentType: string }>();

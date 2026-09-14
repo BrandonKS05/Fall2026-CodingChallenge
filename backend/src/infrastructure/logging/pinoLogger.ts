@@ -8,7 +8,7 @@ import type { RequestHandler } from 'express';
 import { pino, type Logger as PinoLogger } from 'pino';
 import { pinoHttp } from 'pino-http';
 import type { Env } from '../../config/env.js';
-import type { Logger } from '../../ports/Logger.js';
+import type { Logger } from './Logger.js';
 
 export function createPinoLogger(env: Pick<Env, 'NODE_ENV' | 'LOG_LEVEL'>): PinoLogger {
   return pino({

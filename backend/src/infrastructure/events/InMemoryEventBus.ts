@@ -1,6 +1,6 @@
 import type { DomainEvent, DomainEventName } from '../../domain/events/index.js';
-import type { EventBus, EventHandler } from '../../ports/EventBus.js';
-import type { Logger } from '../../ports/Logger.js';
+import type { EventBus, EventHandler } from './EventBus.js';
+import type { Logger } from '../logging/Logger.js';
 
 type AnyHandler = (event: DomainEvent) => Promise<void> | void;
 

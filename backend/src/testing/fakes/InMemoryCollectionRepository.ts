@@ -6,7 +6,7 @@ import type {
   CollectionRepository,
   ListPublicOptions,
   NewCollection,
-} from '../../ports/repositories/CollectionRepository.js';
+} from '../../modules/collections/ports/CollectionRepository.js';
 import type { InMemoryItemRepository } from './InMemoryItemRepository.js';
 import type { InMemoryMembershipRepository } from './InMemoryMembershipRepository.js';
 import type { InMemoryUserRepository } from './InMemoryUserRepository.js';

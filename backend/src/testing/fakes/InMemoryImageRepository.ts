@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Image, ImageProviderName } from '../../domain/entities/Image.js';
 import { ConflictError, NotFoundError } from '../../domain/errors/index.js';
-import type { ImagePatch, ImageRepository, NewImage } from '../../ports/repositories/ImageRepository.js';
+import type { ImagePatch, ImageRepository, NewImage } from '../../modules/images/ports/ImageRepository.js';
 
 export class InMemoryImageRepository implements ImageRepository {
   readonly rows = new Map<string, Image>();

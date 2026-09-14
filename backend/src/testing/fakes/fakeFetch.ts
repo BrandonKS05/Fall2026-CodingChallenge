@@ -1,4 +1,4 @@
-import type { FetchFn } from '../../ports/HttpFetch.js';
+import type { FetchFn } from '../../infrastructure/http/fetch.js';
 
 export interface FakeRoute {
   status?: number;

@@ -10,37 +10,37 @@ import type { RequestHandler } from 'express';
 import pkg from '../package.json' with { type: 'json' };
 import type { Env } from './config/env.js';
 import { SESSION_TTL_SECONDS } from './config/session.js';
-import { Argon2PasswordHasher } from './infrastructure/auth/Argon2PasswordHasher.js';
-import { GoogleOAuthProvider } from './infrastructure/auth/GoogleOAuthProvider.js';
-import { JoseTokenService } from './infrastructure/auth/JoseTokenService.js';
+import { Argon2PasswordHasher } from './modules/auth/adapters/Argon2PasswordHasher.js';
+import { GoogleOAuthProvider } from './modules/auth/adapters/GoogleOAuthProvider.js';
+import { JoseTokenService } from './modules/auth/adapters/JoseTokenService.js';
 import { createDatabase, type Database } from './infrastructure/db/client.js';
 import { DatabaseHealthIndicator } from './infrastructure/db/DatabaseHealthIndicator.js';
-import { createDrizzleRepositories } from './infrastructure/db/repositories/index.js';
+
 import { InMemoryEventBus } from './infrastructure/events/InMemoryEventBus.js';
-import { CachedImageProvider } from './infrastructure/images/CachedImageProvider.js';
-import { PixabayImageProvider } from './infrastructure/images/pixabay/PixabayImageProvider.js';
+import { CachedImageProvider } from './modules/images/adapters/CachedImageProvider.js';
+import { PixabayImageProvider } from './modules/images/adapters/pixabay/PixabayImageProvider.js';
 import {
   asLogger,
   createPinoLogger,
   createRequestLogger,
 } from './infrastructure/logging/pinoLogger.js';
-import { createStorage } from './infrastructure/storage/storageFactory.js';
-import type { EventBus } from './ports/EventBus.js';
-import type { HealthIndicator } from './ports/HealthIndicator.js';
-import type { FetchFn } from './ports/HttpFetch.js';
-import type { ImageProvider } from './ports/ImageProvider.js';
-import type { Logger } from './ports/Logger.js';
-import type { OAuthProvider } from './ports/OAuthProvider.js';
-import type { PasswordHasher } from './ports/PasswordHasher.js';
-import type { Repositories } from './ports/repositories/index.js';
-import type { StorageBackend } from './ports/StorageBackend.js';
-import type { TokenService } from './ports/TokenService.js';
-import { AuthService } from './services/AuthService.js';
-import { CollectionService } from './services/CollectionService.js';
-import { ImageService } from './services/ImageService.js';
-import { ItemService } from './services/ItemService.js';
-import { NotificationService } from './services/NotificationService.js';
-import { ShareService } from './services/ShareService.js';
+import { createStorage } from './modules/images/adapters/storage/storageFactory.js';
+import type { EventBus } from './infrastructure/events/EventBus.js';
+import type { HealthIndicator } from './modules/health/HealthIndicator.js';
+import type { FetchFn } from './infrastructure/http/fetch.js';
+import type { ImageProvider } from './modules/images/ports/ImageProvider.js';
+import type { Logger } from './infrastructure/logging/Logger.js';
+import type { OAuthProvider } from './modules/auth/ports/OAuthProvider.js';
+import type { PasswordHasher } from './modules/auth/ports/PasswordHasher.js';
+import { createDrizzleRepositories, type Repositories } from './infrastructure/db/repositories.js';
+import type { StorageBackend } from './modules/images/ports/StorageBackend.js';
+import type { TokenService } from './modules/auth/ports/TokenService.js';
+import { AuthService } from './modules/auth/AuthService.js';
+import { CollectionService } from './modules/collections/CollectionService.js';
+import { ImageService } from './modules/images/ImageService.js';
+import { ItemService } from './modules/items/ItemService.js';
+import { NotificationService } from './modules/notifications/NotificationService.js';
+import { ShareService } from './modules/sharing/ShareService.js';
 
 export interface Services {
   auth: AuthService;

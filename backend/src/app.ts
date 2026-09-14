@@ -7,9 +7,9 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type Express } from 'express';
 import helmet from 'helmet';
-import { createErrorHandler } from './api/middleware/errorHandler.js';
-import { notFound } from './api/middleware/notFound.js';
-import { createApiRouter } from './api/routes/index.js';
+import { createErrorHandler } from './http/middleware/errorHandler.js';
+import { notFound } from './http/middleware/notFound.js';
+import { createApiRouter } from './http/router.js';
 import type { Container } from './container.js';
 
 export function createApp(container: Container): Express {
