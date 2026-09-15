@@ -1,4 +1,4 @@
-import type { Collection, Item } from '@wumboo/shared';
+import { imageTitle, type Collection, type Item } from '@wumboo/shared';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -87,6 +87,7 @@ export function EditItemDialog({ collectionId, item, destinations, onClose }: Ed
             <Textarea
               id="item-caption"
               rows={2}
+              placeholder={item ? imageTitle(item.image.tags) : ''}
               value={caption}
               onChange={(event) => setCaption(event.target.value)}
               maxLength={500}

@@ -15,6 +15,10 @@ export const queryKeys = {
     detail: (id: string) => ['collections', 'detail', id] as const,
     members: (id: string) => ['collections', 'detail', id, 'members'] as const,
   },
+  /** Public boards matching some words, for the search surface. */
+  boardSearch: (term: string) => ['collections', 'search', term] as const,
+  /** People matching some words, for the search surface. */
+  peopleSearch: (term: string) => ['profiles', 'search', term] as const,
   /** Explore's gallery of images from public boards. */
   exploreImages: (params: { limit: number }) => ['explore', 'images', params] as const,
   /** The landing stage's fixed curation. Nothing anyone posts can change it. */

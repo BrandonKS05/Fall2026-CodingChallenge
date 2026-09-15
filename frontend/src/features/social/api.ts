@@ -4,6 +4,7 @@ import { http } from '@/lib/api';
 /** Adapter: the feature's slice of the API contract as typed calls, so components never see URLs. */
 export const socialApi = {
   profile: (handle: string) => http.get<ProfileResponse>(`/users/${encodeURIComponent(handle)}`),
+  search: (q: string) => http.get<FollowListResponse>('/users/search', { query: { q, limit: 12 } }),
   follow: (handle: string) =>
     http.post<ProfileResponse>(`/users/${encodeURIComponent(handle)}/follow`),
   unfollow: (handle: string) =>

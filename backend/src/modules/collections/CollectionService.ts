@@ -67,11 +67,16 @@ export class CollectionService {
     return this.deps.collections.listForUser(userId);
   }
 
-  listPublic(viewerId: string | null, { page, perPage }: Pagination): Promise<CollectionSummary[]> {
+  listPublic(
+    viewerId: string | null,
+    { page, perPage, q = '' }: Pagination & { q?: string },
+  ): Promise<CollectionSummary[]> {
+    const term = q.trim();
     return this.deps.collections.listPublic({
       limit: perPage,
       offset: (page - 1) * perPage,
       ...(viewerId !== null && { viewerId }),
+      ...(term !== '' && { term }),
     });
   }
 

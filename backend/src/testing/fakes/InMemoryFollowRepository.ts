@@ -46,6 +46,33 @@ export class InMemoryFollowRepository implements FollowRepository {
     };
   }
 
+  async searchProfiles(term: string, options: FollowListOptions): Promise<ProfileSummary[]> {
+    const needle = term.trim().toLowerCase();
+    const found = this.users
+      .all()
+      .filter(
+        (user) =>
+          user.handle.toLowerCase().includes(needle) ||
+          user.displayName.toLowerCase().includes(needle),
+      );
+    const rank = (handle: string) =>
+      handle.toLowerCase().startsWith(needle) ? 0 : handle.toLowerCase().includes(needle) ? 1 : 2;
+    return found
+      .sort((a, b) => rank(a.handle) - rank(b.handle) || a.handle.localeCompare(b.handle))
+      .slice(0, options.limit)
+      .map((user) => ({
+        id: user.id,
+        handle: user.handle,
+        displayName: user.displayName,
+        bio: user.bio,
+        followedByViewer:
+          options.viewerId !== null &&
+          this.edges.some(
+            (edge) => edge.followerId === options.viewerId && edge.followeeId === user.id,
+          ),
+      }));
+  }
+
   listFollowers(userId: string, options: FollowListOptions): Promise<ProfileSummary[]> {
     return this.list(
       this.edges.filter((edge) => edge.followeeId === userId),

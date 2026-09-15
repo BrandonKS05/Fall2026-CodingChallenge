@@ -107,6 +107,13 @@ describe('collections routes', () => {
     const explore = await request(app).get('/api/explore?perPage=10');
     expect(explore.body.collections.map((c: { id: string }) => c.id)).toEqual([board.id]);
 
+    // The same listing narrows to words, which is how boards are searched for.
+    const hit = await request(app).get('/api/explore?perPage=10&q=private');
+    expect(hit.body.collections.map((c: { id: string }) => c.id)).toEqual([board.id]);
+    expect((await request(app).get('/api/explore?q=nothinghere')).body.collections).toEqual([]);
+    // Wildcards are text a person typed, not a pattern to search with.
+    expect((await request(app).get('/api/explore?q=%25')).body.collections).toEqual([]);
+
     expect(
       (await request(app).delete(`/api/collections/${board.id}`).set('Cookie', stranger)).status,
     ).toBe(403);

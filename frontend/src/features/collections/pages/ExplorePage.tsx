@@ -4,12 +4,7 @@
  * public board. Filters live behind one button rather than spread across the
  * page, because there are now a great many of them.
  */
-import {
-  isSearchable,
-  type Collection,
-  type ExploreImage,
-  type SearchResult,
-} from '@wumboo/shared';
+import type { Collection, ExploreImage, ProfileSummary, SearchResult } from '@wumboo/shared';
 import { ImageOffIcon, SearchIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -27,6 +22,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth';
 import { SaveToBoardDialog, useSaveToBoard } from '@/features/items';
+import { PersonRow, useProfileSearch } from '@/features/social';
 import {
   ALL_CATEGORIES,
   CATEGORIES,
@@ -36,7 +32,10 @@ import {
   readFilters,
   ResultGrid,
   ResultGridSkeleton,
+  scopeIncludes,
   SearchBar,
+  searchTerm,
+  toImageQuery,
   useImageSearch,
   writeFilters,
   type SearchFilters,
@@ -44,7 +43,8 @@ import {
 import { useAuthDialog } from '@/hooks/useAuthDialog';
 import { http } from '@/lib/api';
 import { pluralize } from '@/lib/format';
-import { useBoards, useCreateBoard } from '../queries';
+import { BoardCard } from '../components/BoardCard';
+import { useBoards, useBoardSearch, useCreateBoard } from '../queries';
 import { useExploreImages } from '../queries';
 
 /** The API's ceiling; five seed boards fill forty of these. */
@@ -65,7 +65,17 @@ export default function ExplorePage() {
   const auth = useAuthDialog();
   const [params, setParams] = useSearchParams();
   const filters = readFilters(params);
-  const searching = isSearchable(filters);
+  // Three kinds of thing can answer a search; the box and the panel decide which.
+  const term = searchTerm(filters);
+  const wantsImages = scopeIncludes(filters, 'images');
+  const wantsBoards = scopeIncludes(filters, 'collections');
+  const wantsPeople = scopeIncludes(filters, 'people');
+  const imageQuery = toImageQuery(filters);
+  const narrowed =
+    imageQuery.category !== undefined ||
+    imageQuery.color !== undefined ||
+    imageQuery.colorHex !== undefined;
+  const searching = term !== '' || (wantsImages && narrowed);
   const feed = useExploreImages(FEED_LIMIT);
 
   const images = useMemo(() => feed.data ?? [], [feed.data]);
@@ -74,7 +84,7 @@ export default function ExplorePage() {
   const boardsQuery = useBoards(user !== null);
   const createBoard = useCreateBoard();
   const quickSave = useSaveToBoard();
-  const search = useImageSearch(filters);
+  const search = useImageSearch(imageQuery, wantsImages);
   const [picking, setPicking] = useState<SearchResult | null>(null);
   const [savedTo, setSavedTo] = useState<Record<string, string>>({});
   const targetBoardId = params.get('board');
@@ -85,8 +95,8 @@ export default function ExplorePage() {
   const total = search.data?.pages[0]?.total ?? 0;
   // With no words, say what is being searched instead: a category, or a colour.
   const subject =
-    filters.q.trim() !== ''
-      ? `“${filters.q}”`
+    term !== ''
+      ? `“${term}”`
       : filters.category
         ? CATEGORIES[filters.category].label.toLowerCase()
         : 'that colour';
@@ -188,53 +198,63 @@ export default function ExplorePage() {
         )}
 
         {searching ? (
-          <section aria-label="Search results" className="stage-surface mt-6 text-stage-ink">
-            {search.isPending ? (
-              <ResultGridSkeleton />
-            ) : search.error ? (
-              <EmptyState
-                icon={<ImageOffIcon />}
-                title="Search is unavailable right now"
-                description={search.error.message}
-                action={
-                  <Button variant="outline" onClick={() => void search.refetch()}>
-                    Try again
-                  </Button>
-                }
-              />
-            ) : results.length === 0 ? (
-              <EmptyState
-                icon={<SearchIcon />}
-                title={`Nothing for ${subject}`}
-                description="Try fewer words, or loosen a filter."
-              />
-            ) : (
-              <>
-                <p className="mb-4 text-sm text-stage-ink/60">
-                  {total.toLocaleString()} results for {subject}
-                </p>
-                <ResultGrid
-                  results={results}
-                  savedTo={savedTo}
-                  onSave={handleSave}
-                  hasMore={Boolean(search.hasNextPage)}
-                  loadingMore={search.isFetchingNextPage}
-                  onLoadMore={() => void search.fetchNextPage()}
-                />
-                <p className="mt-8 text-center text-xs text-stage-ink/50">
-                  Photos from{' '}
-                  <a
-                    href="https://pixabay.com/"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline underline-offset-4"
-                  >
-                    Pixabay
-                  </a>
-                </p>
-              </>
+          <div className="mt-6 space-y-12">
+            {wantsPeople && term !== '' && (
+              <PeopleResults term={term} only={!wantsImages && !wantsBoards} />
             )}
-          </section>
+            {wantsBoards && term !== '' && (
+              <BoardResults term={term} only={!wantsImages && !wantsPeople} />
+            )}
+            {wantsImages && (
+              <section aria-label="Images" className="stage-surface text-stage-ink">
+                {search.isPending ? (
+                  <ResultGridSkeleton />
+                ) : search.error ? (
+                  <EmptyState
+                    icon={<ImageOffIcon />}
+                    title="Search is unavailable right now"
+                    description={search.error.message}
+                    action={
+                      <Button variant="outline" onClick={() => void search.refetch()}>
+                        Try again
+                      </Button>
+                    }
+                  />
+                ) : results.length === 0 ? (
+                  <EmptyState
+                    icon={<SearchIcon />}
+                    title={`Nothing for ${subject}`}
+                    description="Try fewer words, or loosen a filter."
+                  />
+                ) : (
+                  <>
+                    <p className="mb-4 text-sm text-stage-ink/60">
+                      {total.toLocaleString()} results for {subject}
+                    </p>
+                    <ResultGrid
+                      results={results}
+                      savedTo={savedTo}
+                      onSave={handleSave}
+                      hasMore={Boolean(search.hasNextPage)}
+                      loadingMore={search.isFetchingNextPage}
+                      onLoadMore={() => void search.fetchNextPage()}
+                    />
+                    <p className="mt-8 text-center text-xs text-stage-ink/50">
+                      Photos from{' '}
+                      <a
+                        href="https://pixabay.com/"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline underline-offset-4"
+                      >
+                        Pixabay
+                      </a>
+                    </p>
+                  </>
+                )}
+              </section>
+            )}
+          </div>
         ) : feed.isPending ? (
           <JustifiedRowsSkeleton label="Loading public images" className="mt-6" />
         ) : feed.isError ? (
@@ -275,6 +295,63 @@ export default function ExplorePage() {
         }
       />
     </div>
+  );
+}
+
+/**
+ * People matching the words. Silent while something else is still answering;
+ * only a search that was for people alone says "nobody".
+ */
+function PeopleResults({ term, only }: { term: string; only: boolean }) {
+  const people = useProfileSearch(term, true);
+  const found: ProfileSummary[] = people.data?.profiles ?? [];
+  if (!only && (people.isPending || found.length === 0)) return null;
+
+  return (
+    <section aria-label="People" className="stage-surface text-stage-ink">
+      <SectionHeading>People</SectionHeading>
+      {found.length === 0 ? (
+        <Notice>Nobody by that name. A handle is searched with an @ in front of it.</Notice>
+      ) : (
+        <ul className="mt-4 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+          {found.map((profile) => (
+            <li key={profile.id}>
+              <PersonRow profile={profile} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** Public boards whose title or description carries the words. */
+function BoardResults({ term, only }: { term: string; only: boolean }) {
+  const boards = useBoardSearch(term, true);
+  const found = boards.data?.collections ?? [];
+  if (!only && (boards.isPending || found.length === 0)) return null;
+
+  return (
+    <section aria-label="Boards" className="text-stage-ink">
+      <SectionHeading>Boards</SectionHeading>
+      {found.length === 0 ? (
+        <Notice>No public board by that name.</Notice>
+      ) : (
+        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+          {found.map((board) => (
+            <BoardCard key={board.id} board={board} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="border-b border-stage-ink/20 pb-3 text-[11px] tracking-[0.2em] text-stage-ink/60 uppercase">
+      {children}
+    </h2>
   );
 }
 

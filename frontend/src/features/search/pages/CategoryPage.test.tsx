@@ -36,8 +36,8 @@ describe('CategoryPage', () => {
       'href',
       '/explore',
     );
-    expect(await screen.findByAltText('heron, reeds, dusk')).toBeInTheDocument();
-    expect(screen.getByAltText('fox, snow, field')).toBeInTheDocument();
+    expect(await screen.findByAltText('Heron, reeds, dusk')).toBeInTheDocument();
+    expect(screen.getByAltText('Fox, snow, field')).toBeInTheDocument();
 
     // The category is the whole query: an empty q, and this category.
     const search = api.calls.find((call) => call.path === '/api/search')?.url ?? '';

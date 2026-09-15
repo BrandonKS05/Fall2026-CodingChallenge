@@ -76,6 +76,19 @@ describe('ItemService', () => {
     expect(detail.summary.previewImageIds).toHaveLength(2);
   });
 
+  it('names a picture from its tags when it is saved without a caption', async () => {
+    // The providers have no titles, only tags, so a saved image still arrives named.
+    expect(await save('1', owner)).toMatchObject({ caption: 'Kitchen, wood' });
+
+    const titled = await service.add(boardId, owner, {
+      provider: 'pixabay',
+      providerImageId: '2',
+      caption: '  Morning light  ',
+      tags: [],
+    });
+    expect(titled.caption).toBe('Morning light');
+  });
+
   it('blocks viewers and strangers and refuses duplicate images', async () => {
     await expect(save('1', viewer)).rejects.toBeInstanceOf(ForbiddenError);
     await expect(save('1', stranger)).rejects.toBeInstanceOf(ForbiddenError);

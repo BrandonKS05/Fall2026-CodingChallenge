@@ -5,5 +5,15 @@ export { FilterPanel } from './components/FilterPanel';
 export { ImageSearchButton } from './components/ImageSearchButton';
 export { ResultGrid, ResultGridSkeleton } from './components/ResultGrid';
 export { SearchBar } from './components/SearchBar';
-export { EMPTY_FILTERS, readFilters, writeFilters, type SearchFilters } from './filters';
+export {
+  EMPTY_FILTERS,
+  effectiveScope,
+  readFilters,
+  scopeIncludes,
+  searchTerm,
+  toImageQuery,
+  writeFilters,
+  type SearchFilters,
+  type SearchScope,
+} from './filters';
 export { useImageSearch } from './queries';

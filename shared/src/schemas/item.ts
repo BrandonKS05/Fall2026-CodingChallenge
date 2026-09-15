@@ -10,6 +10,21 @@ import { collectionSchema } from './collection.js';
 const hexColorSchema = z.string().regex(/^#[0-9a-f]{6}$/i);
 
 /** An image the backend has downloaded and now serves itself. */
+/**
+ * A name for a picture that arrived without one. The providers index photos by
+ * tag rather than by title, so the first few tags become the title: capitalised,
+ * and short enough to read at a glance. Empty when there is nothing to go on.
+ */
+export function imageTitle(tags: readonly string[]): string {
+  const words = tags
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0)
+    .slice(0, 3);
+  if (words.length === 0) return '';
+  const phrase = words.join(', ');
+  return phrase.charAt(0).toUpperCase() + phrase.slice(1);
+}
+
 export const imageSchema = z.object({
   id: idSchema,
   /** Path served by our API, e.g. /api/images/<id>. Never a provider URL. */

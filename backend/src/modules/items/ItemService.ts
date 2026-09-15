@@ -2,6 +2,7 @@
  * Items are images placed on a board. Every operation authorizes through
  * CollectionService first, then touches the board so lists reorder by activity.
  */
+import { imageTitle } from '@wumboo/shared';
 import type {
   CollectionItem,
   ItemDetail,
@@ -71,7 +72,9 @@ export class ItemService {
       collectionId,
       imageId: image.id,
       addedById: actorId,
-      caption: input.caption,
+      // Nobody types a caption while saving, and a wall of untitled pictures
+      // tells you nothing, so the image's own tags name it until someone says better.
+      caption: input.caption.trim() || imageTitle(image.tags),
       tags: input.tags,
       position,
     });

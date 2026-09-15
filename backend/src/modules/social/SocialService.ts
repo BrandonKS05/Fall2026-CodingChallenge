@@ -82,6 +82,16 @@ export class SocialService {
     return this.profile(handle, viewerId);
   }
 
+  /** Finding people, by the handle they are known by or the name they show. */
+  async searchPeople(
+    term: string,
+    viewerId: string | null,
+    limit: number,
+  ): Promise<ProfileSummary[]> {
+    if (term.trim() === '') return [];
+    return this.deps.follows.searchProfiles(term, { limit, viewerId });
+  }
+
   async followers(
     handle: string,
     viewerId: string | null,

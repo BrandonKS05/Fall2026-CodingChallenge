@@ -52,8 +52,19 @@ export class InMemoryCollectionRepository implements CollectionRepository {
     return mine;
   }
 
-  async listPublic({ limit, offset, viewerId }: ListPublicOptions): Promise<CollectionSummary[]> {
-    const publicBoards = await this.discoverable(this.newestFirst());
+  async listPublic({
+    limit,
+    offset,
+    viewerId,
+    term,
+  }: ListPublicOptions): Promise<CollectionSummary[]> {
+    const needle = term?.trim().toLowerCase() ?? '';
+    const publicBoards = (await this.discoverable(this.newestFirst())).filter(
+      (collection) =>
+        needle === '' ||
+        collection.title.toLowerCase().includes(needle) ||
+        collection.description.toLowerCase().includes(needle),
+    );
     return Promise.all(
       publicBoards
         .slice(offset, offset + limit)

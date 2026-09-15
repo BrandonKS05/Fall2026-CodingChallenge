@@ -9,7 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { activeFilterCount, EMPTY_FILTERS, type SearchFilters } from '../filters';
+import {
+  activeFilterCount,
+  EMPTY_FILTERS,
+  effectiveScope,
+  SCOPE_LABELS,
+  SCOPES,
+  type SearchFilters,
+} from '../filters';
 import { ColorWheel } from './ColorWheel';
 
 /**
@@ -26,6 +33,8 @@ export function FilterPanel({
 }) {
   const count = activeFilterCount(filters);
   const set = (patch: Partial<SearchFilters>) => onChange({ ...filters, ...patch });
+  // An @ in the box has already decided; the panel says so rather than arguing.
+  const byHandle = effectiveScope(filters) === 'people' && filters.scope !== 'people';
 
   return (
     <Popover>
@@ -52,6 +61,19 @@ export function FilterPanel({
             </button>
           )}
         </header>
+
+        <Group label="Looking for">
+          <Choices
+            options={SCOPES.map((option) => [option, SCOPE_LABELS[option]])}
+            value={filters.scope}
+            onSelect={(scope) => set({ scope })}
+          />
+          {byHandle && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              The @ in front of your words is searching people.
+            </p>
+          )}
+        </Group>
 
         <Group label="Shape">
           <Choices

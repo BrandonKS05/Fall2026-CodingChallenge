@@ -17,6 +17,8 @@ export type CollectionPatch = Partial<Pick<Collection, 'title' | 'description' |
 export interface ListPublicOptions {
   limit: number;
   offset: number;
+  /** When set, only boards whose title or description contains these words. */
+  term?: string;
   /** When set, `role` on each summary reflects this user's membership. */
   viewerId?: string;
 }

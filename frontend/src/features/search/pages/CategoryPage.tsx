@@ -21,7 +21,7 @@ import { NotificationBell } from '@/features/notifications';
 import { cn } from '@/lib/utils';
 import { CATEGORIES, DEFAULT_NEAR, NEAR } from '../categories';
 import { ResultGrid, ResultGridSkeleton } from '../components/ResultGrid';
-import { EMPTY_FILTERS } from '../filters';
+import { EMPTY_FILTERS, toImageQuery } from '../filters';
 import { useImageSearch } from '../queries';
 
 export default function CategoryPage() {
@@ -33,7 +33,9 @@ export default function CategoryPage() {
   const { user } = useSession();
   const boards = useBoards(user !== null);
   const createBoard = useCreateBoard();
-  const search = useImageSearch({ ...EMPTY_FILTERS, category: category ?? undefined });
+  const search = useImageSearch(
+    toImageQuery({ ...EMPTY_FILTERS, category: category ?? undefined }),
+  );
   const [picking, setPicking] = useState<SearchResult | null>(null);
   const [savedTo, setSavedTo] = useState<Record<string, string>>({});
   const results = search.data?.pages.flatMap((page) => page.results) ?? [];

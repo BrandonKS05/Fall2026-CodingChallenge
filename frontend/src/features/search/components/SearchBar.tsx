@@ -49,8 +49,8 @@ export function SearchBar({
       <Input
         value={text}
         onChange={(event) => setText(event.target.value)}
-        placeholder="Search millions of free photos"
-        aria-label="Search for images"
+        placeholder="Search images and boards, or @someone"
+        aria-label="Search images, boards and people"
         autoFocus={autoFocus}
         autoComplete="off"
         className="h-11 pl-9"

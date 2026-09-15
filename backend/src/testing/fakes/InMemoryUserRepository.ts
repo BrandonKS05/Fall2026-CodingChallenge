@@ -12,6 +12,11 @@ import type {
 export class InMemoryUserRepository implements UserRepository {
   private readonly rows = new Map<string, User>();
 
+  /** Everyone, for the fakes that search the table rather than an index. */
+  all(): User[] {
+    return [...this.rows.values()];
+  }
+
   async findById(id: string): Promise<User | null> {
     return this.rows.get(id) ?? null;
   }

@@ -28,6 +28,17 @@ export function useFollow(handle: string) {
   });
 }
 
+/** People whose handle or shown name carries the words. */
+export function useProfileSearch(term: string, enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.peopleSearch(term),
+    queryFn: () => socialApi.search(term),
+    enabled: enabled && term !== '',
+    staleTime: 60_000,
+    meta: { silentError: true },
+  });
+}
+
 export function useFollowList(handle: string, direction: 'followers' | 'following', open: boolean) {
   return useQuery({
     queryKey: queryKeys.profiles.list(handle, direction),

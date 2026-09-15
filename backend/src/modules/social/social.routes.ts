@@ -1,4 +1,8 @@
-import { followListQuerySchema, handleParamsSchema } from '@wumboo/shared';
+import {
+  followListQuerySchema,
+  handleParamsSchema,
+  profileSearchQuerySchema,
+} from '@wumboo/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { optionalAuth, requireAuth } from '../../http/middleware/authenticate.js';
@@ -13,6 +17,13 @@ export function createUsersRouter(container: Container): Router {
   const signedIn = requireAuth(deps);
 
   const router = Router();
+  // Before the handle route, which would otherwise answer for a user called "search".
+  router.get(
+    '/search',
+    maybeSignedIn,
+    validate({ query: profileSearchQuerySchema }),
+    controller.search,
+  );
   router.get(
     '/:handle',
     maybeSignedIn,

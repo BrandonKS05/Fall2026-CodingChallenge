@@ -19,6 +19,19 @@ export const profileSummarySchema = z.object({
 });
 export type ProfileSummary = z.infer<typeof profileSummarySchema>;
 
+/** GET /api/users/search — finding people by handle or by the name they show. */
+export const profileSearchQuerySchema = z.object({
+  /** A leading @ is how people write a handle; it is not part of one. */
+  q: z
+    .string()
+    .trim()
+    .min(1)
+    .max(60)
+    .transform((term) => term.replace(/^@+/, '')),
+  limit: z.coerce.number().int().min(1).max(25).default(10),
+});
+export type ProfileSearchQuery = z.infer<typeof profileSearchQuerySchema>;
+
 export const publicProfileSchema = profileSummarySchema.extend({
   joinedAt: timestampSchema,
   followerCount: z.number().int().nonnegative(),

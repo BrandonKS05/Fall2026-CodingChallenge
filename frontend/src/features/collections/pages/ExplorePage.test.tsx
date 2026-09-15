@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { exploreImageFixture } from '@/testing/fixtures';
+import { boardFixture, exploreImageFixture, searchResultFixture } from '@/testing/fixtures';
 import { renderWithProviders, stubApi, type StubRoute } from '@/testing/render';
 import ExplorePage from './ExplorePage';
 
@@ -14,6 +14,8 @@ const feed = [
   exploreImageFixture('i4', pines),
   exploreImageFixture('i5', kitchens),
 ];
+
+const SEARCH_BOX = 'Search images, boards and people';
 
 const user = {
   id: 'u1',
@@ -36,6 +38,8 @@ function renderExplore(
     'GET /api/explore/images': route,
     'GET /api/search': { body: { results: [], page: 1, perPage: 30, total: 0 } },
     'GET /api/collections': { body: { collections: [] } },
+    'GET /api/explore': { body: { collections: [] } },
+    'GET /api/users/search': { body: { profiles: [] } },
   });
   vi.stubGlobal('fetch', api.fetchMock);
   renderWithProviders(<ExplorePage />, { route: '/explore' });
@@ -66,13 +70,71 @@ describe('ExplorePage', () => {
     const api = renderExplore();
     await screen.findAllByRole('link', { name: /^Open / });
 
-    await userEvent.type(screen.getByLabelText('Search for images'), 'tide pools');
+    await userEvent.type(screen.getByLabelText(SEARCH_BOX), 'tide pools');
 
     await waitFor(() => expect(api.calls.some((call) => call.path === '/api/search')).toBe(true));
     // The board gallery steps aside while results are on screen.
     await waitFor(() => expect(screen.queryByRole('link', { name: /^Open / })).toBeNull());
     // So does the category grid: it is a way in, not a thing to read past results.
     expect(screen.queryByRole('region', { name: 'Browse by category' })).toBeNull();
+  });
+
+  it('answers a search with people and boards as well as images', async () => {
+    const api = stubApi({
+      'GET /api/auth/me': { body: { user: null } },
+      'GET /api/explore/images': { body: { images: feed } },
+      'GET /api/search': {
+        body: {
+          results: [{ ...searchResultFixture('s1', { tags: ['kitchen'] }) }],
+          page: 1,
+          perPage: 30,
+          total: 1,
+        },
+      },
+      'GET /api/collections': { body: { collections: [] } },
+      'GET /api/explore': { body: { collections: [boardFixture({ title: 'Warm kitchens' })] } },
+      'GET /api/users/search': {
+        body: {
+          profiles: [
+            {
+              id: 'u9',
+              handle: 'ada',
+              displayName: 'Ada L',
+              bio: '',
+              followedByViewer: false,
+            },
+          ],
+        },
+      },
+    });
+    vi.stubGlobal('fetch', api.fetchMock);
+    renderWithProviders(<ExplorePage />, { route: '/explore?q=kitchen' });
+
+    expect(await screen.findByRole('region', { name: 'People' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Ada L/ })).toHaveAttribute('href', '/u/ada');
+    const boards = await screen.findByRole('region', { name: 'Boards' });
+    expect(within(boards).getByRole('link', { name: 'Open Warm kitchens' })).toBeInTheDocument();
+    expect(await screen.findByAltText('Kitchen')).toBeInTheDocument();
+  });
+
+  it('searches people alone when the words start with an @', async () => {
+    const api = stubApi({
+      'GET /api/auth/me': { body: { user: null } },
+      'GET /api/explore/images': { body: { images: feed } },
+      'GET /api/explore': { body: { collections: [] } },
+      'GET /api/users/search': { body: { profiles: [] } },
+    });
+    vi.stubGlobal('fetch', api.fetchMock);
+    renderWithProviders(<ExplorePage />, { route: '/explore?q=%40ada' });
+
+    // The @ picks the scope and is not part of the words that go to the server.
+    await waitFor(() =>
+      expect(api.calls.find((call) => call.path === '/api/users/search')?.url).toContain('q=ada'),
+    );
+    expect(api.calls.some((call) => call.path === '/api/search')).toBe(false);
+    expect(api.calls.some((call) => call.path === '/api/explore')).toBe(false);
+    expect(screen.getByRole('region', { name: 'People' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Images' })).toBeNull();
   });
 
   it('lists every category to browse under the gallery', async () => {

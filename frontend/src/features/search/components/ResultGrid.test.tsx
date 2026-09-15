@@ -22,7 +22,7 @@ describe('ResultGrid', () => {
       />,
     );
 
-    expect(screen.getAllByAltText('heron')).toHaveLength(1);
-    expect(screen.getByAltText('fox')).toBeInTheDocument();
+    expect(screen.getAllByAltText('Heron')).toHaveLength(1);
+    expect(screen.getByAltText('Fox')).toBeInTheDocument();
   });
 });

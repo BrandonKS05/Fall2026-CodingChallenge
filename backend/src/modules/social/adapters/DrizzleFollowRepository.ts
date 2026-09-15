@@ -1,4 +1,4 @@
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import type { ProfileSummary } from '../../../domain/entities/Profile.js';
 import type { Db } from '../../../infrastructure/db/client.js';
 import { follows, users } from '../../../infrastructure/db/schema/index.js';
@@ -58,6 +58,34 @@ export class DrizzleFollowRepository implements FollowRepository {
 
   listFollowing(userId: string, options: FollowListOptions): Promise<ProfileSummary[]> {
     return this.list(eq(follows.followerId, userId), follows.followeeId, options);
+  }
+
+  /**
+   * A handle is what people search by, so a handle that starts with the words
+   * comes before one that merely contains them, and both come before a match
+   * on the display name alone.
+   */
+  searchProfiles(term: string, { limit, viewerId }: FollowListOptions): Promise<ProfileSummary[]> {
+    const escaped = term.trim().replace(/[\\%_]/g, '\\$&');
+    return this.db
+      .select({
+        id: users.id,
+        handle: users.handle,
+        displayName: users.displayName,
+        bio: users.bio,
+        followedByViewer: followedByViewer(viewerId),
+      })
+      .from(users)
+      .where(or(ilike(users.handle, `%${escaped}%`), ilike(users.displayName, `%${escaped}%`)))
+      .orderBy(
+        sql`case
+          when ${users.handle} ilike ${`${escaped}%`} then 0
+          when ${users.handle} ilike ${`%${escaped}%`} then 1
+          else 2
+        end`,
+        users.handle,
+      )
+      .limit(limit);
   }
 
   /** One shape for both directions: the same join, read from the other end. */

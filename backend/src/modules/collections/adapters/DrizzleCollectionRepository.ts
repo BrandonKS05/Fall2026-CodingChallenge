@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lte, sql, type SQL, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, lte, or, sql, type SQL, inArray } from 'drizzle-orm';
 import type {
   Collection,
   CollectionVisibility,
@@ -119,6 +119,17 @@ const toSummary = (row: SummaryRow): CollectionSummary => ({
  */
 const ownerIsDiscoverable = sql`coalesce((${users.preferences} ->> 'discoverable')::boolean, true)`;
 
+/**
+ * Boards whose title or description contains the words, or nothing at all when
+ * no words were given. The wildcards a person types are theirs to see as text,
+ * not to search with, so they are escaped.
+ */
+function matching(term: string | undefined): SQL | undefined {
+  if (term === undefined || term.trim() === '') return undefined;
+  const like = `%${term.trim().replace(/[\\%_]/g, '\\$&')}%`;
+  return or(ilike(collections.title, like), ilike(collections.description, like));
+}
+
 export class DrizzleCollectionRepository implements CollectionRepository {
   constructor(private readonly db: Db) {}
 
@@ -156,13 +167,18 @@ export class DrizzleCollectionRepository implements CollectionRepository {
     return rows.map(toSummary);
   }
 
-  async listPublic({ limit, offset, viewerId }: ListPublicOptions): Promise<CollectionSummary[]> {
+  async listPublic({
+    limit,
+    offset,
+    viewerId,
+    term,
+  }: ListPublicOptions): Promise<CollectionSummary[]> {
     const rows = await this.db
       .select(summaryColumns(viewerId ?? null))
       .from(collections)
       .innerJoin(users, eq(users.id, collections.ownerId))
       .leftJoin(collectionMembers, viewerMembership(viewerId ?? null))
-      .where(and(eq(collections.visibility, 'public'), ownerIsDiscoverable))
+      .where(and(eq(collections.visibility, 'public'), ownerIsDiscoverable, matching(term)))
       .orderBy(desc(collections.updatedAt))
       .limit(limit)
       .offset(offset);

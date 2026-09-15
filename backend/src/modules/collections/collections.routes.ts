@@ -1,7 +1,7 @@
 import {
   createCollectionRequestSchema,
   exploreImagesQuerySchema,
-  paginationQuerySchema,
+  exploreQuerySchema,
   updateCollectionRequestSchema,
 } from '@wumboo/shared';
 import { Router } from 'express';
@@ -48,7 +48,7 @@ export function createExploreRouter(container: Container): Router {
   });
 
   const router = Router();
-  router.get('/', maybeSignedIn, validate({ query: paginationQuerySchema }), controller.explore);
+  router.get('/', maybeSignedIn, validate({ query: exploreQuerySchema }), controller.explore);
   // Landing-stage feed. It reads public boards only; a session just adds the muted tags to leave out.
   router.get(
     '/images',

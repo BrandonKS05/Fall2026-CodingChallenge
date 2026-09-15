@@ -4,8 +4,14 @@
  * item.ts already imports collection.ts.
  */
 import { z } from 'zod';
-import { idSchema } from './common.js';
+import { idSchema, paginationQuerySchema } from './common.js';
 import { imageSchema } from './item.js';
+
+/** GET /api/explore — public boards, optionally only those matching some words. */
+export const exploreQuerySchema = paginationQuerySchema.extend({
+  q: z.string().trim().max(100).default(''),
+});
+export type ExploreQuery = z.infer<typeof exploreQuerySchema>;
 
 /** GET /api/explore/images query. Values arrive as strings, so `limit` is coerced. */
 export const exploreImagesQuerySchema = z.object({

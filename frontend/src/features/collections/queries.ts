@@ -16,6 +16,17 @@ export function useExploreImages(limit: number) {
   });
 }
 
+/** Public boards whose title or description carries the words. */
+export function useBoardSearch(term: string, enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.boardSearch(term),
+    queryFn: () => collectionsApi.search(term),
+    enabled: enabled && term !== '',
+    staleTime: 60_000,
+    meta: { silentError: true },
+  });
+}
+
 export function useBoards(enabled = true) {
   return useQuery({
     queryKey: queryKeys.collections.list(),

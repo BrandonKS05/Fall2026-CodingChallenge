@@ -1,3 +1,4 @@
 /** Social feature: the surface other parts of the app may import. */
+export { PersonRow } from './components/PersonRow';
 export { ProfileLink } from './components/ProfileLink';
-export { useFollowList } from './queries';
+export { useFollowList, useProfileSearch } from './queries';

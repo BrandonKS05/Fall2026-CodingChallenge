@@ -1,7 +1,7 @@
 import type {
   CreateCollectionRequest,
   ExploreImagesQuery,
-  PaginationQuery,
+  ExploreQuery,
   UpdateCollectionRequest,
 } from '@wumboo/shared';
 import type { RequestHandler } from 'express';
@@ -36,7 +36,7 @@ export function createCollectionsController(service: CollectionService): Collect
     },
 
     explore: async (_req, res) => {
-      const { query } = getValidated<unknown, PaginationQuery>(res);
+      const { query } = getValidated<unknown, ExploreQuery>(res);
       const summaries = await service.listPublic(optionalUser(res)?.id ?? null, query);
       res.json(presentCollectionList(summaries));
     },

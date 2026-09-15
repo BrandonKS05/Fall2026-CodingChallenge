@@ -41,6 +41,33 @@ describe('user routes', () => {
     expect((await request(app).get('/api/users/ADA')).status).toBe(200);
   });
 
+  it('finds people by handle or by the name they show, handles first', async () => {
+    const res = await request(app).get('/api/users/search?q=ad');
+
+    expect(res.status).toBe(200);
+    expect(followListResponseSchema.safeParse(res.body).success).toBe(true);
+    expect(res.body.profiles.map((profile: { handle: string }) => profile.handle)).toEqual(['ada']);
+
+    // The @ people write before a handle is not part of it.
+    expect((await request(app).get('/api/users/search?q=%40ada')).body.profiles).toHaveLength(1);
+    // And the display name is searchable too, so a name you half remember still lands.
+    expect((await request(app).get('/api/users/search?q=sam')).body.profiles).toHaveLength(1);
+    expect((await request(app).get('/api/users/search?q=nobody')).body.profiles).toEqual([]);
+    // Nothing to search by is a bad request, not an empty page of everyone.
+    expect((await request(app).get('/api/users/search?q=')).status).toBe(400);
+    // The catch-all route must not swallow it.
+    expect((await request(app).get('/api/users/search?q=ada')).body.profiles[0].handle).toBe('ada');
+  });
+
+  it('says whether the viewer already follows the people it finds', async () => {
+    await request(app).post(`/api/users/${ada.handle}/follow`).set('Cookie', sam.cookie);
+
+    const asSam = await request(app).get('/api/users/search?q=ada').set('Cookie', sam.cookie);
+    expect(asSam.body.profiles[0]).toMatchObject({ handle: 'ada', followedByViewer: true });
+    const asVisitor = await request(app).get('/api/users/search?q=ada');
+    expect(asVisitor.body.profiles[0]).toMatchObject({ followedByViewer: false });
+  });
+
   it('follows and unfollows, answering with the profile both times', async () => {
     const followed = await request(app)
       .post(`/api/users/${ada.handle}/follow`)

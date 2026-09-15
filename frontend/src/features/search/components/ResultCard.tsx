@@ -1,4 +1,4 @@
-import type { SearchResult } from '@wumboo/shared';
+import { imageTitle, type SearchResult } from '@wumboo/shared';
 import { BookmarkIcon, CheckIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,9 @@ interface ResultCardProps {
  */
 export function ResultCard({ result, savedTo, onSave }: ResultCardProps) {
   const [loaded, setLoaded] = useState(false);
-  const alt = result.tags.slice(0, 3).join(', ') || 'Image';
+  // The library has no titles, only tags, so the picture is named from those.
+  const title = imageTitle(result.tags);
+  const alt = title || 'Image';
 
   return (
     <figure
@@ -64,8 +66,14 @@ export function ResultCard({ result, savedTo, onSave }: ResultCardProps) {
         )}
       </div>
 
-      <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-3 pt-6 pb-2 text-xs text-white opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-        <a href={result.sourceUrl} target="_blank" rel="noreferrer" className="hover:underline">
+      <figcaption className="absolute inset-x-0 bottom-0 space-y-0.5 bg-gradient-to-t from-black/70 to-transparent px-3 pt-8 pb-2 text-white opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+        <p className="truncate text-sm leading-snug font-medium">{alt}</p>
+        <a
+          href={result.sourceUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="block truncate text-xs text-white/75 hover:underline"
+        >
           {result.credit.name} · Pixabay
         </a>
       </figcaption>

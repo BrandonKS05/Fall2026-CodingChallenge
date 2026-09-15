@@ -1,4 +1,4 @@
-import type { Item } from '@wumboo/shared';
+import { imageTitle, type Item } from '@wumboo/shared';
 import { PencilIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,12 @@ interface ItemCardProps {
  */
 export function ItemCard({ item, canEdit, onOpen, onEdit, onRemove }: ItemCardProps) {
   const { image } = item;
-  const alt = item.caption || image.tags.slice(0, 3).join(', ') || 'Saved image';
+  // Anything saved before captions were filled in still has its tags to go by.
+  const title = item.caption || imageTitle(image.tags);
+  const alt = title || 'Saved image';
+  // A borrowed title is made of tags, so those tags are not worth printing twice.
+  const named = new Set(item.caption ? [] : image.tags.slice(0, 3).map((tag) => tag.toLowerCase()));
+  const tags = item.tags.filter((tag) => !named.has(tag.toLowerCase()));
   // A cached image can finish before React attaches onLoad, so the ref checks `complete` too.
   const [loaded, setLoaded] = useState(false);
 
@@ -87,12 +92,12 @@ export function ItemCard({ item, canEdit, onOpen, onEdit, onRemove }: ItemCardPr
         </div>
       )}
 
-      {(item.caption || item.tags.length > 0) && (
+      {(title || tags.length > 0) && (
         <figcaption className="space-y-1 px-3 py-2">
-          {item.caption && <p className="text-sm leading-snug">{item.caption}</p>}
-          {item.tags.length > 0 && (
+          {title && <p className="text-sm leading-snug">{title}</p>}
+          {tags.length > 0 && (
             <p className="truncate text-xs text-muted-foreground">
-              {item.tags.map((tag) => `#${tag}`).join(' ')}
+              {tags.map((tag) => `#${tag}`).join(' ')}
             </p>
           )}
         </figcaption>
