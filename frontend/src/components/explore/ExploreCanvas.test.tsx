@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exploreImageFixture } from '@/testing/fixtures';
 import { renderWithProviders, stubApi, type StubRoute } from '@/testing/render';
 import { ExploreCanvas } from './ExploreCanvas';
+import { SLOTS, SPARE_IMAGES, TILE_LIMIT } from './slots';
 
 const boards = [
   { id: 'c1', title: 'Warm kitchens' },
@@ -10,8 +11,11 @@ const boards = [
   { id: 'c3', title: 'Ceramics' },
 ];
 
-/** Twenty-four rows interleaved across three boards, in the order the API returns them. */
-const feed = Array.from({ length: 24 }, (_, index) =>
+/** A full feed (every slot plus the spares) interleaved across three boards, in API order. */
+const FEED_SIZE = TILE_LIMIT + SPARE_IMAGES;
+const spare = (n: number) => `/api/images/i${TILE_LIMIT + n}`;
+const heroLeft = `${SLOTS[0]?.x ?? 0}%`;
+const feed = Array.from({ length: FEED_SIZE }, (_, index) =>
   exploreImageFixture(`i${index + 1}`, boards[index % boards.length] as (typeof boards)[number]),
 );
 
@@ -45,10 +49,10 @@ const slotOf = (img: HTMLElement) => (img.closest('a')?.parentElement as HTMLEle
 describe('ExploreCanvas', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('fills eighteen slots from the feed in server order, each tile linking to its board', async () => {
+  it('fills every slot from the feed in server order, each tile linking to its board', async () => {
     const api = renderCanvas();
     const tiles = await screen.findAllByRole('link', { name: /^Open / });
-    expect(tiles).toHaveLength(18);
+    expect(tiles).toHaveLength(TILE_LIMIT);
     expect(tiles.slice(0, 3).map((tile) => tile.getAttribute('aria-label'))).toEqual([
       'Open Warm kitchens',
       'Open Fog and pines',
@@ -58,7 +62,7 @@ describe('ExploreCanvas', () => {
     expect(tiles[1]).toHaveAttribute('href', '/boards/c2');
     expect(tiles[0]).toHaveStyle({ aspectRatio: '1600 / 1200' });
     expect(sources()[0]).toBe('/api/images/i1');
-    expect(api.calls[0]?.url).toContain('limit=24');
+    expect(api.calls[0]?.url).toContain(`limit=${FEED_SIZE}`);
   });
 
   it('renders the chrome and the custom cursor, and swaps Sign in for Discover when signed in', async () => {
@@ -98,39 +102,39 @@ describe('ExploreCanvas', () => {
 
     fireEvent.error(first);
 
-    await waitFor(() => expect(imgBySrc('/api/images/i19')).toBeDefined());
-    expect(slotOf(imgBySrc('/api/images/i19')!)).toBe(slot);
+    await waitFor(() => expect(imgBySrc(spare(1))).toBeDefined());
+    expect(slotOf(imgBySrc(spare(1))!)).toBe(slot);
     expect(imgBySrc('/api/images/i1')).toBeUndefined();
     expect(imgBySrc('/api/images/i2')).toBe(second);
-    expect(sources()).toHaveLength(18);
+    expect(sources()).toHaveLength(TILE_LIMIT);
   });
 
   it('claims spares in failure order, including when a spare itself fails', async () => {
     renderCanvas();
     await screen.findAllByRole('img');
     fireEvent.error(imgBySrc('/api/images/i1')!);
-    await waitFor(() => expect(imgBySrc('/api/images/i19')).toBeDefined());
+    await waitFor(() => expect(imgBySrc(spare(1))).toBeDefined());
 
     const sixth = slotOf(imgBySrc('/api/images/i6')!);
     fireEvent.error(imgBySrc('/api/images/i6')!);
-    await waitFor(() => expect(imgBySrc('/api/images/i20')).toBeDefined());
-    expect(slotOf(imgBySrc('/api/images/i20')!)).toBe(sixth);
-    expect(slotOf(imgBySrc('/api/images/i19')!)).toBe('40%');
+    await waitFor(() => expect(imgBySrc(spare(2))).toBeDefined());
+    expect(slotOf(imgBySrc(spare(2))!)).toBe(sixth);
+    expect(slotOf(imgBySrc(spare(1))!)).toBe(heroLeft);
 
-    fireEvent.error(imgBySrc('/api/images/i19')!);
-    await waitFor(() => expect(imgBySrc('/api/images/i21')).toBeDefined());
-    expect(slotOf(imgBySrc('/api/images/i21')!)).toBe('40%');
-    expect(imgBySrc('/api/images/i19')).toBeUndefined();
-    expect(slotOf(imgBySrc('/api/images/i20')!)).toBe(sixth);
-    expect(sources()).toHaveLength(18);
+    fireEvent.error(imgBySrc(spare(1))!);
+    await waitFor(() => expect(imgBySrc(spare(3))).toBeDefined());
+    expect(slotOf(imgBySrc(spare(3))!)).toBe(heroLeft);
+    expect(imgBySrc(spare(1))).toBeUndefined();
+    expect(slotOf(imgBySrc(spare(2))!)).toBe(sixth);
+    expect(sources()).toHaveLength(TILE_LIMIT);
   });
 
   it('hides a failed tile when no spare is left, and a short feed fills only its own slots', async () => {
-    renderCanvas({ body: { images: feed.slice(0, 18) } });
+    renderCanvas({ body: { images: feed.slice(0, TILE_LIMIT) } });
     await screen.findAllByRole('img');
     fireEvent.error(imgBySrc('/api/images/i1')!);
-    await waitFor(() => expect(sources()).toHaveLength(17));
-    expect(imgBySrc('/api/images/i19')).toBeUndefined();
+    await waitFor(() => expect(sources()).toHaveLength(TILE_LIMIT - 1));
+    expect(imgBySrc(spare(1))).toBeUndefined();
     cleanup();
     vi.unstubAllGlobals();
 

@@ -1,5 +1,7 @@
 /**
- * Cursor-driven parallax for the landing hero.
+ * Cursor-driven parallax for the landing hero. Strategy: `useParallax(enabled)`
+ * picks tracking or a static scatter (reduced motion, touch) and the tiles
+ * never know which one they got.
  *
  * Feel lives in `DEFAULT_TUNING`:
  * - `travel`: how far a depth-1 layer moves at the viewport edge (px). Bigger = more drama.

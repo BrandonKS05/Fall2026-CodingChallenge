@@ -7,6 +7,7 @@ export const INBOX_POLL_MS = 15_000;
 
 /** Polls while the user is signed in, so activity on shared boards shows up without a reload. */
 export function useInbox(enabled: boolean) {
+  // Observer: the inbox subscribes to the server by polling; the bell re-renders from the cache.
   return useQuery({
     queryKey: queryKeys.notifications,
     queryFn: () => notificationsApi.inbox(),

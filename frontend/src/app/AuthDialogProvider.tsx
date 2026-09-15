@@ -7,7 +7,11 @@ import {
   type AuthDialogRequest,
 } from '@/hooks/useAuthDialog';
 
-/** Owns the one sign-in dialog for the whole app, so any page can summon it without leaving. */
+/**
+ * Mediator: owns the one sign-in dialog for the whole app. Entry points (header,
+ * hero, save dialog, board page) ask for it through `useAuthDialog` and never
+ * know about each other or about the dialog itself.
+ */
 export function AuthDialogProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<AuthDialogRequest | null>(null);
   const close = useCallback(() => setRequest(null), []);

@@ -1,5 +1,5 @@
 /**
- * Light, dark, or follow-the-system theme. Persists the explicit choice and
+ * Strategy: light, dark, or follow-the-system theme. Persists the explicit choice and
  * applies the `dark` class Tailwind's variant keys off. index.html applies the
  * same class before React loads so there is no flash on reload.
  */

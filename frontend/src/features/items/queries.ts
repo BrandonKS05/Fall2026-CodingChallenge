@@ -69,6 +69,7 @@ export function useUpdateItem(collectionId: string) {
   });
 }
 
+/** Memento: the cache snapshot taken in onMutate is what onError restores when the request fails. */
 export function useRemoveItem(collectionId: string) {
   const queryClient = useQueryClient();
   const detailKey = queryKeys.collections.detail(collectionId);

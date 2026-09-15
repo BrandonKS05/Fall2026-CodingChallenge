@@ -14,6 +14,20 @@ export default defineConfig({
     // first-party and CORS never comes up. Production uses a rewrite for the same effect.
     proxy: { '/api': { target: 'http://localhost:4000', changeOrigin: false } },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // The big libraries change far less often than the app, so they get their own
+        // long-cached chunks and the app chunk stays small.
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router'],
+          query: ['@tanstack/react-query'],
+          motion: ['motion'],
+          ui: ['@base-ui/react', 'lucide-react'],
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/testing/setup.ts'],

@@ -24,9 +24,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-6 px-4">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 sm:gap-6">
           <Logo />
-          <nav aria-label="Primary" className="flex items-center gap-1 text-sm">
+          {/* One row at every width: labels never wrap, and on a phone the nav scrolls sideways instead. */}
+          <nav
+            aria-label="Primary"
+            className="flex min-w-0 items-center gap-1 overflow-x-auto text-xs [scrollbar-width:none] sm:text-sm"
+          >
             {links.map((link) => (
               <NavLink
                 key={link.to}
@@ -34,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 end={link.end}
                 className={({ isActive }) =>
                   cn(
-                    'rounded-md px-3 py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground',
+                    'shrink-0 rounded-md px-2 py-1.5 whitespace-nowrap transition-colors hover:bg-accent hover:text-accent-foreground sm:px-3',
                     isActive
                       ? 'bg-accent text-accent-foreground font-medium'
                       : 'text-muted-foreground',
@@ -45,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <NotificationBell user={user} />
             <ThemeToggle />
             <UserMenu />

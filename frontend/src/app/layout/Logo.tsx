@@ -11,7 +11,7 @@ export function Logo({ className }: { className?: string }) {
       >
         W
       </span>
-      <span className="text-lg">Wumboo</span>
+      <span className="hidden text-lg sm:inline">Wumboo</span>
     </Link>
   );
 }

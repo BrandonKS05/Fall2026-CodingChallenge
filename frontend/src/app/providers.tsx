@@ -23,6 +23,7 @@ function describe(error: unknown): string {
   return error instanceof ApiError ? error.message : 'Something went wrong. Please try again.';
 }
 
+/** Factory: one place decides retry, staleness, and how errors surface; tests build their own client here too. */
 export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {

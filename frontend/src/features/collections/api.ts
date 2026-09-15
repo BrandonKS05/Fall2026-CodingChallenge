@@ -8,6 +8,7 @@ import type {
 } from '@wumboo/shared';
 import { http } from '@/lib/api';
 
+/** Adapter: the feature's slice of the API contract as typed calls, so components never see URLs. */
 export const collectionsApi = {
   list: () => http.get<CollectionListResponse>('/collections'),
   explore: (query: Partial<PaginationQuery>) =>

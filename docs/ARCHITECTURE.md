@@ -72,6 +72,20 @@ queue, the images module becomes a worker, and nothing above the boundary change
 | Factory                                 | `modules/images/adapters/storage/storageFactory.ts`                                                                                                    | selects the storage strategy from STORAGE_DRIVER; nothing else knows which one is running                    |
 | Observer                                | `infrastructure/events/EventBus.ts`, `infrastructure/events/InMemoryEventBus.ts`, `modules/notifications/NotificationService.ts`                       | board changes are published as domain events; notifications subscribe, and publishers never know who listens |
 
+The frontend applies the same idea without inventing ceremony React does not need; a pattern is named
+only where it already does real work:
+
+| Pattern  | Where                                                                                         | What it lets us swap                                                                                   |
+| -------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Facade   | `frontend/src/lib/api/httpClient.ts`                                                          | fetch, credentials, JSON, and error mapping live behind one client; the API base changes in one line   |
+| Adapter  | `frontend/src/features/*/api.ts`                                                              | each feature's slice of the contract as typed calls, so components never see URLs or response shapes   |
+| Factory  | `frontend/src/lib/api/queryKeys.ts`, `frontend/src/app/providers.tsx` (`createQueryClient`)   | hierarchical cache keys and one client configuration, shared by the app and its tests                  |
+| Observer | TanStack Query subscriptions; `frontend/src/features/notifications/queries.ts` polling        | components re-render from the cache; the inbox could move from polling to server-sent events unnoticed |
+| Mediator | `frontend/src/app/AuthDialogProvider.tsx`, `frontend/src/hooks/useAuthDialog.tsx`             | every "Log in" entry point summons one dialog without knowing about the others or about the dialog     |
+| Strategy | `frontend/src/hooks/useTheme.tsx`, `frontend/src/components/explore/useParallax.ts`           | light, dark, or system theme; cursor tracking or a static scatter for reduced motion and touch         |
+| Memento  | `onMutate` snapshots in `frontend/src/features/items/queries.ts` and `collections/queries.ts` | optimistic updates that roll back to the exact previous cache when a request fails                     |
+| Command  | remove with undo in `frontend/src/features/collections/pages/BoardPage.tsx`                   | the removal and its inverse travel together, so the toast's Undo is one call                           |
+
 ## Error flow
 
 Services and repositories throw domain errors (`backend/src/domain/errors`) that carry a `kind`

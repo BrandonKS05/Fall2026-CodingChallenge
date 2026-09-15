@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { useLogout, useSession } from '@/features/auth/queries';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
 
@@ -38,7 +39,7 @@ export function UserMenu() {
         <Link
           to="/login"
           onClick={auth.intercept({ mode: 'login' })}
-          className={buttonVariants({ variant: 'ghost' })}
+          className={cn(buttonVariants({ variant: 'ghost' }), 'hidden sm:inline-flex')}
         >
           Log in
         </Link>
