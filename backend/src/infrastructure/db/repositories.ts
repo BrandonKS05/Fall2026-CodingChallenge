@@ -15,6 +15,10 @@ import type { ImageRepository } from '../../modules/images/ports/ImageRepository
 import { DrizzleImageRepository } from '../../modules/images/adapters/DrizzleImageRepository.js';
 import type { ItemRepository } from '../../modules/items/ports/ItemRepository.js';
 import { DrizzleItemRepository } from '../../modules/items/adapters/DrizzleItemRepository.js';
+import type { ConversationRepository } from '../../modules/messaging/ports/ConversationRepository.js';
+import type { MessageRepository } from '../../modules/messaging/ports/MessageRepository.js';
+import { DrizzleConversationRepository } from '../../modules/messaging/adapters/DrizzleConversationRepository.js';
+import { DrizzleMessageRepository } from '../../modules/messaging/adapters/DrizzleMessageRepository.js';
 import type { NotificationRepository } from '../../modules/notifications/ports/NotificationRepository.js';
 import { DrizzleNotificationRepository } from '../../modules/notifications/adapters/DrizzleNotificationRepository.js';
 import type { Db } from './client.js';
@@ -27,6 +31,8 @@ export interface Repositories {
   images: ImageRepository;
   items: ItemRepository;
   notifications: NotificationRepository;
+  conversations: ConversationRepository;
+  messages: MessageRepository;
 }
 
 export function createDrizzleRepositories(db: Db): Repositories {
@@ -38,5 +44,7 @@ export function createDrizzleRepositories(db: Db): Repositories {
     images: new DrizzleImageRepository(db),
     items: new DrizzleItemRepository(db),
     notifications: new DrizzleNotificationRepository(db),
+    conversations: new DrizzleConversationRepository(db),
+    messages: new DrizzleMessageRepository(db),
   };
 }

@@ -41,6 +41,11 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | POST   | /api/collections/:id/members         | done   |
 | PATCH  | /api/collections/:id/members/:userId | done   |
 | DELETE | /api/collections/:id/members/:userId | done   |
+| GET    | /api/conversations                   | done   |
+| POST   | /api/conversations                   | done   |
+| GET    | /api/conversations/:id/messages      | done   |
+| POST   | /api/conversations/:id/messages      | done   |
+| POST   | /api/conversations/:id/read          | done   |
 | GET    | /api/notifications                   | done   |
 | POST   | /api/notifications/read              | done   |
 
@@ -231,10 +236,24 @@ The frontend builds the share URL from the slug (for example `/s/<slug>`), so th
 Every change to a board notifies its other members: `item_added`, `item_updated`, `item_removed`,
 `collection_updated`, and `member_added` (which also reaches the person invited).
 
-| Endpoint                       | Auth     | Notes                                                                                                                                                                     |
-| ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/notifications`       | required | `{ notifications, unreadCount }`, newest first, 50 at most. Each has `type`, `collection: { id, title }`, `actor: { id, displayName }`, `payload`, `readAt`, `createdAt`. |
-| `POST /api/notifications/read` | required | `{ ids?: [] }` marks those read, or everything when `ids` is omitted. 204.                                                                                                |
+| Endpoint | Auth | Notes |
+| -------- | ---- | ----- |
+
+### Messages
+
+Direct messages between two people. Membership is the only permission: everything
+here is 401 without a session, and 403 for a conversation you are not in.
+
+| Endpoint                               | Auth     | Notes                                                                                                                                                               |
+| -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/conversations`               | required | `{ conversations, unreadTotal }`, most recently active first. Each conversation carries the other participants, the last line, and your own unread count.           |
+| `POST /api/conversations`              | required | `{ handle }` opens the one conversation with that person, creating it the first time and returning the same one after. 404 for an unknown handle, 400 for your own. |
+| `GET /api/conversations/:id/messages`  | required | `?limit=` (1-100, default 50) `&before=` a message id. Answers `{ messages, hasMore }` with the page oldest-first; `before` walks backwards through the history.    |
+| `POST /api/conversations/:id/messages` | required | `{ text }` up to 2000 characters, trimmed. 201 with the stored message, which also reaches anyone watching the conversation.                                        |
+| `POST /api/conversations/:id/read`     | required | Moves your read marker to now, which is what clears the unread count. 204.                                                                                          |
+
+| `GET /api/notifications` | required | `{ notifications, unreadCount }`, newest first, 50 at most. Each has `type`, `collection: { id, title }`, `actor: { id, displayName }`, `payload`, `readAt`, `createdAt`. |
+| `POST /api/notifications/read` | required | `{ ids?: [] }` marks those read, or everything when `ids` is omitted. 204. |
 
 `payload` carries what the type needs: `itemId` and `imageId` for item events (so a thumbnail can be
 shown via `/api/images/:imageId`), `changes` for board updates, `userId` and `role` for invitations.

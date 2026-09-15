@@ -7,6 +7,7 @@ import {
 } from '../modules/collections/collections.routes.js';
 import { createHealthRouter } from '../modules/health/health.routes.js';
 import { createImagesRouter } from '../modules/images/images.routes.js';
+import { createConversationsRouter } from '../modules/messaging/messaging.routes.js';
 import { createSavedItemsRouter } from '../modules/items/items.routes.js';
 import { createNotificationsRouter } from '../modules/notifications/notifications.routes.js';
 import { createSearchRouter } from '../modules/images/search.routes.js';
@@ -28,6 +29,7 @@ export function createApiRouter(container: Container): Router {
   api.use('/images', createImagesRouter(container));
   api.use('/items', createSavedItemsRouter(container));
   api.use('/notifications', createNotificationsRouter(container));
+  api.use('/conversations', createConversationsRouter(container));
 
   return api;
 }

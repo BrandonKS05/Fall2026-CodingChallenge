@@ -10,4 +10,7 @@ export * from './collectionItems.js';
 export * from './collectionMembers.js';
 export * from './collectionLikes.js';
 export * from './notifications.js';
+export * from './conversations.js';
+export * from './conversationMembers.js';
+export * from './messages.js';
 export * from './relations.js';

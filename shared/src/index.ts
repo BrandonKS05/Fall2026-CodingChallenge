@@ -14,3 +14,4 @@ export * from './schemas/explore.js';
 export * from './schemas/item.js';
 export * from './schemas/share.js';
 export * from './schemas/notification.js';
+export * from './schemas/message.js';

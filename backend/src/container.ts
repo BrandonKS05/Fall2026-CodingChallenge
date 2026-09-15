@@ -41,6 +41,8 @@ import { AuthService } from './modules/auth/AuthService.js';
 import { CollectionService } from './modules/collections/CollectionService.js';
 import { ImageService } from './modules/images/ImageService.js';
 import { ItemService } from './modules/items/ItemService.js';
+import { MessagingService } from './modules/messaging/MessagingService.js';
+import { noBroadcast } from './modules/messaging/ports/MessageBroadcaster.js';
 import { NotificationService } from './modules/notifications/NotificationService.js';
 import { ShareService } from './modules/sharing/ShareService.js';
 
@@ -50,6 +52,7 @@ export interface Services {
   collections: CollectionService;
   images: ImageService;
   items: ItemService;
+  messaging: MessagingService;
   share: ShareService;
   notifications: NotificationService;
 }
@@ -169,6 +172,14 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     collections,
     images,
     items,
+    messaging: new MessagingService({
+      conversations: repositories.conversations,
+      messages: repositories.messages,
+      users: repositories.users,
+      // Swapped for the socket registry once the realtime layer is attached.
+      broadcaster: noBroadcast,
+      logger,
+    }),
     share: new ShareService({
       collections: repositories.collections,
       memberships: repositories.memberships,

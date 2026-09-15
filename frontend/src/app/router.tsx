@@ -25,6 +25,15 @@ function page(element: ReactNode) {
   return <Suspense fallback={<PageSkeleton />}>{element}</Suspense>;
 }
 
+/**
+ * Pages animate on arrival, but a page with sections of its own keeps one key
+ * across them: moving between settings sections is moving inside a page, not
+ * arriving at a new one, so it should not blur and re-enter.
+ */
+function transitionKey(pathname: string): string {
+  return pathname.startsWith('/settings') ? '/settings' : pathname;
+}
+
 function RouteTransition({ children }: { children: ReactNode }) {
   const location = useLocation();
 
@@ -35,7 +44,7 @@ function RouteTransition({ children }: { children: ReactNode }) {
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={location.pathname}
+        key={transitionKey(location.pathname)}
         initial={{ opacity: 0, filter: 'blur(14px)', scale: 1.14 }}
         animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
         exit={{ opacity: 0, filter: 'blur(18px)', scale: 0.96 }}
