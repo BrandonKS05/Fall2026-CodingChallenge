@@ -60,6 +60,7 @@ export default tseslint.config(
             'backend/src/http/router.ts',
             'backend/src/infrastructure/db/repositories.ts',
             'backend/src/infrastructure/db/seed.ts',
+            'backend/src/infrastructure/db/seedDemo.ts',
             'backend/src/infrastructure/db/migrate.ts',
           ],
         },

@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/server.ts",
-    "start": "tsx src/server.ts",
+    "start": "tsx src/infrastructure/db/migrate.ts && tsx src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -14,7 +14,8 @@
     "db:migrate": "tsx src/infrastructure/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "test:db": "vitest run --config vitest.integration.config.ts",
-    "db:seed": "tsx src/infrastructure/db/seed.ts"
+    "db:seed": "tsx src/infrastructure/db/seed.ts",
+    "start:serve": "tsx src/server.ts"
   },
   "dependencies": {
     "@trove/shared": "workspace:*",

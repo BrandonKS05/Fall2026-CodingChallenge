@@ -32,11 +32,9 @@ Add a **Postgres** service and a **Volume** mounted at `/data` on the backend se
 
 `PORT` is injected by Railway and read automatically. Do not set `PIXABAY_BASE_URL`.
 
-Seed the production database once with a one-off run from your machine:
-
-```bash
-railway run pnpm --filter @trove/backend db:seed
-```
+Seed the production database by setting `SEED_DEMO=true` on the service: the server seeds on its next boot
+and the flag is safe to leave on because the seed is idempotent. (A one-off shell also works:
+`railway ssh` then `pnpm --filter @trove/backend db:seed`.)
 
 ## Frontend (Vercel)
 
@@ -48,8 +46,8 @@ backend's public Railway domain.
 
 ## Checklist after the first deploy
 
-1. `https://<railway-domain>/api/health` answers 200 with `database: ok`.
-2. `https://<vercel-domain>/api/health` answers the same through the rewrite.
+1. `https://trovebackend-production.up.railway.app/api/health` answers 200 with `database: ok`.
+2. `https://fall2026-coding-challenge-frontend.vercel.app/api/health` answers the same through the rewrite.
 3. Register, log in, and reload: the session persists (cookie is `Secure`, `SameSite=Lax`, same-site via the rewrite).
 4. Search returns real results, saving downloads an image, and the image still loads after a redeploy (volume).
 5. If Google is configured, "Continue with Google" completes on the production domain.

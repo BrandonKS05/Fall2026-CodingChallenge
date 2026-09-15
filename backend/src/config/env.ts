@@ -38,6 +38,12 @@ const envSchema = z
     /** Public origin of the frontend; OAuth callbacks and post-login redirects point here. */
     APP_URL: z.url().default('http://localhost:5173'),
 
+    /** Seed the demo account and boards on boot; idempotent, so it is safe to leave on. */
+    SEED_DEMO: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
+
     /** Both present enables "Continue with Google"; both absent hides it. */
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),

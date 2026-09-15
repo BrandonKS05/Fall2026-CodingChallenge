@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://REPLACE-WITH-YOUR-RAILWAY-DOMAIN/api/:path*"
+      "destination": "https://trovebackend-production.up.railway.app/api/:path*"
     },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
