@@ -4,8 +4,13 @@
  * public board. Filters live behind one button rather than spread across the
  * page, because there are now a great many of them.
  */
-import type { Collection, ExploreImage, SearchResult } from '@wumboo/shared';
-import { ChevronDownIcon, ImageOffIcon, SearchIcon } from 'lucide-react';
+import {
+  isSearchable,
+  type Collection,
+  type ExploreImage,
+  type SearchResult,
+} from '@wumboo/shared';
+import { ImageOffIcon, SearchIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -18,18 +23,16 @@ import { StageButton } from '@/components/common/StageButton';
 import { StageChrome } from '@/components/common/StageChrome';
 import { MessagesLink } from '@/features/messaging';
 import { NotificationBell } from '@/features/notifications';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth';
 import { SaveToBoardDialog, useSaveToBoard } from '@/features/items';
 import {
+  ALL_CATEGORIES,
+  CATEGORIES,
+  CategoryGrid,
   FilterPanel,
+  ImageSearchButton,
   readFilters,
   ResultGrid,
   ResultGridSkeleton,
@@ -41,7 +44,6 @@ import {
 import { useAuthDialog } from '@/hooks/useAuthDialog';
 import { http } from '@/lib/api';
 import { pluralize } from '@/lib/format';
-import { cn } from '@/lib/utils';
 import { useBoards, useCreateBoard } from '../queries';
 import { useExploreImages } from '../queries';
 
@@ -49,25 +51,6 @@ import { useExploreImages } from '../queries';
 const FEED_LIMIT = 60;
 /** How many images a visitor sees sharp before the rest blur behind a sign-in prompt. */
 const FREE_PREVIEW = 15;
-
-type Order = 'newest' | 'oldest';
-
-interface BoardOption {
-  id: string;
-  title: string;
-  count: number;
-}
-
-/** The boards behind the feed, in first-appearance order, with how many images each contributes. */
-function boardsIn(images: ExploreImage[]): BoardOption[] {
-  const seen = new Map<string, BoardOption>();
-  for (const { collection } of images) {
-    const option = seen.get(collection.id);
-    if (option) option.count += 1;
-    else seen.set(collection.id, { id: collection.id, title: collection.title, count: 1 });
-  }
-  return [...seen.values()];
-}
 
 const SUGGESTIONS = [
   'warm kitchen',
@@ -82,18 +65,11 @@ export default function ExplorePage() {
   const auth = useAuthDialog();
   const [params, setParams] = useSearchParams();
   const filters = readFilters(params);
-  const searching = filters.q.trim().length > 0;
+  const searching = isSearchable(filters);
   const feed = useExploreImages(FEED_LIMIT);
-  const [boardId, setBoardId] = useState<string | null>(null);
-  const [order, setOrder] = useState<Order>('newest');
 
   const images = useMemo(() => feed.data ?? [], [feed.data]);
-  const boards = useMemo(() => boardsIn(images), [images]);
-  const shown = useMemo(() => {
-    const ofBoard = boardId ? images.filter((entry) => entry.collection.id === boardId) : images;
-    return order === 'newest' ? ofBoard : [...ofBoard].reverse();
-  }, [images, boardId, order]);
-  const boardLabel = boards.find((board) => board.id === boardId)?.title ?? 'All boards';
+  const shown = images;
 
   const boardsQuery = useBoards(user !== null);
   const createBoard = useCreateBoard();
@@ -107,6 +83,13 @@ export default function ExplorePage() {
   );
   const results = search.data?.pages.flatMap((page) => page.results) ?? [];
   const total = search.data?.pages[0]?.total ?? 0;
+  // With no words, say what is being searched instead: a category, or a colour.
+  const subject =
+    filters.q.trim() !== ''
+      ? `“${filters.q}”`
+      : filters.category
+        ? CATEGORIES[filters.category].label.toLowerCase()
+        : 'that colour';
 
   function markSaved(result: SearchResult, board: Collection) {
     setSavedTo((current) => ({ ...current, [result.providerImageId]: board.title }));
@@ -166,21 +149,17 @@ export default function ExplorePage() {
         }
       />
 
-      <main className="mx-auto w-full max-w-[1800px] flex-1 px-4 pt-4 sm:px-6">
-        <header className="flex items-end justify-between gap-4 border-b border-stage-ink/30 pb-4">
+      <main className="mx-auto w-full max-w-[1800px] flex-1 px-4 pt-4 pb-20 sm:px-6">
+        <header className="border-b border-stage-ink/30 pb-4">
           <h1 className="text-5xl leading-none font-medium tracking-tight uppercase sm:text-7xl">
             Explore
           </h1>
-          <p className="text-[11px] tracking-[0.2em] text-stage-ink/60 uppercase">
-            {feed.data
-              ? `${pluralize(shown.length, 'image')} · ${pluralize(boards.length, 'board')}`
-              : ' '}
-          </p>
         </header>
         <p className="sr-only">Search the free-photo library, or browse the public boards below.</p>
 
         <div className="stage-surface mt-5 flex items-center gap-2">
           <SearchBar filters={filters} onChange={setFilters} />
+          <ImageSearchButton filters={filters} onChange={setFilters} />
           <FilterPanel filters={filters} onChange={setFilters} />
         </div>
 
@@ -226,13 +205,13 @@ export default function ExplorePage() {
             ) : results.length === 0 ? (
               <EmptyState
                 icon={<SearchIcon />}
-                title={`Nothing for “${filters.q}”`}
+                title={`Nothing for ${subject}`}
                 description="Try fewer words, or loosen a filter."
               />
             ) : (
               <>
                 <p className="mb-4 text-sm text-stage-ink/60">
-                  {total.toLocaleString()} results for “{filters.q}”
+                  {total.toLocaleString()} results for {subject}
                 </p>
                 <ResultGrid
                   results={results}
@@ -275,6 +254,14 @@ export default function ExplorePage() {
             )}
           </>
         )}
+
+        {!searching && (
+          <CategoryGrid
+            className="mt-10"
+            heading="Browse by category"
+            categories={ALL_CATEGORIES}
+          />
+        )}
       </main>
 
       <SaveToBoardDialog
@@ -287,30 +274,6 @@ export default function ExplorePage() {
           createBoard.mutateAsync({ title, description: '', visibility: 'private' })
         }
       />
-
-      {/* The browse filters, docked, and only while there is something to browse. */}
-      <div
-        className={cn(
-          'pointer-events-none sticky bottom-0 z-40 justify-center px-4 pt-10 pb-4',
-          searching ? 'hidden' : 'flex',
-        )}
-      >
-        <div className="pointer-events-auto flex divide-x divide-stage-ink/20 overflow-hidden rounded-md bg-stage-ink/10 text-[11px] tracking-[0.2em] uppercase shadow-lg ring-1 ring-stage-ink/15 backdrop-blur-md">
-          <FilterMenu label="Board" value={boardLabel}>
-            <DropdownMenuItem onClick={() => setBoardId(null)}>All boards</DropdownMenuItem>
-            {boards.map((board) => (
-              <DropdownMenuItem key={board.id} onClick={() => setBoardId(board.id)}>
-                {board.title}
-                <span className="ml-auto pl-4 text-muted-foreground">{board.count}</span>
-              </DropdownMenuItem>
-            ))}
-          </FilterMenu>
-          <FilterMenu label="Order" value={order === 'newest' ? 'Newest first' : 'Oldest first'}>
-            <DropdownMenuItem onClick={() => setOrder('newest')}>Newest first</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setOrder('oldest')}>Oldest first</DropdownMenuItem>
-          </FilterMenu>
-        </div>
-      </div>
     </div>
   );
 }
@@ -367,37 +330,11 @@ function LockedGallery({
   );
 }
 
-function FilterMenu({
-  label,
-  value,
-  children,
-}: {
-  label: string;
-  value: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <button
-            type="button"
-            aria-label={`${label}: ${value}`}
-            className="flex items-center gap-2 px-5 py-3 transition-colors hover:bg-stage-ink/10"
-          />
-        }
-      >
-        <span className="text-stage-ink/60">{label}</span>
-        <span>{value}</span>
-        <ChevronDownIcon className="size-3.5" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="center" side="top" sideOffset={8} className="min-w-48">
-        {children}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
+/**
+ * Justified rows: every tile keeps its aspect ratio at a fixed row height and
+ * grows in proportion to its width, so each row fills the line edge to edge.
+ * The trailing spacer stops the last row from stretching.
+ */
 function Notice({ children }: { children: React.ReactNode }) {
   return (
     <p className="mt-16 text-center text-[11px] tracking-[0.2em] text-stage-ink/60 uppercase">

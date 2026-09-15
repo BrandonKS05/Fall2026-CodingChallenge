@@ -1,4 +1,5 @@
 import type { SearchResult } from '@wumboo/shared';
+import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
@@ -21,6 +22,18 @@ export function ResultGrid({
   loadingMore,
   onLoadMore,
 }: ResultGridProps) {
+  // Pages of a popular-first listing overlap, so the same image can arrive on
+  // two of them. The first one keeps its place.
+  const shown = useMemo(() => {
+    const seen = new Set<string>();
+    return results.filter((result) => {
+      const key = `${result.provider}:${result.providerImageId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [results]);
+
   // Auto-load as the sentinel nears the viewport; the button is the keyboard and no-observer fallback.
   const sentinel = useIntersectionObserver<HTMLDivElement>(
     () => {
@@ -32,7 +45,7 @@ export function ResultGrid({
   return (
     <div className="space-y-6">
       <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
-        {results.map((result) => (
+        {shown.map((result) => (
           <ResultCard
             key={`${result.provider}:${result.providerImageId}`}
             result={result}

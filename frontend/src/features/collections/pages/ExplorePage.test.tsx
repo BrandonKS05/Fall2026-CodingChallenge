@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exploreImageFixture } from '@/testing/fixtures';
@@ -34,14 +34,13 @@ function renderExplore(
   const api = stubApi({
     'GET /api/auth/me': session,
     'GET /api/explore/images': route,
+    'GET /api/search': { body: { results: [], page: 1, perPage: 30, total: 0 } },
+    'GET /api/collections': { body: { collections: [] } },
   });
   vi.stubGlobal('fetch', api.fetchMock);
   renderWithProviders(<ExplorePage />, { route: '/explore' });
   return api;
 }
-
-const shownLinks = () =>
-  within(screen.getByRole('list', { name: 'Public images' })).getAllByRole('link');
 
 describe('ExplorePage', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -58,25 +57,30 @@ describe('ExplorePage', () => {
     const wide = links[2]?.parentElement as HTMLElement;
     const tall = links[1]?.parentElement as HTMLElement;
     expect(Number(wide.style.flexGrow)).toBeGreaterThan(Number(tall.style.flexGrow));
-    expect(screen.getByText('5 images · 2 boards')).toBeInTheDocument();
     expect(api.calls.find((call) => call.path === '/api/explore/images')?.url).toContain(
       'limit=60',
     );
   });
 
-  it('filters by board and flips the order from the docked menus', async () => {
-    renderExplore();
+  it('searches the library when there is a query, and browses boards when there is not', async () => {
+    const api = renderExplore();
     await screen.findAllByRole('link', { name: /^Open / });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Board: All boards' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: /Fog and pines/ }));
-    expect(shownLinks()).toHaveLength(2);
-    expect(shownLinks().every((link) => link.getAttribute('href') === '/boards/c2')).toBe(true);
-    expect(screen.getByText('2 images · 2 boards')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Search for images'), 'tide pools');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Order: Newest first' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Oldest first' }));
-    expect(shownLinks()[0]?.querySelector('img')).toHaveAttribute('src', '/api/images/i4');
+    await waitFor(() => expect(api.calls.some((call) => call.path === '/api/search')).toBe(true));
+    // The board gallery steps aside while results are on screen.
+    await waitFor(() => expect(screen.queryByRole('link', { name: /^Open / })).toBeNull());
+    // So does the category grid: it is a way in, not a thing to read past results.
+    expect(screen.queryByRole('region', { name: 'Browse by category' })).toBeNull();
+  });
+
+  it('lists every category to browse under the gallery', async () => {
+    renderExplore();
+    const grid = await screen.findByRole('region', { name: 'Browse by category' });
+    const links = within(grid).getAllByRole('link');
+    expect(links).toHaveLength(20);
+    expect(links[0]).toHaveAttribute('href', '/c/animals');
   });
 
   it('shows visitors fifteen sharp images and blurs the rest behind a sign-in prompt', async () => {

@@ -110,23 +110,47 @@ export type ImageType = z.infer<typeof imageTypeSchema>;
 export const searchOrderSchema = z.enum(['popular', 'latest']);
 export type SearchOrder = z.infer<typeof searchOrderSchema>;
 
-export const searchQuerySchema = paginationQuerySchema.extend({
-  q: z.string().trim().min(1).max(100),
-  orientation: imageOrientationSchema.default('all'),
-  color: searchColorSchema.optional(),
-  /** A colour picked from the wheel. Matched to the nearest name the provider knows. */
-  colorHex: z
-    .string()
-    .regex(/^#[0-9a-fA-F]{6}$/, 'Use a colour like #4f46e5')
-    .optional(),
-  type: imageTypeSchema.default('all'),
-  category: searchCategorySchema.optional(),
-  order: searchOrderSchema.default('popular'),
-  /** Pixabay's own pick of the best of a search. */
-  editorsChoice: z.stringbool().default(false),
-  minWidth: z.coerce.number().int().min(0).max(6000).optional(),
-  minHeight: z.coerce.number().int().min(0).max(6000).optional(),
-});
+/**
+ * Whether there is enough here to search with. Words are the usual answer, but
+ * a category or a colour narrows the library on their own — and a colour and a
+ * shape is exactly what an attached picture gives us, with no words at all.
+ */
+export function isSearchable(query: {
+  q: string;
+  category?: SearchCategory | undefined;
+  color?: SearchColor | undefined;
+  colorHex?: string | undefined;
+}): boolean {
+  return (
+    query.q.trim() !== '' ||
+    query.category !== undefined ||
+    query.color !== undefined ||
+    query.colorHex !== undefined
+  );
+}
+
+export const searchQuerySchema = paginationQuerySchema
+  .extend({
+    /** Empty when browsing a category, which the provider can do without words. */
+    q: z.string().trim().max(100).default(''),
+    orientation: imageOrientationSchema.default('all'),
+    color: searchColorSchema.optional(),
+    /** A colour picked from the wheel. Matched to the nearest name the provider knows. */
+    colorHex: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/, 'Use a colour like #4f46e5')
+      .optional(),
+    type: imageTypeSchema.default('all'),
+    category: searchCategorySchema.optional(),
+    order: searchOrderSchema.default('popular'),
+    /** Pixabay's own pick of the best of a search. */
+    editorsChoice: z.stringbool().default(false),
+    minWidth: z.coerce.number().int().min(0).max(6000).optional(),
+    minHeight: z.coerce.number().int().min(0).max(6000).optional(),
+  })
+  .refine(isSearchable, {
+    error: 'Say what to look for, or pick a category or a colour',
+  });
 export type SearchQuery = z.infer<typeof searchQuerySchema>;
 
 /** Attribution shown wherever an image appears. Required by Pixabay's terms. */

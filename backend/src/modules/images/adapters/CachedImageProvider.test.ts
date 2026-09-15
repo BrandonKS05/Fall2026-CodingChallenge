@@ -19,6 +19,32 @@ describe('CachedImageProvider', () => {
     expect(inner.searchCalls).toHaveLength(2);
   });
 
+  it('tells apart searches that differ by any one filter', async () => {
+    const inner = new FakeImageProvider([fakeProviderImage('1')]);
+    const cached = new CachedImageProvider(inner);
+    const browse: ImageSearchQuery = { q: '', page: 1, perPage: 10, orientation: 'all' };
+
+    // Two categories with nothing else to separate them are still two searches.
+    await cached.search({ ...browse, category: 'animals' });
+    await cached.search({ ...browse, category: 'travel' });
+    expect(inner.searchCalls).toHaveLength(2);
+
+    for (const variant of [
+      { color: 'red' },
+      { colorHex: '#ff0000' },
+      { type: 'photo' as const },
+      { order: 'latest' as const },
+      { editorsChoice: true },
+      { minWidth: 1920 },
+      { minHeight: 1080 },
+    ]) {
+      const before = inner.searchCalls.length;
+      await cached.search({ ...browse, ...variant });
+      await cached.search({ ...browse, ...variant });
+      expect(inner.searchCalls).toHaveLength(before + 1);
+    }
+  });
+
   it('shares one upstream request between identical concurrent searches', async () => {
     let calls = 0;
     let release: (() => void) | undefined;

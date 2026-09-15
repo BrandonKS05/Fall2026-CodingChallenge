@@ -58,12 +58,15 @@ export class CachedImageProvider implements ImageProvider {
   }
 }
 
+/**
+ * Every field of the query, sorted by name so property order cannot change the
+ * key. A key that leaves a field out hands one search another's results — when
+ * the only thing separating two searches is the category, forgetting it makes
+ * every category look the same.
+ */
 function searchKey(query: ImageSearchQuery): string {
-  return JSON.stringify([
-    query.q.trim().toLowerCase(),
-    query.page,
-    query.perPage,
-    query.orientation,
-    query.color ?? '',
-  ]);
+  const entries = Object.entries({ ...query, q: query.q.trim().toLowerCase() })
+    .filter(([, value]) => value !== undefined)
+    .sort(([a], [b]) => a.localeCompare(b));
+  return JSON.stringify(entries);
 }

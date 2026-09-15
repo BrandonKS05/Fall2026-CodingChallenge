@@ -1,4 +1,4 @@
-import type { SearchQuery } from '@wumboo/shared';
+import { isSearchable, type SearchQuery } from '@wumboo/shared';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { searchApi } from './api';
@@ -13,13 +13,15 @@ export type SearchParams = Omit<SearchQuery, 'page' | 'perPage'>;
  */
 export function useImageSearch(params: SearchParams) {
   const q = params.q.trim();
+  // A category or a colour browses on its own; words are not required.
+  const enabled = isSearchable({ ...params, q });
   return useInfiniteQuery({
     queryKey: queryKeys.search({ ...params, q }),
     queryFn: ({ pageParam }) =>
       searchApi.search({ ...params, q, page: pageParam, perPage: SEARCH_PAGE_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (last) => (last.page * last.perPage < last.total ? last.page + 1 : undefined),
-    enabled: q.length > 0,
+    enabled,
     staleTime: 5 * 60_000,
     meta: { silentError: true },
   });

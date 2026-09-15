@@ -22,6 +22,7 @@ const SharedBoardPage = lazy(() => import('@/features/sharing/pages/SharedBoardP
 const SettingsPage = lazy(() => import('@/features/auth/pages/SettingsPage'));
 const MessagesPage = lazy(() => import('@/features/messaging/pages/MessagesPage'));
 const ProfilePage = lazy(() => import('@/features/social/pages/ProfilePage'));
+const CategoryPage = lazy(() => import('@/features/search/pages/CategoryPage'));
 
 function page(element: ReactNode) {
   return <Suspense fallback={<PageSkeleton />}>{element}</Suspense>;
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
       // The landing hero owns the whole viewport and its own chrome, so it sits outside the shell.
       { path: '/', element: page(<LandingPage />) },
       { path: '/explore', element: page(<ExplorePage />) },
+      { path: '/c/:name', element: page(<CategoryPage />) },
       { path: '/boards', element: <RequireAuth>{page(<BoardsPage />)}</RequireAuth> },
       { path: '/settings', element: <RequireAuth>{page(<SettingsPage />)}</RequireAuth> },
       { path: '/settings/:section', element: <RequireAuth>{page(<SettingsPage />)}</RequireAuth> },
