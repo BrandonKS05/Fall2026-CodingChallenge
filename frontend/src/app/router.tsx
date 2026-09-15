@@ -4,15 +4,15 @@
  */
 import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter, Outlet } from 'react-router';
-import { RequireAuth } from '@/features/auth/components/RequireAuth';
 import { AuthDialogProvider } from './AuthDialogProvider';
-import { AuthRoute } from './AuthRoute';
+import { AuthRoute } from '@/features/auth/pages/AuthRoute';
 import { AppShell } from './layout/AppShell';
 import { NotFoundPage } from './NotFoundPage';
 import { RouteErrorPage } from './RouteErrorPage';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
+import { RequireAuth } from '@/features/auth';
 
-const LandingPage = lazy(() => import('./LandingPage'));
+const LandingPage = lazy(() => import('@/features/landing/pages/LandingPage'));
 const DiscoverPage = lazy(() => import('@/features/search/pages/DiscoverPage'));
 const BoardsPage = lazy(() => import('@/features/collections/pages/BoardsPage'));
 const BoardPage = lazy(() => import('@/features/collections/pages/BoardPage'));

@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { useLogout, useSession } from '@/features/auth/queries';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
+import { useLogout, useSession } from '@/features/auth';
 
 function initials(name: string): string {
   return name

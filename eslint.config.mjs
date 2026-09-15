@@ -131,7 +131,13 @@ export default tseslint.config(
           type: 'shared',
           pattern: ['frontend/src/lib/**', 'frontend/src/components/**', 'frontend/src/hooks/**'],
         },
-        // First match wins, so the more specific page pattern comes before the general feature pattern.
+        // First match wins: the public surface, then pages, then the general feature pattern.
+        {
+          type: 'feature-api',
+          mode: 'full',
+          pattern: 'frontend/src/features/*/index.ts',
+          capture: ['feature'],
+        },
         {
           type: 'feature-page',
           mode: 'full',
@@ -155,10 +161,22 @@ export default tseslint.config(
           default: 'disallow',
           rules: [
             { from: 'entry', allow: ['app', 'shared'] },
-            { from: 'app', allow: ['app', 'shared', 'feature', 'feature-page'] },
+            // The app composes features through their public surface; pages are imported directly for routing.
+            { from: 'app', allow: ['app', 'shared', 'feature-api', 'feature-page'] },
             { from: 'shared', allow: ['shared'] },
-            // Pages are where features meet; components and hooks stay inside their own feature.
-            { from: 'feature-page', allow: ['shared', 'feature', 'feature-page'] },
+            // Pages are where features meet, but only through the other feature's public surface.
+            {
+              from: 'feature-page',
+              allow: [
+                'shared',
+                'feature-api',
+                'feature-page',
+                ['feature', { feature: '${from.feature}' }],
+              ],
+            },
+            // A feature's public surface re-exports its own internals and nothing else.
+            { from: 'feature-api', allow: ['shared', ['feature', { feature: '${from.feature}' }]] },
+            // Internals never reach outside their own feature.
             { from: 'feature', allow: ['shared', ['feature', { feature: '${from.feature}' }]] },
           ],
         },

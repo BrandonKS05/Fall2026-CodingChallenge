@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { AuthDialog } from '@/features/auth/components/AuthDialog';
 import {
   AuthDialogActionsContext,
   AuthDialogStateContext,
   type AuthDialogActions,
   type AuthDialogRequest,
 } from '@/hooks/useAuthDialog';
+import { AuthDialog } from '@/features/auth';
 
 /**
  * Mediator: owns the one sign-in dialog for the whole app. Entry points (header,

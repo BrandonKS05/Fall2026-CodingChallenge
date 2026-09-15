@@ -9,13 +9,12 @@ import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
-import { useSession } from '@/features/auth/queries';
-import { useBoards, useCreateBoard } from '@/features/collections/queries';
-import { SaveToBoardDialog } from '@/features/items/components/SaveToBoardDialog';
-import { useSaveToBoard } from '@/features/items/queries';
 import { ResultGrid, ResultGridSkeleton } from '../components/ResultGrid';
 import { SearchBar, type Orientation, type SearchFilters } from '../components/SearchBar';
 import { useImageSearch } from '../queries';
+import { useSession } from '@/features/auth';
+import { useBoards, useCreateBoard } from '@/features/collections';
+import { SaveToBoardDialog, useSaveToBoard } from '@/features/items';
 
 const SUGGESTIONS = [
   'warm kitchen',

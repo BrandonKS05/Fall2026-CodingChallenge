@@ -1,44 +1,15 @@
 import type { Collection } from '@wumboo/shared';
-import { ImageIcon } from 'lucide-react';
 import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
-import { http } from '@/lib/api';
 import { pluralize } from '@/lib/format';
-import { cn } from '@/lib/utils';
 import { VisibilityBadge } from './VisibilityBadge';
 
-/** One big image and up to two small ones, like a real pinboard cover. */
-function CoverMosaic({ imageIds, title }: { imageIds: string[]; title: string }) {
-  if (imageIds.length === 0) {
-    return (
-      <div className="grid aspect-[4/3] place-items-center rounded-lg bg-muted text-muted-foreground">
-        <ImageIcon className="size-8" />
-      </div>
-    );
-  }
-  const [first, ...rest] = imageIds;
+function PlusCover({ title }: { title: string }) {
   return (
-    <div
-      className={cn(
-        'grid aspect-[4/3] gap-1 overflow-hidden rounded-lg',
-        rest.length > 0 ? 'grid-cols-3' : 'grid-cols-1',
-      )}
-    >
-      <img
-        src={http.url(`/images/${first}`)}
-        alt=""
-        loading="lazy"
-        className={cn('h-full w-full object-cover', rest.length > 0 && 'col-span-2 row-span-2')}
-      />
-      {rest.slice(0, 2).map((id) => (
-        <img
-          key={id}
-          src={http.url(`/images/${id}`)}
-          alt=""
-          loading="lazy"
-          className="h-full w-full object-cover"
-        />
-      ))}
+    <div className="grid aspect-[4/3] place-items-center overflow-hidden rounded-lg border border-stage-ink/15 bg-stage-ink/5 text-stage-ink/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
+      <span className="grid size-12 place-items-center rounded-full border border-current/40 bg-white/5 text-3xl font-light leading-none">
+        +
+      </span>
       <span className="sr-only">Preview of {title}</span>
     </div>
   );
@@ -49,9 +20,10 @@ export function BoardCard({ board }: { board: Collection }) {
   return (
     <Link
       to={`/boards/${board.id}`}
+      aria-label={`Open ${board.title}`}
       className="group block space-y-2 rounded-xl p-2 transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
     >
-      <CoverMosaic imageIds={board.previewImageIds} title={board.title} />
+      <PlusCover title={board.title} />
       <div className="space-y-1 px-1">
         <h3 className="truncate font-medium leading-tight">{board.title}</h3>
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">

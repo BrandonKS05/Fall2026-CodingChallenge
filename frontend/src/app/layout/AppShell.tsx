@@ -1,11 +1,11 @@
 import { type ReactNode } from 'react';
 import { NavLink } from 'react-router';
-import { useSession } from '@/features/auth/queries';
-import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { cn } from '@/lib/utils';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { UserMenu } from './UserMenu';
+import { useSession } from '@/features/auth';
+import { NotificationBell } from '@/features/notifications';
 
 interface NavItem {
   to: string;

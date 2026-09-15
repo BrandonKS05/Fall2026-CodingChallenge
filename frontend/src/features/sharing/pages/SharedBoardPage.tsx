@@ -6,11 +6,10 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
-import { ImageLightbox } from '@/features/items/components/ImageLightbox';
-import { ItemGrid } from '@/features/items/components/ItemGrid';
 import { ApiError } from '@/lib/api';
 import { pluralize } from '@/lib/format';
 import { useSharedBoard } from '../queries';
+import { ImageLightbox, ItemGrid } from '@/features/items';
 
 /** The public side of a share link: read-only, with a way in for members. */
 export default function SharedBoardPage() {

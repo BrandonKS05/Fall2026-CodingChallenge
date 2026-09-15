@@ -32,6 +32,22 @@ describe('BoardsPage', () => {
     expect(screen.getByRole('link', { name: /fall outfits/i })).toHaveTextContent('Editor · Grace');
   });
 
+  it('renders board cards as plus-only tiles in the landing-page style', async () => {
+    vi.stubGlobal(
+      'fetch',
+      stubApi({
+        'GET /api/collections': {
+          body: { collections: [boardFixture({ title: 'Kitchen ideas' })] },
+        },
+      }).fetchMock,
+    );
+    renderWithProviders(<BoardsPage />);
+
+    const card = await screen.findByRole('link', { name: /open kitchen ideas/i });
+    expect(card.querySelector('img')).toBeNull();
+    expect(card).toHaveTextContent('+');
+  });
+
   it('shows blank cards ready to be filled, and any of them opens the creator', async () => {
     vi.stubGlobal(
       'fetch',

@@ -7,18 +7,22 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
-import { useSession } from '@/features/auth/queries';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
-import { EditItemDialog } from '@/features/items/components/EditItemDialog';
-import { ImageLightbox } from '@/features/items/components/ImageLightbox';
-import { ItemGrid, ItemGridSkeleton } from '@/features/items/components/ItemGrid';
-import { useAddItem, useRemoveItem } from '@/features/items/queries';
 import { ApiError } from '@/lib/api';
 import { pluralize } from '@/lib/format';
-import { SharePanel } from '@/features/sharing/components/SharePanel';
 import { BoardSettingsDialog } from '../components/BoardSettingsDialog';
 import { VisibilityBadge } from '../components/VisibilityBadge';
 import { useBoard, useBoards } from '../queries';
+import { useSession } from '@/features/auth';
+import {
+  EditItemDialog,
+  ImageLightbox,
+  ItemGrid,
+  ItemGridSkeleton,
+  useAddItem,
+  useRemoveItem,
+} from '@/features/items';
+import { SharePanel } from '@/features/sharing';
 
 export default function BoardPage() {
   const { id = '' } = useParams();

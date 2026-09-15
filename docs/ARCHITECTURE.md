@@ -51,8 +51,11 @@ queue, the images module becomes a worker, and nothing above the boundary change
 
 ## Frontend rules
 
-- One folder per feature under `src/features/`. Features never import each other.
-- Cross-feature composition happens only in pages and the router.
+- One folder per feature under `src/features/`: `api.ts`, `queries.ts`, `components/`, `pages/`.
+- A feature's `index.ts` is its public surface. Other features' pages and the app import only from
+  it; everything else inside a feature is private, and ESLint rejects a deep import.
+- Cross-feature composition happens only in pages and the router; components and hooks never reach
+  into another feature.
 - All HTTP goes through the single gateway in `src/lib/api/`.
 
 ## Pattern catalog
@@ -82,7 +85,7 @@ only where it already does real work:
 | Factory  | `frontend/src/lib/api/queryKeys.ts`, `frontend/src/app/providers.tsx` (`createQueryClient`)   | hierarchical cache keys and one client configuration, shared by the app and its tests                  |
 | Observer | TanStack Query subscriptions; `frontend/src/features/notifications/queries.ts` polling        | components re-render from the cache; the inbox could move from polling to server-sent events unnoticed |
 | Mediator | `frontend/src/app/AuthDialogProvider.tsx`, `frontend/src/hooks/useAuthDialog.tsx`             | every "Log in" entry point summons one dialog without knowing about the others or about the dialog     |
-| Strategy | `frontend/src/hooks/useTheme.tsx`, `frontend/src/components/explore/useParallax.ts`           | light, dark, or system theme; cursor tracking or a static scatter for reduced motion and touch         |
+| Strategy | `frontend/src/hooks/useTheme.tsx`, `frontend/src/features/landing/components/useParallax.ts`  | light, dark, or system theme; cursor tracking or a static scatter for reduced motion and touch         |
 | Memento  | `onMutate` snapshots in `frontend/src/features/items/queries.ts` and `collections/queries.ts` | optimistic updates that roll back to the exact previous cache when a request fails                     |
 | Command  | remove with undo in `frontend/src/features/collections/pages/BoardPage.tsx`                   | the removal and its inverse travel together, so the toast's Undo is one call                           |
 
@@ -247,7 +250,7 @@ repository tests against a service container, and the production build on every 
 
 ### Landing hero
 
-`/` is `ExploreCanvas` (`frontend/src/components/explore/`), a full-viewport stage outside the app
+`/` is `ExploreCanvas` (`frontend/src/features/landing/`), a full-viewport stage outside the app
 shell. Images from `GET /api/explore/images` (public boards, interleaved so no board dominates) are
 placed at eighteen fixed slots on a stage 40% larger than the viewport; the page fetches 24 so a tile
 whose image fails to load hands its slot to a spare. Each slot has a depth from 0.3 to 1 and the
