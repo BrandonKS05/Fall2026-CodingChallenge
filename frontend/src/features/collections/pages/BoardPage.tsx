@@ -1,4 +1,4 @@
-import type { Item } from '@trove/shared';
+import type { Item } from '@wumboo/shared';
 import { ImagePlusIcon, LockIcon, SearchXIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';

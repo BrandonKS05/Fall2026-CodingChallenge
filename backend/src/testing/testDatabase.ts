@@ -12,7 +12,7 @@ import { createDatabase, type Database, type Db } from '../infrastructure/db/cli
 export const RUN_DB_TESTS = process.env.RUN_DB_TESTS === '1';
 
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ?? 'postgres://trove:trove@localhost:5434/trove_test';
+  process.env.TEST_DATABASE_URL ?? 'postgres://wumboo:wumboo@localhost:5434/wumboo_test';
 
 export async function connectTestDatabase(): Promise<Database> {
   await ensureDatabaseExists(TEST_DATABASE_URL);

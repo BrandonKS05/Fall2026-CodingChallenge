@@ -1,4 +1,4 @@
-import type { InviteMemberRequest, UpdateMemberRequest } from '@trove/shared';
+import type { InviteMemberRequest, UpdateMemberRequest } from '@wumboo/shared';
 import type { RequestHandler } from 'express';
 import type { ShareService } from './ShareService.js';
 import type { IdParams, MemberParams, SlugParams } from '../../http/params.js';

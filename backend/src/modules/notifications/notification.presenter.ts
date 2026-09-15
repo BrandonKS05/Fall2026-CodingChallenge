@@ -1,4 +1,4 @@
-import type { Notification as NotificationDto, NotificationListResponse } from '@trove/shared';
+import type { Notification as NotificationDto, NotificationListResponse } from '@wumboo/shared';
 import type { NotificationDetail } from '../../domain/entities/Notification.js';
 import type { Inbox } from './NotificationService.js';
 

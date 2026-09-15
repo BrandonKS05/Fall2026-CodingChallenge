@@ -1,5 +1,5 @@
-/** Presenters turn domain objects into the shapes promised by @trove/shared. */
-import type { AuthResponse, SessionResponse, User as UserDto } from '@trove/shared';
+/** Presenters turn domain objects into the shapes promised by @wumboo/shared. */
+import type { AuthResponse, SessionResponse, User as UserDto } from '@wumboo/shared';
 import type { PublicUser } from '../../domain/entities/User.js';
 
 export function presentUser(user: PublicUser): UserDto {

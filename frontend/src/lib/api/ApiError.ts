@@ -1,4 +1,4 @@
-import { apiErrorResponseSchema, type ApiErrorCode } from '@trove/shared';
+import { apiErrorResponseSchema, type ApiErrorCode } from '@wumboo/shared';
 
 /** A non-2xx response, carrying the machine-readable code from the shared error envelope. */
 export class ApiError extends Error {

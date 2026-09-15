@@ -16,7 +16,7 @@ describe('LocalDiskStorage', () => {
   let storage: LocalDiskStorage;
 
   beforeAll(async () => {
-    root = await mkdtemp(path.join(os.tmpdir(), 'trove-storage-'));
+    root = await mkdtemp(path.join(os.tmpdir(), 'wumboo-storage-'));
     storage = new LocalDiskStorage(root);
   });
   afterAll(() => rm(root, { recursive: true, force: true }));

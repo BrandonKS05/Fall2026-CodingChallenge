@@ -1,4 +1,4 @@
-import type { Notification } from '@trove/shared';
+import type { Notification } from '@wumboo/shared';
 
 /** One sentence per notification, from the perspective of the reader. */
 export function describeNotification(notification: Notification, readerId: string): string {

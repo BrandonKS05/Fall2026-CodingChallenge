@@ -1,4 +1,4 @@
-import type { CollectionVisibility } from '@trove/shared';
+import type { CollectionVisibility } from '@wumboo/shared';
 import { GlobeIcon, LinkIcon, LockIcon } from 'lucide-react';
 import type { ComponentType } from 'react';
 

@@ -1,4 +1,4 @@
-import type { GrantableRole } from '@trove/shared';
+import type { GrantableRole } from '@wumboo/shared';
 import { cn } from '@/lib/utils';
 
 const ROLES: { value: GrantableRole; label: string }[] = [

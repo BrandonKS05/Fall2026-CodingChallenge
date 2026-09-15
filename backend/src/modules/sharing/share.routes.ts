@@ -1,4 +1,4 @@
-import { inviteMemberRequestSchema, updateMemberRequestSchema } from '@trove/shared';
+import { inviteMemberRequestSchema, updateMemberRequestSchema } from '@wumboo/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { createShareController } from './share.controller.js';

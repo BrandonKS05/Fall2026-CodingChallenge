@@ -1,4 +1,4 @@
-import type { CollectionDetailResponse, GrantableRole, InviteMemberRequest } from '@trove/shared';
+import type { CollectionDetailResponse, GrantableRole, InviteMemberRequest } from '@wumboo/shared';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { sharingApi } from './api';

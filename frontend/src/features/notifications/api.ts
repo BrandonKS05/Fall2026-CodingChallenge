@@ -1,4 +1,4 @@
-import type { MarkNotificationsReadRequest, NotificationListResponse } from '@trove/shared';
+import type { MarkNotificationsReadRequest, NotificationListResponse } from '@wumboo/shared';
 import { http } from '@/lib/api';
 
 export const notificationsApi = {

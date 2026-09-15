@@ -17,12 +17,12 @@ import type { Container } from '../../container.js';
 import type { CollectionVisibility } from '../../domain/entities/Collection.js';
 
 export const DEMO_ACCOUNT = {
-  email: 'demo@trove.app',
+  email: 'demo@wumboo.app',
   password: 'demo-password-123',
   displayName: 'Demo User',
 };
 const FRIEND_ACCOUNT = {
-  email: 'sam@trove.app',
+  email: 'sam@wumboo.app',
   password: 'demo-password-123',
   displayName: 'Sam Rivera',
 };

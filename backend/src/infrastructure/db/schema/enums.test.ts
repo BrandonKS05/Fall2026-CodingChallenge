@@ -7,7 +7,7 @@ import {
   collectionVisibilitySchema,
   imageProviderSchema,
   notificationTypeSchema,
-} from '@trove/shared';
+} from '@wumboo/shared';
 import { describe, expect, it } from 'vitest';
 import { COLLECTION_VISIBILITIES } from '../../../domain/entities/Collection.js';
 import { IMAGE_PROVIDERS } from '../../../domain/entities/Image.js';

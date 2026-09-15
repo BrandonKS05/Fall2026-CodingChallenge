@@ -11,7 +11,7 @@ export default function ExplorePage() {
     <>
       <PageHeader
         title="Explore"
-        description="Public boards from everyone on Trove, newest first."
+        description="Public boards from everyone on Wumboo, newest first."
       />
       {boards.isPending ? (
         <BoardGridSkeleton />

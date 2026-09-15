@@ -1,4 +1,4 @@
-import type { Item } from '@trove/shared';
+import type { Item } from '@wumboo/shared';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ItemCard } from './ItemCard';
 

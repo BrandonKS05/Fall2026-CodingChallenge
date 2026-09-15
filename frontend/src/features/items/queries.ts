@@ -2,7 +2,11 @@
  * Item mutations update the board page optimistically and roll back on
  * failure, so removing or captioning feels instant even on a slow link.
  */
-import type { CollectionDetailResponse, CreateItemRequest, UpdateItemRequest } from '@trove/shared';
+import type {
+  CollectionDetailResponse,
+  CreateItemRequest,
+  UpdateItemRequest,
+} from '@wumboo/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { itemsApi } from './api';

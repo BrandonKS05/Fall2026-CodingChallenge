@@ -2,7 +2,7 @@ import type {
   CreateCollectionRequest,
   PaginationQuery,
   UpdateCollectionRequest,
-} from '@trove/shared';
+} from '@wumboo/shared';
 import type { RequestHandler } from 'express';
 import type { CollectionService } from './CollectionService.js';
 import type { IdParams } from '../../http/params.js';

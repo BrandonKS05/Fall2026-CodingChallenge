@@ -1,4 +1,4 @@
-import { loginRequestSchema, registerRequestSchema } from '@trove/shared';
+import { loginRequestSchema, registerRequestSchema } from '@wumboo/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { createAuthController } from './auth.controller.js';

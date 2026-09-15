@@ -9,9 +9,9 @@ export function Logo({ className }: { className?: string }) {
         aria-hidden
         className="grid size-7 place-items-center rounded-lg bg-foreground text-background text-sm font-bold"
       >
-        T
+        W
       </span>
-      <span className="text-lg">Trove</span>
+      <span className="text-lg">Wumboo</span>
     </Link>
   );
 }

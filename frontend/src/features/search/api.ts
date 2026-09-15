@@ -1,4 +1,4 @@
-import type { SearchQuery, SearchResponse } from '@trove/shared';
+import type { SearchQuery, SearchResponse } from '@wumboo/shared';
 import { http } from '@/lib/api';
 
 export const searchApi = {

@@ -1,4 +1,4 @@
-import type { Notification } from '@trove/shared';
+import type { Notification } from '@wumboo/shared';
 import { describe, expect, it } from 'vitest';
 import { describeNotification } from './text';
 

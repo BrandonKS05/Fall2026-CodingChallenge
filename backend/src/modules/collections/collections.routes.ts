@@ -2,7 +2,7 @@ import {
   createCollectionRequestSchema,
   paginationQuerySchema,
   updateCollectionRequestSchema,
-} from '@trove/shared';
+} from '@wumboo/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { createCollectionsController } from './collections.controller.js';

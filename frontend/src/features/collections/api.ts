@@ -5,7 +5,7 @@ import type {
   CreateCollectionRequest,
   PaginationQuery,
   UpdateCollectionRequest,
-} from '@trove/shared';
+} from '@wumboo/shared';
 import { http } from '@/lib/api';
 
 export const collectionsApi = {

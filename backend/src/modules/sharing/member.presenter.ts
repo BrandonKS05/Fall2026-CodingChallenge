@@ -1,4 +1,4 @@
-import type { Member as MemberDto, MemberListResponse } from '@trove/shared';
+import type { Member as MemberDto, MemberListResponse } from '@wumboo/shared';
 import type { MemberDetail } from '../../domain/entities/Membership.js';
 
 export function presentMember(member: MemberDetail): MemberDto {

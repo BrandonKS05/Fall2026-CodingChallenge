@@ -13,7 +13,7 @@ export default defineConfig({
   out: './drizzle',
   casing: 'snake_case',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? 'postgres://trove:trove@localhost:5434/trove',
+    url: process.env.DATABASE_URL ?? 'postgres://wumboo:wumboo@localhost:5434/wumboo',
   },
   strict: true,
   verbose: true,

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { useInbox, useMarkRead } from '../queries';
 import { describeNotification } from '../text';
 
-import type { User } from '@trove/shared';
+import type { User } from '@wumboo/shared';
 
 export function NotificationBell({ user }: { user: User | null }) {
   const inbox = useInbox(Boolean(user));

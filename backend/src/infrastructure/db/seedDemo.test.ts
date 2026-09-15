@@ -10,7 +10,7 @@ import {
 import { createFakeFetch, FAKE_JPEG } from '../../testing/fakes/fakeFetch.js';
 import { FakeImageProvider, fakeProviderImage } from '../../testing/fakes/FakeImageProvider.js';
 import { InMemoryStorage } from '../../testing/fakes/InMemoryStorage.js';
-import { buildTestEnv } from '../../testing/testApp.js';
+import { buildTestEnv, noDatabase } from '../../testing/testApp.js';
 import { DEMO_ACCOUNT, SEED_BOARDS, seedDemo, type BoardSeed } from './seedDemo.js';
 
 /** Provider hits for one seed board; the tag carries the exact query because the fake search matches on tags. */
@@ -35,6 +35,7 @@ function buildHarness(catalog: ProviderImage[]): Harness {
   const repositories = createFakeRepositories();
   const storage = new InMemoryStorage();
   const container = createContainer(buildTestEnv(), {
+    database: noDatabase,
     repositories,
     storage,
     imageProvider: new FakeImageProvider(catalog),

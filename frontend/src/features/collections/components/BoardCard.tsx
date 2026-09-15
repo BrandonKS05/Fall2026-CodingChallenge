@@ -1,4 +1,4 @@
-import type { Collection } from '@trove/shared';
+import type { Collection } from '@wumboo/shared';
 import { ImageIcon } from 'lucide-react';
 import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';

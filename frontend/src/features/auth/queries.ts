@@ -1,4 +1,4 @@
-import type { LoginRequest, RegisterRequest, User } from '@trove/shared';
+import type { LoginRequest, RegisterRequest, User } from '@wumboo/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { authApi } from './api';

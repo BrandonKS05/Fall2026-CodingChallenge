@@ -16,7 +16,7 @@ import {
 export type Theme = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
 
-export const THEME_STORAGE_KEY = 'trove-theme';
+export const THEME_STORAGE_KEY = 'wumboo-theme';
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 interface ThemeContextValue {

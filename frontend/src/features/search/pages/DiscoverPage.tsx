@@ -2,7 +2,7 @@
  * Discover composes three features: search (results), items (saving), and
  * collections (which boards exist). Pages are where features meet.
  */
-import { searchColorSchema, type Collection, type SearchResult } from '@trove/shared';
+import { searchColorSchema, type Collection, type SearchResult } from '@wumboo/shared';
 import { ImageOffIcon, SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';

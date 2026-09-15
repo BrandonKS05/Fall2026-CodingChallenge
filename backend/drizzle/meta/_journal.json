@@ -15,6 +15,13 @@
       "when": 1789428856245,
       "tag": "0001_google_sign_in",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789435044068,
+      "tag": "0002_rename_demo_accounts",
+      "breakpoints": true
     }
   ]
 }

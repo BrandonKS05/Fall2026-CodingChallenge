@@ -1,4 +1,4 @@
-import { createItemRequestSchema, updateItemRequestSchema } from '@trove/shared';
+import { createItemRequestSchema, updateItemRequestSchema } from '@wumboo/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { createItemsController } from './items.controller.js';

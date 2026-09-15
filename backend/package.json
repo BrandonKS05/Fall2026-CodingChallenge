@@ -1,8 +1,8 @@
 {
-  "name": "@trove/backend",
+  "name": "@wumboo/backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Trove REST API - Express 5, TypeScript, Drizzle, Postgres",
+  "description": "Wumboo REST API - Express 5, TypeScript, Drizzle, Postgres",
   "type": "module",
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/server.ts",
@@ -18,7 +18,7 @@
     "start:serve": "tsx src/server.ts"
   },
   "dependencies": {
-    "@trove/shared": "workspace:*",
+    "@wumboo/shared": "workspace:*",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "express": "^5.2.1",

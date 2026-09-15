@@ -1,4 +1,4 @@
-import type { Collection } from '@trove/shared';
+import type { Collection } from '@wumboo/shared';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BoardCard } from './BoardCard';
 

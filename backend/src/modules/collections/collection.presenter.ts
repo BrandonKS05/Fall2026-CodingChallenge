@@ -2,7 +2,7 @@ import type {
   Collection as CollectionDto,
   CollectionDetailResponse,
   CollectionListResponse,
-} from '@trove/shared';
+} from '@wumboo/shared';
 import type { CollectionSummary } from '../../domain/entities/Collection.js';
 import type { ItemDetail } from '../../domain/entities/CollectionItem.js';
 import { presentItem } from '../items/item.presenter.js';

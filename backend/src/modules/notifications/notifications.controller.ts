@@ -1,4 +1,4 @@
-import type { MarkNotificationsReadRequest } from '@trove/shared';
+import type { MarkNotificationsReadRequest } from '@wumboo/shared';
 import type { RequestHandler } from 'express';
 import type { NotificationService } from './NotificationService.js';
 import { currentUser } from '../../http/middleware/authenticate.js';

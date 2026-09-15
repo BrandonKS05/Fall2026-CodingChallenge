@@ -1,4 +1,4 @@
-import type { SearchResult } from '@trove/shared';
+import type { SearchResult } from '@wumboo/shared';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';

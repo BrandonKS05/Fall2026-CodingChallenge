@@ -8,7 +8,7 @@ export class JoseTokenService implements TokenService {
   constructor(
     secret: string,
     private readonly ttlSeconds: number,
-    private readonly issuer = 'trove',
+    private readonly issuer = 'wumboo',
   ) {
     this.key = new TextEncoder().encode(secret);
   }

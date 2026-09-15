@@ -1,8 +1,8 @@
 {
-  "name": "@trove/frontend",
+  "name": "@wumboo/frontend",
   "version": "0.1.0",
   "private": true,
-  "description": "Trove web app - Vite, React, TypeScript, Tailwind, shadcn/ui, TanStack Query",
+  "description": "Wumboo web app - Vite, React, TypeScript, Tailwind, shadcn/ui, TanStack Query",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,7 +17,7 @@
     "@fontsource-variable/geist": "^5.3.0",
     "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-query": "^5.102.8",
-    "@trove/shared": "workspace:*",
+    "@wumboo/shared": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

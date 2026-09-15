@@ -2,7 +2,7 @@
  * The board picker shown when saving from search. Receives boards and the
  * session from the page so this component stays inside the items feature.
  */
-import type { Collection, SearchResult, User } from '@trove/shared';
+import type { Collection, SearchResult, User } from '@wumboo/shared';
 import { ImageIcon, PlusIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';

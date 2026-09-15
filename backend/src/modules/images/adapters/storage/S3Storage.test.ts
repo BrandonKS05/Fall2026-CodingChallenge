@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { S3Storage, type S3Sender } from './S3Storage.js';
 
 function storageWith(send: ReturnType<typeof vi.fn>) {
-  return new S3Storage({ send } as unknown as S3Sender, 'trove-bucket');
+  return new S3Storage({ send } as unknown as S3Sender, 'wumboo-bucket');
 }
 
 describe('S3Storage', () => {
@@ -15,7 +15,7 @@ describe('S3Storage', () => {
     const command = send.mock.calls[0]?.[0] as PutObjectCommand;
     expect(command).toBeInstanceOf(PutObjectCommand);
     expect(command.input).toMatchObject({
-      Bucket: 'trove-bucket',
+      Bucket: 'wumboo-bucket',
       Key: 'images/a.webp',
       ContentType: 'image/webp',
     });

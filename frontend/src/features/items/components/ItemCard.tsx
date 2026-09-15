@@ -1,4 +1,4 @@
-import type { Item } from '@trove/shared';
+import type { Item } from '@wumboo/shared';
 import { PencilIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';

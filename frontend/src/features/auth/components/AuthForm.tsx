@@ -9,7 +9,7 @@ import {
   registerRequestSchema,
   type LoginRequest,
   type RegisterRequest,
-} from '@trove/shared';
+} from '@wumboo/shared';
 import { z } from 'zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';

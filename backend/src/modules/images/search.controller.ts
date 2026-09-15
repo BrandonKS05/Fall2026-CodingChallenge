@@ -1,4 +1,4 @@
-import type { SearchQuery } from '@trove/shared';
+import type { SearchQuery } from '@wumboo/shared';
 import type { RequestHandler } from 'express';
 import type { ImageService } from './ImageService.js';
 import { getValidated } from '../../http/middleware/validate.js';

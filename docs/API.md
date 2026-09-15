@@ -72,7 +72,7 @@ Every response also carries an `x-request-id` header, generated or propagated fr
 
 ## Authentication
 
-Sessions are JWTs in an `httpOnly`, `SameSite=Lax` cookie named `trove_session`, valid for 7 days.
+Sessions are JWTs in an `httpOnly`, `SameSite=Lax` cookie named `wumboo_session`, valid for 7 days.
 The browser sends it automatically; the frontend never reads or stores the token. `Secure` is set in
 production. Register and login are rate limited to 20 attempts per 15 minutes per client.
 
@@ -227,7 +227,7 @@ returns `{ google: true }` so the client knows to show the button.
 
 | Endpoint                        | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/auth/google`          | Sets a short-lived `trove_oauth_state` cookie and redirects the browser to Google's consent screen.                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `GET /api/auth/google`          | Sets a short-lived `wumboo_oauth_state` cookie and redirects the browser to Google's consent screen.                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `GET /api/auth/google/callback` | Google redirects here with `code` and `state`. The state must match the cookie. The code is exchanged server-side, the ID token is verified against Google's keys, and the account is matched by Google id, else linked by verified email, else created without a password. On success the session cookie is set and the browser is redirected to `APP_URL/boards`; on failure to `APP_URL/login?error=<reason>` where reason is `google_denied`, `oauth_state`, `google_failed`, or `google_unavailable`. |
 
 Register `<APP_URL>/api/auth/google/callback` (for local development `http://localhost:5173/api/auth/google/callback`)

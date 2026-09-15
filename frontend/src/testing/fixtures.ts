@@ -1,5 +1,5 @@
 /** Contract-shaped fixtures for component tests. */
-import type { Collection, Item, SearchResult } from '@trove/shared';
+import type { Collection, Item, SearchResult } from '@wumboo/shared';
 
 const now = new Date('2026-09-14T12:00:00Z').toISOString();
 

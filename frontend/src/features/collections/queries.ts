@@ -1,4 +1,4 @@
-import type { Collection, CollectionDetailResponse, UpdateCollectionRequest } from '@trove/shared';
+import type { Collection, CollectionDetailResponse, UpdateCollectionRequest } from '@wumboo/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { collectionsApi } from './api';

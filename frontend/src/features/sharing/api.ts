@@ -5,7 +5,7 @@ import type {
   MemberListResponse,
   ShareLinkResponse,
   UpdateMemberRequest,
-} from '@trove/shared';
+} from '@wumboo/shared';
 import { http } from '@/lib/api';
 
 export const sharingApi = {

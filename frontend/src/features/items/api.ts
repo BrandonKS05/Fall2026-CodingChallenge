@@ -1,4 +1,4 @@
-import type { CreateItemRequest, Item, UpdateItemRequest } from '@trove/shared';
+import type { CreateItemRequest, Item, UpdateItemRequest } from '@wumboo/shared';
 import { http } from '@/lib/api';
 
 export const itemsApi = {

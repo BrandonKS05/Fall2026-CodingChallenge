@@ -1,4 +1,4 @@
-import type { CollectionVisibility } from '@trove/shared';
+import type { CollectionVisibility } from '@wumboo/shared';
 import { Badge } from '@/components/ui/badge';
 import { VISIBILITY } from '../visibility';
 

@@ -3,7 +3,7 @@
  * schema, so a title the server would reject never leaves the client.
  */
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { createCollectionRequestSchema, type CreateCollectionRequest } from '@trove/shared';
+import { createCollectionRequestSchema, type CreateCollectionRequest } from '@wumboo/shared';
 import type { z } from 'zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';

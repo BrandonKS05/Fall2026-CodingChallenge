@@ -3,7 +3,7 @@
  * against the cursor. Images sit at fixed slots on a stage 40% larger than
  * the viewport; each slot has a depth, so near images travel further.
  */
-import type { Collection } from '@trove/shared';
+import type { Collection } from '@wumboo/shared';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRightIcon } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -146,7 +146,7 @@ export function ExploreCanvas({ signedIn = false, tuning = DEFAULT_TUNING }: Exp
           to="/"
           className="text-2xl leading-none font-bold tracking-tighter uppercase [font-stretch:condensed]"
         >
-          Trove
+          Wumboo
         </Link>
         <nav
           aria-label="Landing"

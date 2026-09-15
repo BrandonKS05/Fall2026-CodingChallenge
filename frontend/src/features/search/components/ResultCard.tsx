@@ -1,4 +1,4 @@
-import type { SearchResult } from '@trove/shared';
+import type { SearchResult } from '@wumboo/shared';
 import { BookmarkIcon, CheckIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';

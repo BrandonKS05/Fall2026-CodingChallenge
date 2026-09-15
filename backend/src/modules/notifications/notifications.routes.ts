@@ -1,4 +1,4 @@
-import { markNotificationsReadRequestSchema } from '@trove/shared';
+import { markNotificationsReadRequestSchema } from '@wumboo/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { createNotificationsController } from './notifications.controller.js';

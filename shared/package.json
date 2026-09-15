@@ -1,5 +1,5 @@
 {
-  "name": "@trove/shared",
+  "name": "@wumboo/shared",
   "version": "0.1.0",
   "private": true,
   "description": "API contract: zod schemas and inferred types shared by frontend and backend",

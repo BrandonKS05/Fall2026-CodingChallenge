@@ -1,4 +1,4 @@
-import type { SearchQuery } from '@trove/shared';
+import type { SearchQuery } from '@wumboo/shared';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { searchApi } from './api';

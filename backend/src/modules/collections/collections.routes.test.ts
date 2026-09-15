@@ -1,4 +1,4 @@
-import { collectionSchema } from '@trove/shared';
+import { collectionSchema } from '@wumboo/shared';
 import type { Express } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -12,7 +12,7 @@ async function signUp(app: Express, email: string): Promise<string> {
     .send({ email, password: 'password-123', displayName: email.split('@')[0] });
   const header = res.headers['set-cookie'];
   const cookies = Array.isArray(header) ? header : [header ?? ''];
-  return cookies.find((cookie) => cookie.startsWith('trove_session=')) ?? '';
+  return cookies.find((cookie) => cookie.startsWith('wumboo_session=')) ?? '';
 }
 
 describe('collections routes', () => {

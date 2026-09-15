@@ -7,7 +7,7 @@ import {
 } from '../../../health/ports/HealthIndicator.js';
 import type { StorageBackend } from '../../ports/StorageBackend.js';
 
-const PROBE_BODY = new TextEncoder().encode('trove storage probe');
+const PROBE_BODY = new TextEncoder().encode('wumboo storage probe');
 
 /**
  * Strategy: proves the StorageBackend can write, read back, and delete. A

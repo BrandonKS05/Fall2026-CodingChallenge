@@ -1,4 +1,4 @@
-import { idSchema } from '@trove/shared';
+import { idSchema } from '@wumboo/shared';
 import { z } from 'zod';
 
 /** Path params for routes shaped like /resource/:id. */

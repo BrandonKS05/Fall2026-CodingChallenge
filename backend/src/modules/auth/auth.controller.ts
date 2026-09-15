@@ -3,7 +3,7 @@
  * service method, present the result. No business rules live here.
  */
 import { randomBytes } from 'node:crypto';
-import type { AuthProvidersResponse, LoginRequest, RegisterRequest } from '@trove/shared';
+import type { AuthProvidersResponse, LoginRequest, RegisterRequest } from '@wumboo/shared';
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import type { Env } from '../../config/env.js';

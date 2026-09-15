@@ -12,13 +12,13 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_USER: trove
-          POSTGRES_PASSWORD: trove
-          POSTGRES_DB: trove_test
+          POSTGRES_USER: wumboo
+          POSTGRES_PASSWORD: wumboo
+          POSTGRES_DB: wumboo_test
         ports:
           - 5434:5432
         options: >-
-          --health-cmd "pg_isready -U trove"
+          --health-cmd "pg_isready -U wumboo"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -35,7 +35,7 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - name: Database tests
-        run: pnpm --filter @trove/backend test:db
+        run: pnpm --filter @wumboo/backend test:db
         env:
-          TEST_DATABASE_URL: postgres://trove:trove@localhost:5434/trove_test
-      - run: pnpm --filter @trove/frontend build
+          TEST_DATABASE_URL: postgres://wumboo:wumboo@localhost:5434/wumboo_test
+      - run: pnpm --filter @wumboo/frontend build

@@ -1,4 +1,4 @@
-import type { Item as ItemDto } from '@trove/shared';
+import type { Item as ItemDto } from '@wumboo/shared';
 import type { ItemDetail } from '../../domain/entities/CollectionItem.js';
 import { presentImage } from '../images/image.presenter.js';
 

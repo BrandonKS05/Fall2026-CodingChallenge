@@ -5,7 +5,7 @@
  * Controllers and middleware throw ApiError directly for HTTP-specific
  * failures such as validation or authentication.
  */
-import type { ApiErrorCode, ApiErrorResponse } from '@trove/shared';
+import type { ApiErrorCode, ApiErrorResponse } from '@wumboo/shared';
 
 export class ApiError extends Error {
   constructor(
@@ -50,7 +50,7 @@ export class ApiError extends Error {
     return new ApiError(500, 'INTERNAL_ERROR', message);
   }
 
-  /** Serializes to the envelope defined in @trove/shared. */
+  /** Serializes to the envelope defined in @wumboo/shared. */
   toBody(): ApiErrorResponse {
     return {
       error: {

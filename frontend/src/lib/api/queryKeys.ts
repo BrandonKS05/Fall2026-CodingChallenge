@@ -2,7 +2,7 @@
  * Query key factory. Keys are hierarchical so invalidating a parent
  * (e.g. every collection query) is one call.
  */
-import type { PaginationQuery, SearchQuery } from '@trove/shared';
+import type { PaginationQuery, SearchQuery } from '@wumboo/shared';
 
 export const queryKeys = {
   session: ['session'] as const,

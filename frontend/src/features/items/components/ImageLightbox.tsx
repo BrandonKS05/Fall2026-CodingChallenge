@@ -1,4 +1,4 @@
-import type { Item } from '@trove/shared';
+import type { Item } from '@wumboo/shared';
 import { ExternalLinkIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { timeAgo } from '@/lib/format';

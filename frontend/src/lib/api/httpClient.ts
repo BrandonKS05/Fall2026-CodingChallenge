@@ -1,5 +1,5 @@
 /**
- * Facade over fetch for the Trove API. Every feature talks to the backend
+ * Facade over fetch for the Wumboo API. Every feature talks to the backend
  * through this class and nothing else, so credentials, JSON handling, and
  * error mapping live in exactly one place.
  */

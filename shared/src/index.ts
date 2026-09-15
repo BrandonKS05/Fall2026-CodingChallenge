@@ -1,5 +1,5 @@
 /**
- * @trove/shared - the API contract.
+ * @wumboo/shared - the API contract.
  *
  * Both the frontend and the backend import from here and nowhere else in this
  * package. The backend validates requests against these schemas; the frontend

@@ -1,4 +1,4 @@
-import { searchResponseSchema } from '@trove/shared';
+import { searchResponseSchema } from '@wumboo/shared';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { FakeImageProvider, fakeProviderImage } from '../../testing/fakes/FakeImageProvider.js';

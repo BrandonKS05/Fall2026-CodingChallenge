@@ -1,4 +1,4 @@
-import type { CreateItemRequest, UpdateItemRequest } from '@trove/shared';
+import type { CreateItemRequest, UpdateItemRequest } from '@wumboo/shared';
 import type { RequestHandler } from 'express';
 import type { ItemService } from './ItemService.js';
 import type { CollectionItemParams, IdParams } from '../../http/params.js';

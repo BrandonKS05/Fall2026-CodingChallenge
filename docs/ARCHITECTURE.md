@@ -98,7 +98,7 @@ test asserts they match the API contract.
 
 Using auth as the example, a request passes through these files in `modules/auth/`:
 
-1. `auth.routes.ts` declares the endpoint and its middleware chain: rate limit, `validate` with a schema from `@trove/shared`, `requireAuth` where needed.
+1. `auth.routes.ts` declares the endpoint and its middleware chain: rate limit, `validate` with a schema from `@wumboo/shared`, `requireAuth` where needed.
 2. `auth.controller.ts` reads the validated input, calls one service method, and hands the result to a presenter. No business rules.
 3. `AuthService.ts` holds the rules (duplicate emails, credential checks, decoy hashing, Google linking) and depends only on ports.
 4. `ports/` declare what the service needs: `UserRepository`, `PasswordHasher`, `TokenService`, `OAuthProvider`.
@@ -165,7 +165,7 @@ boards are ordered by activity, so the database must own the clock.
 
 `frontend/` is a Vite single-page app: React 19, TypeScript, Tailwind v4 with shadcn/ui (Base UI
 primitives), TanStack Query for server state, React Router for navigation, react-hook-form with the
-zod schemas from `@trove/shared` for forms.
+zod schemas from `@wumboo/shared` for forms.
 
 | Folder                 | Role                                                                                                                                                                                                                                                                                                  |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

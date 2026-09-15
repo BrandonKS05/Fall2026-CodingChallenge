@@ -1,4 +1,4 @@
-import type { Image as ImageDto, SearchResponse, SearchResult } from '@trove/shared';
+import type { Image as ImageDto, SearchResponse, SearchResult } from '@wumboo/shared';
 import type { Image } from '../../domain/entities/Image.js';
 import type { ProviderImage } from '../../domain/entities/ProviderImage.js';
 import type { ImageSearchResult } from './ports/ImageProvider.js';

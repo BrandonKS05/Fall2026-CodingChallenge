@@ -3,21 +3,21 @@
 services:
   db:
     image: postgres:17-alpine
-    container_name: trove-db
+    container_name: wumboo-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: trove
-      POSTGRES_PASSWORD: trove
-      POSTGRES_DB: trove
+      POSTGRES_USER: wumboo
+      POSTGRES_PASSWORD: wumboo
+      POSTGRES_DB: wumboo
     ports:
       - '${DB_PORT:-5434}:5432'
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - wumboo-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U trove -d trove']
+      test: ['CMD-SHELL', 'pg_isready -U wumboo -d wumboo']
       interval: 5s
       timeout: 3s
       retries: 10
 
 volumes:
-  db-data:
+  wumboo-db-data:

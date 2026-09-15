@@ -1,6 +1,6 @@
 /**
  * Request validation middleware. Parses body, query, and params with zod
- * schemas from @trove/shared so controllers only ever see typed, normalized
+ * schemas from @wumboo/shared so controllers only ever see typed, normalized
  * input. Failures short-circuit to the error handler as VALIDATION_ERROR,
  * with every issue's path prefixed by the request part it belongs to.
  *

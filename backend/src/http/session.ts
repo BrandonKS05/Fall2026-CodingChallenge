@@ -27,7 +27,7 @@ export function clearSessionCookie(res: Response, env: Pick<Env, 'NODE_ENV'>): v
 }
 
 /** Ties the callback to the browser that started the sign-in; ten minutes is plenty for a consent screen. */
-export const OAUTH_STATE_COOKIE_NAME = 'trove_oauth_state';
+export const OAUTH_STATE_COOKIE_NAME = 'wumboo_oauth_state';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 export function setOAuthStateCookie(

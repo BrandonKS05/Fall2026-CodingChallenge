@@ -1,13 +1,21 @@
-Trove - Image Saving & Sharing App
+Wumboo - Image Saving & Sharing App
 Change++ Fall 2026 Coding Challenge
 
 Name:  Brandon Lee
 Email: <your Vanderbilt email>
 
-Trove is a Pinterest-style app built around the sentence in the challenge: you find something,
+Wumboo is a Pinterest-style app built around the sentence in the challenge: you find something,
 save it somewhere, and then cannot find it again. Search millions of free photos (Pixabay), save
 them to boards, organize and caption them, share a board by link or invite people to work on it
 with roles, and get notified when a shared board changes.
+
+------------------------------------------------------------
+LIVE DEMO
+------------------------------------------------------------
+App:  https://wumbo.brandonnlee.com                 (frontend on Vercel)
+API:  https://api.wumbo.brandonnlee.com/api/health  (backend on Railway)
+The demo login below works there too. The frontend reaches the API through a same-origin /api
+rewrite, so the two hosts behave like one site. Deployment notes: docs/DEPLOYMENT.md.
 
 ------------------------------------------------------------
 HOW TO RUN
@@ -23,14 +31,14 @@ Prerequisites: Node 20.19+ (24 recommended), pnpm 10 (corepack enable), Docker D
 5. pnpm db:seed                   # demo accounts and four filled boards (downloads ~30 photos)
 6. pnpm dev                       # frontend http://localhost:5173, API http://localhost:4000
 
-Demo login:  demo@trove.app / demo-password-123
-Second user: sam@trove.app  / demo-password-123 (shares the "Tide pools" board with the demo user)
+Demo login:  demo@wumboo.app / demo-password-123
+Second user: sam@wumboo.app  / demo-password-123 (shares the "Tide pools" board with the demo user)
 
 Optional: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in backend/.env to enable
 "Continue with Google" (register http://localhost:5173/api/auth/google/callback as the redirect URI).
 
 Checks: pnpm typecheck, pnpm lint, pnpm test (unit and route tests, no database needed),
-pnpm --filter @trove/backend test:db (repository tests against the Docker Postgres).
+pnpm --filter @wumboo/backend test:db (repository tests against the Docker Postgres).
 
 ------------------------------------------------------------
 WHAT IS INSIDE

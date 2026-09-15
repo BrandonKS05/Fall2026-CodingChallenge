@@ -1,4 +1,4 @@
-import type { Collection } from '@trove/shared';
+import type { Collection } from '@wumboo/shared';
 import { SettingsIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';

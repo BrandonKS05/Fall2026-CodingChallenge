@@ -1,4 +1,4 @@
-import { collectionVisibilitySchema, type CollectionVisibility } from '@trove/shared';
+import { collectionVisibilitySchema, type CollectionVisibility } from '@wumboo/shared';
 import { cn } from '@/lib/utils';
 import { VISIBILITY } from '../visibility';
 

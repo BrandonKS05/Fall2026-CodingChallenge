@@ -1,4 +1,4 @@
-import { searchColorSchema, type SearchQuery } from '@trove/shared';
+import { searchColorSchema, type SearchQuery } from '@wumboo/shared';
 import { SearchIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';

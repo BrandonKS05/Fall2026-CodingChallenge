@@ -1,4 +1,4 @@
-import { searchQuerySchema } from '@trove/shared';
+import { searchQuerySchema } from '@wumboo/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { createSearchController } from './search.controller.js';

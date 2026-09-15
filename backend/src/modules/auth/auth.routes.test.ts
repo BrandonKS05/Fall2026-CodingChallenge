@@ -1,5 +1,5 @@
 /** Route tests with the real argon2 and jose adapters and an in-memory user repository. */
-import { authResponseSchema } from '@trove/shared';
+import { authResponseSchema } from '@wumboo/shared';
 import type { Express } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -12,7 +12,7 @@ const account = { email: 'Grace@Example.com', password: 'hopper-1906', displayNa
 function sessionCookie(res: request.Response): string {
   const header = res.headers['set-cookie'];
   const cookies = Array.isArray(header) ? header : [header ?? ''];
-  return cookies.find((cookie) => cookie.startsWith('trove_session=')) ?? '';
+  return cookies.find((cookie) => cookie.startsWith('wumboo_session=')) ?? '';
 }
 
 describe('auth routes', () => {
@@ -84,7 +84,7 @@ describe('auth routes', () => {
 
     const tampered = await request(app)
       .get('/api/auth/me')
-      .set('Cookie', 'trove_session=not-a-real-token');
+      .set('Cookie', 'wumboo_session=not-a-real-token');
     expect(tampered.body).toEqual({ user: null });
   });
 
@@ -123,7 +123,7 @@ describe('Google sign-in routes', () => {
   function stateCookie(res: request.Response): string {
     const header = res.headers['set-cookie'];
     const cookies = Array.isArray(header) ? header : [header ?? ''];
-    return cookies.find((cookie) => cookie.startsWith('trove_oauth_state=')) ?? '';
+    return cookies.find((cookie) => cookie.startsWith('wumboo_oauth_state=')) ?? '';
   }
 
   it('advertises configured providers', async () => {

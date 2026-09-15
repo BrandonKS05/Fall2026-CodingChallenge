@@ -18,7 +18,7 @@ export function RouteErrorPage() {
         description={message}
         action={
           <a href="/" className={buttonVariants({ variant: 'outline' })}>
-            Reload Trove
+            Reload Wumboo
           </a>
         }
       />

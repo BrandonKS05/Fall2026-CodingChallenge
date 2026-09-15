@@ -2,7 +2,7 @@
  * Everything about who can see a board: the share link and the members.
  * Owners manage both; other members see the link and the list, and can leave.
  */
-import type { Collection, GrantableRole } from '@trove/shared';
+import type { Collection, GrantableRole } from '@wumboo/shared';
 import { CheckIcon, CopyIcon, LinkIcon, Share2Icon, UserMinusIcon, UsersIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
@@ -272,7 +272,7 @@ function MembersSection({ board, isOwner, currentUserId, enabled }: MembersSecti
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            They need a Trove account with that email.
+            They need a Wumboo account with that email.
           </p>
           {error && (
             <p role="alert" className="text-sm text-destructive">
