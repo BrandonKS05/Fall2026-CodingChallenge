@@ -5,7 +5,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import type { Image, ImageProviderName } from '../../domain/entities/Image.js';
-import { extensionForContentType } from '../../domain/entities/ImageFile.js';
+import { contentTypeForKey, extensionForContentType } from '../../domain/entities/ImageFile.js';
 import {
   ConflictError,
   InvalidOperationError,
@@ -39,6 +39,8 @@ export class ImageService {
   private readonly log: Logger;
   private readonly maxBytes: number;
   private readonly timeoutMs: number;
+  /** One in-flight restore per image, so a burst of requests for a lost file downloads it once. */
+  private readonly restores = new Map<string, Promise<Image>>();
 
   constructor(private readonly deps: ImageServiceDeps) {
     this.log = deps.logger.child({ service: 'ImageService' });
@@ -59,7 +61,7 @@ export class ImageService {
     if (!hit) throw new NotFoundError('Image', providerImageId);
 
     const file = await this.download(hit.downloadUrl);
-    const key = `images/${randomUUID()}.${extensionForContentType(file.contentType)}`;
+    const key = `images/${randomUUID()}.${file.extension}`;
     await this.deps.storage.put(key, file.bytes, file.contentType);
 
     try {
@@ -87,13 +89,58 @@ export class ImageService {
     }
   }
 
-  /** The stored file for serving. */
+  /**
+   * The stored file for serving. A missing file is restored from the provider
+   * first: the database is the source of truth and the file store is a cache
+   * that can be rebuilt, so a lost disk (or STORAGE_LOCAL_DIR pointing at an
+   * ephemeral directory) costs one slow request per image, not a broken image.
+   */
   async open(imageId: string): Promise<StoredObject> {
     const image = await this.deps.images.findById(imageId);
     if (!image) throw new NotFoundError('Image', imageId);
     const object = await this.deps.storage.get(image.storageKey);
-    if (!object) throw new NotFoundError('Image file', imageId);
-    return object;
+    if (object) return object;
+
+    const restored = await this.restore(image);
+    const file = await this.deps.storage.get(restored.storageKey);
+    if (!file) throw new NotFoundError('Image file', imageId);
+    return file;
+  }
+
+  /** Coalesces concurrent restores of the same image into one download. */
+  private restore(image: Image): Promise<Image> {
+    const pending = this.restores.get(image.id);
+    if (pending) return pending;
+    const task = this.redownload(image).finally(() => this.restores.delete(image.id));
+    this.restores.set(image.id, task);
+    return task;
+  }
+
+  private async redownload(image: Image): Promise<Image> {
+    const hit = await this.provider(image.provider).getById(image.providerImageId);
+    if (!hit) {
+      this.log.warn(
+        { imageId: image.id },
+        'Image file is missing and the provider no longer has it',
+      );
+      throw new NotFoundError('Image file', image.id);
+    }
+    const file = await this.download(hit.downloadUrl);
+    // The key's extension must stay truthful, so a provider that now serves another type gets a new key.
+    const key =
+      contentTypeForKey(image.storageKey) === file.contentType
+        ? image.storageKey
+        : `images/${randomUUID()}.${file.extension}`;
+    await this.deps.storage.put(key, file.bytes, file.contentType);
+    const restored =
+      key === image.storageKey
+        ? image
+        : await this.deps.images.update(image.id, { storageKey: key });
+    this.log.warn(
+      { imageId: image.id, storageKey: key, bytes: file.bytes.byteLength },
+      'Image file was missing; restored from the provider',
+    );
+    return restored;
   }
 
   private provider(name: ImageProviderName): ImageProvider {
@@ -102,7 +149,7 @@ export class ImageService {
     return provider;
   }
 
-  private async download(url: string): Promise<{ bytes: Uint8Array; contentType: string }> {
+  private async download(url: string): Promise<DownloadedFile> {
     assertDownloadable(url);
 
     let response: Response;
@@ -116,7 +163,8 @@ export class ImageService {
     }
 
     const contentType = (response.headers.get('content-type') ?? '').split(';')[0]?.trim() ?? '';
-    if (!extensionForContentType(contentType)) {
+    const extension = extensionForContentType(contentType);
+    if (!extension) {
       throw new UpstreamError(`Unsupported image type: ${contentType || 'unknown'}`);
     }
     const declaredSize = Number(response.headers.get('content-length') ?? 0);
@@ -125,8 +173,15 @@ export class ImageService {
     const bytes = new Uint8Array(await response.arrayBuffer());
     if (bytes.byteLength > this.maxBytes) throw new UpstreamError('Image is too large to store');
     if (bytes.byteLength === 0) throw new UpstreamError('Image download was empty');
-    return { bytes, contentType };
+    return { bytes, contentType, extension };
   }
+}
+
+interface DownloadedFile {
+  bytes: Uint8Array;
+  contentType: string;
+  /** Validated against the accepted types, so keys built from it always serve the right content type. */
+  extension: string;
 }
 
 /** Download URLs come from the provider, never the client, but they still must be https (or local during development). */

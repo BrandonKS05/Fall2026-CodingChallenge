@@ -25,6 +25,7 @@ import {
   createRequestLogger,
 } from './infrastructure/logging/pinoLogger.js';
 import { createStorage } from './modules/images/adapters/storage/storageFactory.js';
+import { StorageHealthIndicator } from './modules/images/adapters/storage/StorageHealthIndicator.js';
 import type { EventBus } from './infrastructure/events/EventBus.js';
 import type { HealthIndicator } from './modules/health/ports/HealthIndicator.js';
 import type { FetchFn } from './infrastructure/http/fetch.js';
@@ -174,7 +175,10 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     logger,
     requestLogger: createRequestLogger(pinoLogger),
     version: pkg.version,
-    healthIndicators: overrides.healthIndicators ?? [new DatabaseHealthIndicator(database.db)],
+    healthIndicators: overrides.healthIndicators ?? [
+      new DatabaseHealthIndicator(database.db),
+      new StorageHealthIndicator(storage),
+    ],
     repositories,
     passwordHasher,
     tokens,

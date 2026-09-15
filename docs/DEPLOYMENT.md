@@ -32,9 +32,14 @@ Add a **Postgres** service and a **Volume** mounted at `/data` on the backend se
 
 `PORT` is injected by Railway and read automatically. Do not set `PIXABAY_BASE_URL`.
 
-Seed the production database by setting `SEED_DEMO=true` on the service: the server seeds on its next boot
-and the flag is safe to leave on because the seed is idempotent. (A one-off shell also works:
-`railway ssh` then `pnpm --filter @trove/backend db:seed`.)
+Seed the production database by setting `SEED_DEMO=true` on the service: the server seeds on its next boot,
+after it starts listening, so the health check passes while images download. The flag is safe to leave on
+because the seed is idempotent and resumable: it creates only what is missing, so a boot cut short mid-seed
+(a redeploy, a provider outage) finishes on the next one. (A one-off shell also works: `railway ssh` then
+`pnpm --filter @trove/backend db:seed`.)
+
+Saved images live on the volume; if a file is ever lost anyway, the API re-downloads it from the provider
+the next time it is requested. The volume is still what keeps a redeploy from re-downloading every image.
 
 ## Frontend (Vercel)
 
@@ -46,7 +51,9 @@ backend's public Railway domain.
 
 ## Checklist after the first deploy
 
-1. `https://trovebackend-production.up.railway.app/api/health` answers 200 with `database: ok`.
+1. `https://trovebackend-production.up.railway.app/api/health` answers 200 with `database: ok` and
+   `storage: ok`. A `storage` error means the directory `STORAGE_LOCAL_DIR` points at is not writable,
+   usually because the volume is not mounted at `/data`.
 2. `https://fall2026-coding-challenge-frontend.vercel.app/api/health` answers the same through the rewrite.
 3. Register, log in, and reload: the session persists (cookie is `Secure`, `SameSite=Lax`, same-site via the rewrite).
 4. Search returns real results, saving downloads an image, and the image still loads after a redeploy (volume).

@@ -112,8 +112,73 @@ describe('ImageService', () => {
     await expect(service.open('00000000-0000-0000-0000-000000000000')).rejects.toBeInstanceOf(
       NotFoundError,
     );
-    storage.objects.clear();
-    await expect(service.open(image.id)).rejects.toThrow(/Image file/);
+  });
+
+  describe('open with a missing file', () => {
+    it('restores the file from the provider under the same key and serves it', async () => {
+      const image = await service.ensureStored('pixabay', '101');
+      storage.objects.clear();
+      fetchFn.calls.length = 0;
+
+      const object = await service.open(image.id);
+      expect(await readAll(object.stream)).toEqual(Buffer.from(FAKE_JPEG));
+      expect(storage.objects.has(image.storageKey)).toBe(true);
+      expect(fetchFn.calls).toEqual(['https://fake.test/download/101.jpg']);
+      expect((await images.findById(image.id))?.storageKey).toBe(image.storageKey);
+    });
+
+    it('downloads once however many requests arrive for the same lost file', async () => {
+      const image = await service.ensureStored('pixabay', '101');
+      storage.objects.clear();
+      fetchFn.calls.length = 0;
+
+      const objects = await Promise.all([
+        service.open(image.id),
+        service.open(image.id),
+        service.open(image.id),
+      ]);
+      expect(objects).toHaveLength(3);
+      expect(fetchFn.calls).toEqual(['https://fake.test/download/101.jpg']);
+    });
+
+    it('moves to a new key when the provider now serves a different file type', async () => {
+      const image = await service.ensureStored('pixabay', '101');
+      storage.objects.clear();
+      const nowPng = new ImageService({
+        images,
+        providers: {
+          pixabay: new FakeImageProvider([
+            fakeProviderImage('101', { downloadUrl: 'https://fake.test/download/101.png' }),
+          ]),
+        },
+        storage,
+        fetchFn: createFakeFetch({
+          'https://fake.test/download/101.png': { contentType: 'image/png', body: FAKE_JPEG },
+        }),
+        logger: silentLogger,
+      });
+
+      const object = await nowPng.open(image.id);
+      expect(object.contentType).toBe('image/png');
+      const updated = await images.findById(image.id);
+      expect(updated?.storageKey).toMatch(/\.png$/);
+      expect(updated?.storageKey).not.toBe(image.storageKey);
+      expect(storage.objects.has(updated?.storageKey ?? '')).toBe(true);
+    });
+
+    it('still reports the file missing when the provider no longer has the image', async () => {
+      const image = await service.ensureStored('pixabay', '101');
+      storage.objects.clear();
+      const gone = new ImageService({
+        images,
+        providers: { pixabay: new FakeImageProvider([]) },
+        storage,
+        fetchFn,
+        logger: silentLogger,
+      });
+      await expect(gone.open(image.id)).rejects.toThrow(/Image file/);
+      expect(storage.objects.size).toBe(0);
+    });
   });
 
   it('delegates search to the default provider', async () => {

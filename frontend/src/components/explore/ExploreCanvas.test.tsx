@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { boardFixture } from '@/testing/fixtures';
 import { renderWithProviders, stubApi, type StubRoute } from '@/testing/render';
@@ -69,6 +69,17 @@ describe('ExploreCanvas', () => {
       'href',
       '/discover',
     );
+  });
+
+  it('drops a tile whose image fails to load instead of showing a broken picture', async () => {
+    renderCanvas();
+    const images = await screen.findAllByRole('img');
+    expect(images).toHaveLength(4);
+
+    fireEvent.error(images[0] as HTMLImageElement);
+
+    await waitFor(() => expect(screen.getAllByRole('img')).toHaveLength(3));
+    expect(screen.getByRole('link', { name: 'Open Fog and pines' })).toBeInTheDocument();
   });
 
   it('fails silently to an empty stage', async () => {

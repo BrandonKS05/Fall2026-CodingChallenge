@@ -57,20 +57,20 @@ queue, the images module becomes a worker, and nothing above the boundary change
 
 ## Pattern catalog
 
-| Pattern                                 | Where                                                                                                                            | What it lets us swap                                                                                         |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Adapter                                 | `backend/src/infrastructure/logging/pinoLogger.ts`                                                                               | pino sits behind the `Logger` port; services never import pino                                               |
-| Chain of Responsibility                 | `backend/src/app.ts` middleware order                                                                                            | add or remove cross-cutting steps (auth, rate limits) without touching routes                                |
-| Composition root (dependency injection) | `backend/src/container.ts`                                                                                                       | swap any infrastructure implementation in one place                                                          |
-| Strategy                                | `modules/health/HealthIndicator.ts`, `infrastructure/db/DatabaseHealthIndicator.ts`                                              | one indicator per dependency; the health route aggregates whatever the container registers                   |
-| Repository                              | `modules/*/ports/*Repository.ts` (interfaces), `modules/*/adapters/Drizzle*Repository.ts`                                        | Postgres for any store; services never see SQL                                                               |
-| Strategy                                | `modules/auth/ports/PasswordHasher.ts`, `modules/auth/ports/TokenService.ts`                                                     | argon2 and jose sit behind these as adapters; AuthService never imports either                               |
-| Strategy                                | `modules/images/ports/ImageProvider.ts`, `modules/images/ports/StorageBackend.ts`                                                | Pixabay for Unsplash; local disk for S3, R2, or Supabase; the services only see the ports                    |
-| Strategy                                | `modules/auth/ports/OAuthProvider.ts`, `modules/auth/adapters/GoogleOAuthProvider.ts`                                            | Google today, any OpenID Connect provider tomorrow; AuthService only ever sees a verified profile            |
-| Decorator                               | `modules/images/adapters/CachedImageProvider.ts`                                                                                 | wraps any ImageProvider with the 24-hour cache Pixabay requires and coalesces identical concurrent searches  |
-| Adapter                                 | `modules/images/adapters/pixabay/pixabayAdapter.ts`                                                                              | translates Pixabay's response into the domain's ProviderImage, validated with zod at the boundary            |
-| Factory                                 | `modules/images/adapters/storage/storageFactory.ts`                                                                              | selects the storage strategy from STORAGE_DRIVER; nothing else knows which one is running                    |
-| Observer                                | `infrastructure/events/EventBus.ts`, `infrastructure/events/InMemoryEventBus.ts`, `modules/notifications/NotificationService.ts` | board changes are published as domain events; notifications subscribe, and publishers never know who listens |
+| Pattern                                 | Where                                                                                                                                                  | What it lets us swap                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Adapter                                 | `backend/src/infrastructure/logging/pinoLogger.ts`                                                                                                     | pino sits behind the `Logger` port; services never import pino                                               |
+| Chain of Responsibility                 | `backend/src/app.ts` middleware order                                                                                                                  | add or remove cross-cutting steps (auth, rate limits) without touching routes                                |
+| Composition root (dependency injection) | `backend/src/container.ts`                                                                                                                             | swap any infrastructure implementation in one place                                                          |
+| Strategy                                | `modules/health/ports/HealthIndicator.ts`, `infrastructure/db/DatabaseHealthIndicator.ts`, `modules/images/adapters/storage/StorageHealthIndicator.ts` | one indicator per dependency; the health route aggregates whatever the container registers                   |
+| Repository                              | `modules/*/ports/*Repository.ts` (interfaces), `modules/*/adapters/Drizzle*Repository.ts`                                                              | Postgres for any store; services never see SQL                                                               |
+| Strategy                                | `modules/auth/ports/PasswordHasher.ts`, `modules/auth/ports/TokenService.ts`                                                                           | argon2 and jose sit behind these as adapters; AuthService never imports either                               |
+| Strategy                                | `modules/images/ports/ImageProvider.ts`, `modules/images/ports/StorageBackend.ts`                                                                      | Pixabay for Unsplash; local disk for S3, R2, or Supabase; the services only see the ports                    |
+| Strategy                                | `modules/auth/ports/OAuthProvider.ts`, `modules/auth/adapters/GoogleOAuthProvider.ts`                                                                  | Google today, any OpenID Connect provider tomorrow; AuthService only ever sees a verified profile            |
+| Decorator                               | `modules/images/adapters/CachedImageProvider.ts`                                                                                                       | wraps any ImageProvider with the 24-hour cache Pixabay requires and coalesces identical concurrent searches  |
+| Adapter                                 | `modules/images/adapters/pixabay/pixabayAdapter.ts`                                                                                                    | translates Pixabay's response into the domain's ProviderImage, validated with zod at the boundary            |
+| Factory                                 | `modules/images/adapters/storage/storageFactory.ts`                                                                                                    | selects the storage strategy from STORAGE_DRIVER; nothing else knows which one is running                    |
+| Observer                                | `infrastructure/events/EventBus.ts`, `infrastructure/events/InMemoryEventBus.ts`, `modules/notifications/NotificationService.ts`                       | board changes are published as domain events; notifications subscribe, and publishers never know who listens |
 
 ## Error flow
 
@@ -135,8 +135,13 @@ must be ours. Saving an item (`ItemService.add`) runs:
 3. Insert the `collection_items` row at the next position and touch the board.
 
 `GET /api/images/:id` streams from storage with a one-year immutable cache header, because an image id
-never changes content. Search goes through `CachedImageProvider`, so repeated queries never reach
-Pixabay within 24 hours and identical concurrent queries share one request.
+never changes content. The database is the source of truth and storage is a cache that can be rebuilt:
+if the file behind a row is missing (a lost disk, a volume mounted after the first boot), `open` looks
+the image up through the provider again, downloads it, writes it back under the same key, and then
+serves it. Concurrent requests for the same lost file share one download, and the log records the
+restore so a misconfigured host is still visible. Search goes through `CachedImageProvider`, so
+repeated queries never reach Pixabay within 24 hours and identical concurrent queries share one
+request.
 
 `PIXABAY_BASE_URL` can point at a mock server for local verification without a key; download URLs on
 `localhost` are allowed over plain http for the same reason.

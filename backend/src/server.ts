@@ -12,15 +12,16 @@ const env = loadEnvOrExit(loadEnv);
 const container = createContainer(env);
 const app = createApp(container);
 
-if (env.SEED_DEMO) {
-  // Idempotent, so a host can leave the flag on; a failure here must not block serving.
-  await seedDemo(container).catch((error: unknown) => {
-    container.logger.error({ err: error }, 'Demo seed failed');
-  });
-}
-
 const server = app.listen(env.PORT, () => {
   container.logger.info({ port: env.PORT, env: env.NODE_ENV }, 'API listening');
+  if (env.SEED_DEMO) {
+    // After listen, so the host's health check passes while the seed downloads
+    // images. The seed is idempotent and resumable, so the flag can stay on and
+    // a boot that is cut short mid-seed simply finishes on the next one.
+    void seedDemo(container).catch((error: unknown) => {
+      container.logger.error({ err: error }, 'Demo seed failed');
+    });
+  }
 });
 
 function shutdown(signal: NodeJS.Signals): void {

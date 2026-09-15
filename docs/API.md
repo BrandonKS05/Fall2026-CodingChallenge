@@ -34,7 +34,7 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | GET    | /api/notifications                   | done   |
 | POST   | /api/notifications/read              | done   |
 
-Health runs every registered indicator. Returns 200 with `status: "ok"` when all pass, otherwise 503 with `status: "degraded"`.
+Health runs every registered indicator: a database round-trip and a storage probe that writes, reads back, and deletes a small file. Returns 200 with `status: "ok"` when all pass, otherwise 503 with `status: "degraded"`, so a deploy with an unmounted volume or bad bucket credentials never takes traffic.
 
 ```json
 {
@@ -42,7 +42,10 @@ Health runs every registered indicator. Returns 200 with `status: "ok"` when all
   "version": "0.1.0",
   "uptimeSeconds": 12,
   "timestamp": "2026-09-14T20:40:13.021Z",
-  "checks": { "database": { "status": "ok", "latencyMs": 26 } }
+  "checks": {
+    "database": { "status": "ok", "latencyMs": 26 },
+    "storage": { "status": "ok", "latencyMs": 3 }
+  }
 }
 ```
 
@@ -178,12 +181,12 @@ An item is an image on a board:
 }
 ```
 
-| Endpoint                                    | Auth            | Notes                                                                                                                                                                                                                |
-| ------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/collections/:id/items`           | editor or owner | `{ provider, providerImageId, caption?, tags? }`. Downloads the image into storage on first save, reuses it afterwards. 201 with the item. 404 if the provider has no such image, 409 if it is already on the board. |
-| `PATCH /api/collections/:id/items/:itemId`  | editor or owner | Any of `caption`, `tags`, `position`, `collectionId`. A different `collectionId` moves the item to that board (needs edit rights there too) and appends it. 409 if the destination already has the image.            |
-| `DELETE /api/collections/:id/items/:itemId` | editor or owner | 204. The stored image is kept because other boards may reference it.                                                                                                                                                 |
-| `GET /api/images/:id`                       | none            | Streams the stored file with `Cache-Control: public, max-age=31536000, immutable`.                                                                                                                                   |
+| Endpoint                                    | Auth            | Notes                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/collections/:id/items`           | editor or owner | `{ provider, providerImageId, caption?, tags? }`. Downloads the image into storage on first save, reuses it afterwards. 201 with the item. 404 if the provider has no such image, 409 if it is already on the board.                                                                                                                   |
+| `PATCH /api/collections/:id/items/:itemId`  | editor or owner | Any of `caption`, `tags`, `position`, `collectionId`. A different `collectionId` moves the item to that board (needs edit rights there too) and appends it. 409 if the destination already has the image.                                                                                                                              |
+| `DELETE /api/collections/:id/items/:itemId` | editor or owner | 204. The stored image is kept because other boards may reference it.                                                                                                                                                                                                                                                                   |
+| `GET /api/images/:id`                       | none            | Streams the stored file with `Cache-Control: public, max-age=31536000, immutable`. A file missing from storage is re-downloaded from the provider first (once, however many requests arrive), so the database stays the source of truth and storage is a cache that rebuilds itself. 404 only if the provider no longer has the image. |
 
 `GET /api/collections/:id` now returns the board's items ordered by `position`, then newest first.
 

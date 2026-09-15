@@ -109,7 +109,10 @@ export function ExploreCanvas({ signedIn = false, tuning = DEFAULT_TUNING }: Exp
     retry: false,
     meta: { silentError: true },
   });
-  const tiles = boards.data ? toTiles(boards.data) : [];
+  // A tile whose image fails to load (gone upstream, storage outage) gives up its
+  // slot rather than showing a broken picture; the other tiles keep their places.
+  const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
+  const tiles = boards.data ? toTiles(boards.data).filter((tile) => !failed.has(tile.key)) : [];
 
   return (
     <section
@@ -133,6 +136,7 @@ export function ExploreCanvas({ signedIn = false, tuning = DEFAULT_TUNING }: Exp
             parallax={parallax}
             interactive={interactive}
             onHover={setHovering}
+            onError={() => setFailed((previous) => new Set(previous).add(tile.key))}
           />
         ))}
       </div>
@@ -185,9 +189,10 @@ interface StageTileProps {
   parallax: Parallax;
   interactive: boolean;
   onHover: (hovering: boolean) => void;
+  onError: () => void;
 }
 
-function StageTile({ tile, parallax, interactive, onHover }: StageTileProps) {
+function StageTile({ tile, parallax, interactive, onHover, onError }: StageTileProps) {
   const { x, y } = useLayerOffset(parallax, tile.slot.depth);
   return (
     <motion.div
@@ -213,6 +218,7 @@ function StageTile({ tile, parallax, interactive, onHover }: StageTileProps) {
           alt={tile.title}
           draggable={false}
           decoding="async"
+          onError={onError}
           className="block h-auto w-full rounded-[2px] object-cover"
         />
         <span className="pointer-events-none absolute -bottom-6 left-0 text-[11px] tracking-[0.2em] uppercase opacity-0 transition-opacity group-hover:opacity-70">
