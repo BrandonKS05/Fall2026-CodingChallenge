@@ -181,6 +181,8 @@ export function ExploreCanvas({ signedIn = false, tuning = DEFAULT_TUNING }: Exp
         className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-28 bg-linear-to-t from-stage/60 to-transparent"
       />
 
+      <p className="sr-only">Public boards from everyone on Wumboo, newest first.</p>
+
       <header className="absolute inset-x-0 top-0 z-40 flex items-center justify-between px-6 py-5">
         <Link
           to="/"
