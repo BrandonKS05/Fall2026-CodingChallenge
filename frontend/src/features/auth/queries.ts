@@ -1,4 +1,4 @@
-import type { LoginRequest, RegisterRequest, User } from '@wumboo/shared';
+import type { LoginRequest, RegisterRequest, UpdateProfileRequest, User } from '@wumboo/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { authApi } from './api';
@@ -51,6 +51,30 @@ export function useLogout() {
       setSession(null);
       queryClient.removeQueries({ queryKey: queryKeys.collections.all });
       queryClient.removeQueries({ queryKey: queryKeys.notifications });
+    },
+  });
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateProfileRequest) => authApi.updateProfile(body),
+    onSuccess: (user) => queryClient.setQueryData(queryKeys.session, user),
+    meta: { silentError: true },
+  });
+}
+
+/** Ends the account; the cache forgets everything the person could see. */
+export function useDeleteAccount() {
+  const setSession = useSessionSetter();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => authApi.deleteAccount(),
+    onSuccess: () => {
+      setSession(null);
+      queryClient.removeQueries({ queryKey: queryKeys.collections.all });
+      queryClient.removeQueries({ queryKey: queryKeys.notifications });
+      queryClient.removeQueries({ queryKey: queryKeys.savedItems.all });
     },
   });
 }

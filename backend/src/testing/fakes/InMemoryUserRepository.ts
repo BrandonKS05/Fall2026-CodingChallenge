@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { User } from '../../domain/entities/User.js';
 import { ConflictError, NotFoundError } from '../../domain/errors/index.js';
-import type { NewUser, UserRepository } from '../../modules/auth/ports/UserRepository.js';
+import type {
+  NewUser,
+  UserPatch,
+  UserRepository,
+} from '../../modules/auth/ports/UserRepository.js';
 
 /** Port-conformant fake. Mirrors the real repository's contract, including the ConflictError. */
 export class InMemoryUserRepository implements UserRepository {
@@ -30,6 +34,7 @@ export class InMemoryUserRepository implements UserRepository {
       displayName: input.displayName,
       passwordHash: input.passwordHash,
       googleId: input.googleId ?? null,
+      bio: '',
       createdAt: now,
       updatedAt: now,
     };
@@ -46,7 +51,16 @@ export class InMemoryUserRepository implements UserRepository {
   }
 
   /** Test helper: simulate an account being removed while a session is live. */
-  delete(id: string): void {
-    this.rows.delete(id);
+  async delete(userId: string): Promise<void> {
+    this.rows.delete(userId);
+  }
+
+  async update(userId: string, patch: UserPatch): Promise<User> {
+    const existing = this.rows.get(userId);
+    if (!existing) throw new NotFoundError('User', userId);
+    const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+    const updated = { ...existing, ...defined, updatedAt: new Date() };
+    this.rows.set(userId, updated);
+    return updated;
   }
 }

@@ -10,5 +10,7 @@ export const users = pgTable('users', {
   passwordHash: text(),
   /** Google subject id; unique so one Google account maps to one user. */
   googleId: text().unique('users_google_id_unique'),
+  /** Shown on the person's own page. Empty until they write one. */
+  bio: text().notNull().default(''),
   ...timestamps,
 });

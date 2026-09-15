@@ -10,7 +10,7 @@ import type {
 } from '../../domain/entities/Collection.js';
 import type { ItemDetail } from '../../domain/entities/CollectionItem.js';
 import type { CollectionRole } from '../../domain/entities/Membership.js';
-import { ForbiddenError, NotFoundError } from '../../domain/errors/index.js';
+import { ForbiddenError, InvalidOperationError, NotFoundError } from '../../domain/errors/index.js';
 import { createEvent } from '../../domain/events/index.js';
 import { canEditItems, canManage, canView } from '../../domain/policies/collectionAccess.js';
 import type { EventBus } from '../../infrastructure/events/EventBus.js';
@@ -21,11 +21,13 @@ import type {
   NewCollection,
 } from './ports/CollectionRepository.js';
 import type { ItemRepository } from '../items/ports/ItemRepository.js';
+import type { LikeRepository } from './ports/LikeRepository.js';
 import type { MembershipRepository } from './ports/MembershipRepository.js';
 
 export interface CollectionServiceDeps {
   collections: CollectionRepository;
   memberships: MembershipRepository;
+  likes: LikeRepository;
   items: ItemRepository;
   events: EventBus;
   logger: Logger;
@@ -120,6 +122,33 @@ export class CollectionService {
    * Throws NotFoundError for a missing board and ForbiddenError when the
    * actor lacks the requested level.
    */
+  /** Anyone who can see a board may like it, except its owner; the owner hears about new likes. */
+  async like(collectionId: string, actorId: string): Promise<CollectionSummary> {
+    const { collection } = await this.authorize(collectionId, actorId, 'view');
+    if (collection.ownerId === actorId) {
+      throw new InvalidOperationError('You cannot like your own board');
+    }
+    if (await this.deps.likes.like(collectionId, actorId)) {
+      this.log.info({ collectionId, actorId }, 'Board liked');
+      await this.deps.events.publish(
+        createEvent('collection.liked', { collectionId, actorId, ownerId: collection.ownerId }),
+      );
+    }
+    return this.summaryFor(collectionId, actorId);
+  }
+
+  async unlike(collectionId: string, actorId: string): Promise<CollectionSummary> {
+    await this.authorize(collectionId, actorId, 'view');
+    await this.deps.likes.unlike(collectionId, actorId);
+    return this.summaryFor(collectionId, actorId);
+  }
+
+  private async summaryFor(collectionId: string, viewerId: string): Promise<CollectionSummary> {
+    const summary = await this.deps.collections.findSummary(collectionId, viewerId);
+    if (!summary) throw new NotFoundError('Collection', collectionId);
+    return summary;
+  }
+
   async authorize(
     collectionId: string,
     actorId: string | null,

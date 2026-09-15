@@ -18,4 +18,6 @@ export const collectionsApi = {
   update: (id: string, body: UpdateCollectionRequest) =>
     http.patch<Collection>(`/collections/${id}`, body),
   remove: (id: string) => http.delete(`/collections/${id}`),
+  like: (id: string) => http.post<Collection>(`/collections/${id}/like`),
+  unlike: (id: string) => http.delete<Collection>(`/collections/${id}/like`),
 };

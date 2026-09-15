@@ -8,5 +8,6 @@ export * from './collections.js';
 export * from './images.js';
 export * from './collectionItems.js';
 export * from './collectionMembers.js';
+export * from './collectionLikes.js';
 export * from './notifications.js';
 export * from './relations.js';

@@ -48,6 +48,9 @@ export const collectionSchema = z.object({
   itemCount: z.number().int().nonnegative(),
   /** The requesting user's role, or null when viewing as a non-member. */
   role: collectionRoleSchema.nullable(),
+  /** How many people like the board, and whether the requesting user does. */
+  likeCount: z.number().int().nonnegative(),
+  likedByViewer: z.boolean(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });

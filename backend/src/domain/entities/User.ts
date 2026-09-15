@@ -6,6 +6,8 @@ export interface User {
   passwordHash: string | null;
   /** Google's stable subject id, once the account has signed in with Google. */
   googleId: string | null;
+  /** Shown on the person's own page; empty until written. */
+  bio: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +21,7 @@ export function toPublicUser(user: User): PublicUser {
     id: user.id,
     email: user.email,
     displayName: user.displayName,
+    bio: user.bio,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

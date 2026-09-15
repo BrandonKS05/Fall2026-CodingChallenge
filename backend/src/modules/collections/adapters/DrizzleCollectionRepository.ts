@@ -18,6 +18,7 @@ import type { Db } from '../../../infrastructure/db/client.js';
 import { isUniqueViolation } from '../../../infrastructure/db/errors.js';
 import {
   collectionItems,
+  collectionLikes,
   collectionMembers,
   collections,
   images,
@@ -55,8 +56,24 @@ const previewImageIds = sql<string[]>`(
   ) as recent
 )`;
 
+/** How many people like the board. */
+const likeCount = sql<number>`(
+  select count(*)::int from ${collectionLikes}
+  where ${collectionLikes.collectionId} = ${collections.id}
+)`;
+
+/** Whether the viewer likes the board; a visitor never does. */
+function likedByViewer(viewerId: string | null): SQL<boolean> {
+  if (viewerId === null) return sql<boolean>`false`;
+  return sql<boolean>`exists (
+    select 1 from ${collectionLikes}
+    where ${collectionLikes.collectionId} = ${collections.id}
+      and ${collectionLikes.userId} = ${viewerId}
+  )`;
+}
+
 /** Columns shared by every summary query; `role` comes from the membership join. */
-const summaryColumns = {
+const summaryColumns = (viewerId: string | null) => ({
   id: collections.id,
   ownerId: collections.ownerId,
   title: collections.title,
@@ -68,8 +85,10 @@ const summaryColumns = {
   ownerDisplayName: users.displayName,
   itemCount,
   previewImageIds,
+  likeCount,
+  likedByViewer: likedByViewer(viewerId),
   role: collectionMembers.role,
-};
+});
 
 type SummaryRow = Omit<CollectionSummary, 'role'> & { role: CollectionRole | null };
 
@@ -85,6 +104,8 @@ const toSummary = (row: SummaryRow): CollectionSummary => ({
   ownerDisplayName: row.ownerDisplayName,
   itemCount: row.itemCount,
   previewImageIds: row.previewImageIds,
+  likeCount: row.likeCount,
+  likedByViewer: row.likedByViewer,
   role: row.role,
 });
 
@@ -105,7 +126,7 @@ export class DrizzleCollectionRepository implements CollectionRepository {
 
   async findSummary(id: string, viewerId: string | null): Promise<CollectionSummary | null> {
     const [row] = await this.db
-      .select(summaryColumns)
+      .select(summaryColumns(viewerId))
       .from(collections)
       .innerJoin(users, eq(users.id, collections.ownerId))
       .leftJoin(collectionMembers, viewerMembership(viewerId))
@@ -116,7 +137,7 @@ export class DrizzleCollectionRepository implements CollectionRepository {
 
   async listForUser(userId: string): Promise<CollectionSummary[]> {
     const rows = await this.db
-      .select(summaryColumns)
+      .select(summaryColumns(userId))
       .from(collections)
       .innerJoin(users, eq(users.id, collections.ownerId))
       // Inner join: only boards where the user has a membership row (owners included).
@@ -127,7 +148,7 @@ export class DrizzleCollectionRepository implements CollectionRepository {
 
   async listPublic({ limit, offset, viewerId }: ListPublicOptions): Promise<CollectionSummary[]> {
     const rows = await this.db
-      .select(summaryColumns)
+      .select(summaryColumns(viewerId ?? null))
       .from(collections)
       .innerJoin(users, eq(users.id, collections.ownerId))
       .leftJoin(collectionMembers, viewerMembership(viewerId ?? null))

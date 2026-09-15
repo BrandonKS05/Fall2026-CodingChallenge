@@ -136,6 +136,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
   const collections = new CollectionService({
     collections: repositories.collections,
     memberships: repositories.memberships,
+    likes: repositories.likes,
     items: repositories.items,
     events,
     logger,

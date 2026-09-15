@@ -21,6 +21,7 @@ function renderBoard(routes: Parameters<typeof stubApi>[0]) {
           id: 'u1',
           email: 'ada@example.com',
           displayName: 'Ada',
+          bio: '',
           createdAt: board.createdAt,
         },
       },
@@ -49,6 +50,25 @@ describe('BoardPage', () => {
     expect(screen.getAllByRole('img')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Remove item' })).toHaveLength(2);
+  });
+
+  it('likes a board you do not own, optimistically, and settles on the server count', async () => {
+    const theirs = { ...board, role: null, likeCount: 2, likedByViewer: false };
+    const api = renderBoard({
+      [`GET ${detailPath}`]: { body: { collection: theirs, items } },
+      [`POST ${detailPath}/like`]: {
+        body: { ...theirs, likeCount: 3, likedByViewer: true },
+      },
+    });
+    const like = await screen.findByRole('button', { name: 'Like this board' });
+    expect(like).toHaveTextContent('2');
+
+    await userEvent.click(like);
+
+    const unlike = await screen.findByRole('button', { name: 'Unlike this board' });
+    expect(unlike).toHaveTextContent('3');
+    expect(unlike).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => expect(api.calls.some((call) => call.method === 'POST')).toBe(true));
   });
 
   it('removes an image optimistically and the refetch agrees', async () => {

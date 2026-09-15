@@ -79,6 +79,43 @@ export function useUpdateBoard(id: string) {
   });
 }
 
+/** Toggles a like with an optimistic count, then trusts the server's answer. */
+export function useLikeBoard(id: string) {
+  const queryClient = useQueryClient();
+  const detailKey = queryKeys.collections.detail(id);
+
+  return useMutation({
+    mutationFn: (liked: boolean) => (liked ? collectionsApi.like(id) : collectionsApi.unlike(id)),
+    onMutate: async (liked) => {
+      await queryClient.cancelQueries({ queryKey: detailKey });
+      const previous = queryClient.getQueryData<CollectionDetailResponse>(detailKey);
+      if (previous) {
+        queryClient.setQueryData<CollectionDetailResponse>(detailKey, {
+          ...previous,
+          collection: {
+            ...previous.collection,
+            likedByViewer: liked,
+            likeCount: Math.max(0, previous.collection.likeCount + (liked ? 1 : -1)),
+          },
+        });
+      }
+      return { previous };
+    },
+    onError: (_error, _liked, context) => {
+      if (context?.previous) queryClient.setQueryData(detailKey, context.previous);
+    },
+    onSuccess: (collection) => {
+      queryClient.setQueryData<CollectionDetailResponse>(detailKey, (current) =>
+        current ? { ...current, collection } : current,
+      );
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.list() });
+    },
+    meta: { silentError: true },
+  });
+}
+
 export function useDeleteBoard() {
   const queryClient = useQueryClient();
   return useMutation({

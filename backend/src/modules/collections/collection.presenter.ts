@@ -20,6 +20,8 @@ export function presentCollection(summary: CollectionSummary): CollectionDto {
     previewImageIds: summary.previewImageIds,
     itemCount: summary.itemCount,
     role: summary.role,
+    likeCount: summary.likeCount,
+    likedByViewer: summary.likedByViewer,
     createdAt: summary.createdAt.toISOString(),
     updatedAt: summary.updatedAt.toISOString(),
   };

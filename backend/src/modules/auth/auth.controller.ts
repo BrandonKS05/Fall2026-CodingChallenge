@@ -3,7 +3,12 @@
  * service method, present the result. No business rules live here.
  */
 import { randomBytes } from 'node:crypto';
-import type { AuthProvidersResponse, LoginRequest, RegisterRequest } from '@wumboo/shared';
+import type {
+  AuthProvidersResponse,
+  LoginRequest,
+  RegisterRequest,
+  UpdateProfileRequest,
+} from '@wumboo/shared';
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import type { Env } from '../../config/env.js';
@@ -16,9 +21,9 @@ import {
   setOAuthStateCookie,
   setSessionCookie,
 } from '../../http/session.js';
-import { optionalUser } from '../../http/middleware/authenticate.js';
+import { currentUser, optionalUser } from '../../http/middleware/authenticate.js';
 import { getValidated } from '../../http/middleware/validate.js';
-import { presentAuth, presentSession } from './user.presenter.js';
+import { presentAuth, presentSession, presentUser } from './user.presenter.js';
 
 export interface AuthControllerDeps {
   auth: AuthService;
@@ -31,6 +36,8 @@ export interface AuthController {
   login: RequestHandler;
   logout: RequestHandler;
   me: RequestHandler;
+  updateProfile: RequestHandler;
+  deleteAccount: RequestHandler;
   providers: RequestHandler;
   googleStart: RequestHandler;
   googleCallback: RequestHandler;
@@ -69,6 +76,18 @@ export function createAuthController({ auth, env, google }: AuthControllerDeps):
 
     me: (_req, res) => {
       res.json(presentSession(optionalUser(res)));
+    },
+
+    updateProfile: async (_req, res) => {
+      const { body } = getValidated<UpdateProfileRequest>(res);
+      res.json(presentUser(await auth.updateProfile(currentUser(res).id, body)));
+    },
+
+    /** The account is gone, so the session cookie goes with it. */
+    deleteAccount: async (_req, res) => {
+      await auth.deleteAccount(currentUser(res).id);
+      clearSessionCookie(res, env);
+      res.status(204).end();
     },
 
     providers: (_req, res) => {

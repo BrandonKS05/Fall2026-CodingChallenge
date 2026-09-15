@@ -1,6 +1,7 @@
 /** Relation metadata for Drizzle's relational query API. No effect on the SQL schema. */
 import { relations } from 'drizzle-orm';
 import { collectionItems } from './collectionItems.js';
+import { collectionLikes } from './collectionLikes.js';
 import { collectionMembers } from './collectionMembers.js';
 import { collections } from './collections.js';
 import { images } from './images.js';
@@ -16,6 +17,15 @@ export const collectionsRelations = relations(collections, ({ one, many }) => ({
   owner: one(users, { fields: [collections.ownerId], references: [users.id] }),
   items: many(collectionItems),
   members: many(collectionMembers),
+  likes: many(collectionLikes),
+}));
+
+export const collectionLikesRelations = relations(collectionLikes, ({ one }) => ({
+  collection: one(collections, {
+    fields: [collectionLikes.collectionId],
+    references: [collections.id],
+  }),
+  user: one(users, { fields: [collectionLikes.userId], references: [users.id] }),
 }));
 
 export const imagesRelations = relations(images, ({ many }) => ({

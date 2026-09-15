@@ -11,6 +11,7 @@ export const notificationTypeSchema = z.enum([
   'item_updated',
   'collection_updated',
   'member_added',
+  'collection_liked',
 ]);
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
 

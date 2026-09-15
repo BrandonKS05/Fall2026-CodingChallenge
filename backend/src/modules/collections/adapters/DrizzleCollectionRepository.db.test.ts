@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ConflictError, NotFoundError } from '../../../domain/errors/index.js';
 import type { Database } from '../../../infrastructure/db/client.js';
 import { DrizzleCollectionRepository } from './DrizzleCollectionRepository.js';
+import { DrizzleLikeRepository } from './DrizzleLikeRepository.js';
 import { DrizzleMembershipRepository } from './DrizzleMembershipRepository.js';
 import { DrizzleUserRepository } from '../../auth/adapters/DrizzleUserRepository.js';
 import { DrizzleImageRepository } from '../../images/adapters/DrizzleImageRepository.js';
@@ -108,6 +109,25 @@ describe.skipIf(!RUN_DB_TESTS)(
         ['C', 'v'],
         ['A', 'x'],
       ]);
+    });
+
+    it('counts likes on summaries and knows whether the viewer is one of them', async () => {
+      const likes = new DrizzleLikeRepository(database.db);
+      const board = await collections.create({ ...draft, ownerId, visibility: 'public' });
+      expect(await likes.like(board.id, otherId)).toBe(true);
+      expect(await likes.like(board.id, otherId)).toBe(false);
+
+      expect(await collections.findSummary(board.id, otherId)).toMatchObject({
+        likeCount: 1,
+        likedByViewer: true,
+      });
+      expect(await collections.findSummary(board.id, ownerId)).toMatchObject({
+        likeCount: 1,
+        likedByViewer: false,
+      });
+      expect((await collections.listPublic({ limit: 5, offset: 0 }))[0]?.likedByViewer).toBe(false);
+      expect(await likes.unlike(board.id, otherId)).toBe(true);
+      expect((await collections.findSummary(board.id, null))?.likeCount).toBe(0);
     });
 
     it('creates a board together with its owner membership', async () => {

@@ -4,6 +4,7 @@ export const NOTIFICATION_TYPES = [
   'item_updated',
   'collection_updated',
   'member_added',
+  'collection_liked',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

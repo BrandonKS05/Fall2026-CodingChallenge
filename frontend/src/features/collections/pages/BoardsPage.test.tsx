@@ -9,6 +9,7 @@ import BoardsPage from './BoardsPage';
 const kitchens = boardFixture({
   title: 'Kitchen ideas',
   itemCount: 3,
+  likeCount: 4,
   visibility: 'public',
   previewImageIds: ['i1', 'i2', 'i3'],
 });
@@ -25,7 +26,7 @@ const pins = [
 
 function renderBoards(routes: Record<string, StubRoute> = {}) {
   const api = stubApi({
-    'GET /api/auth/me': { body: { user: userFixture } },
+    'GET /api/auth/me': { body: { user: { ...userFixture, bio: 'Collector of quiet kitchens.' } } },
     'GET /api/collections': { body: { collections: [kitchens, outfits] } },
     'GET /api/items': { body: { items: pins } },
     ...routes,
@@ -35,6 +36,8 @@ function renderBoards(routes: Record<string, StubRoute> = {}) {
     <Routes>
       <Route path="/boards" element={<BoardsPage />} />
       <Route path="/boards/:id" element={<h1>Board page</h1>} />
+      <Route path="/settings" element={<h1>Settings page</h1>} />
+      <Route path="/" element={<h1>Landing</h1>} />
     </Routes>,
     { route: '/boards' },
   );
@@ -48,22 +51,35 @@ describe('BoardsPage', () => {
     renderBoards();
     const kitchenCard = await screen.findByRole('link', { name: /open kitchen ideas/i });
     expect(kitchenCard).toHaveTextContent('3 images');
+    expect(kitchenCard).toHaveTextContent('4 likes');
     expect(kitchenCard).toHaveTextContent('Public');
     expect(kitchenCard.querySelectorAll('img')).toHaveLength(3);
     expect(screen.getByRole('link', { name: /open fall outfits/i })).toHaveTextContent(
       'Editor · Grace',
     );
     expect(screen.getByRole('heading', { name: 'Your finds' })).toBeInTheDocument();
-    expect(await screen.findByText('2 boards · 2 images')).toBeInTheDocument();
+    // Only boards you own count, and the likes are the ones they gathered.
+    expect(await screen.findByText('1 board · 4 likes')).toBeInTheDocument();
     expect(screen.getByText('Ada')).toBeInTheDocument();
+    expect(screen.getByText('Collector of quiet kitchens.')).toBeInTheDocument();
+  });
+
+  it('keeps Settings and Log out behind the account menu', async () => {
+    const api = renderBoards({ 'POST /api/auth/logout': { status: 204 } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Account menu' }));
+    expect(await screen.findByText('ada@example.com')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Settings' }));
+    expect(await screen.findByRole('heading', { name: 'Settings page' })).toBeInTheDocument();
+    expect(api.calls.some((call) => call.path === '/api/auth/logout')).toBe(false);
   });
 
   it('always offers a Create card, which opens the creator like the Create button', async () => {
     renderBoards({ 'GET /api/collections': { body: { collections: [] } } });
-    await screen.findByText('0 boards · 2 images');
+    const card = await screen.findByRole('button', { name: 'Create a board' });
+    expect(screen.getByText('0 boards · 0 likes')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^Open / })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Create a board' }));
+    await userEvent.click(card);
     expect(await screen.findByLabelText('Title')).toBeInTheDocument();
   });
 

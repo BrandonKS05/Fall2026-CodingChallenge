@@ -13,6 +13,7 @@ import type {
   NewCollection,
 } from '../../modules/collections/ports/CollectionRepository.js';
 import type { InMemoryItemRepository } from './InMemoryItemRepository.js';
+import type { InMemoryLikeRepository } from './InMemoryLikeRepository.js';
 import type { InMemoryMembershipRepository } from './InMemoryMembershipRepository.js';
 import type { InMemoryUserRepository } from './InMemoryUserRepository.js';
 
@@ -24,6 +25,7 @@ export class InMemoryCollectionRepository implements CollectionRepository {
     private readonly users: InMemoryUserRepository,
     private readonly memberships: InMemoryMembershipRepository,
     private readonly items: InMemoryItemRepository,
+    private readonly likes: InMemoryLikeRepository,
   ) {}
 
   async findById(id: string): Promise<Collection | null> {
@@ -168,6 +170,8 @@ export class InMemoryCollectionRepository implements CollectionRepository {
       ownerDisplayName: owner?.displayName ?? '',
       itemCount: items.length,
       previewImageIds: newestFirst.slice(0, 4).map((item) => item.imageId),
+      likeCount: this.likes.count(collection.id),
+      likedByViewer: this.likes.has(collection.id, viewerId),
       role: membership?.role ?? null,
     };
   }

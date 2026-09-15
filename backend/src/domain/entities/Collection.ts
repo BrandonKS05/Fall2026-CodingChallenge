@@ -29,6 +29,9 @@ export interface CollectionSummary extends Collection {
   previewImageIds: string[];
   /** The viewing user's role, or null for a non-member. */
   role: CollectionRole | null;
+  /** How many people like the board, and whether the viewer is one of them. */
+  likeCount: number;
+  likedByViewer: boolean;
 }
 
 /** An image on a public board, credited to that board, for the landing stage. */

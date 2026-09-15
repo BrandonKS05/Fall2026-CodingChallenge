@@ -63,6 +63,19 @@ describe('AuthService', () => {
     users.delete(user.id);
     await expect(service.getUser(user.id)).rejects.toBeInstanceOf(AuthenticationError);
   });
+
+  it('lets a person change their name and bio, and delete their account', async () => {
+    const { user } = await service.register(credentials);
+    const updated = await service.updateProfile(user.id, { bio: 'Collector of quiet kitchens.' });
+    expect(updated).toMatchObject({ displayName: 'Ada', bio: 'Collector of quiet kitchens.' });
+    expect((await users.findById(user.id))?.bio).toBe('Collector of quiet kitchens.');
+
+    await service.deleteAccount(user.id);
+    expect(await users.findById(user.id)).toBeNull();
+    await expect(
+      service.login({ email: credentials.email, password: credentials.password }),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+  });
 });
 
 describe('AuthService with Google', () => {

@@ -63,6 +63,7 @@ export function BoardCard({ board }: { board: Collection }) {
         <h3 className="truncate text-lg leading-tight font-semibold">{board.title}</h3>
         <p className="flex flex-wrap items-center gap-x-2 text-sm text-stage-ink/60">
           <span>{pluralize(board.itemCount, 'image')}</span>
+          <span>{pluralize(board.likeCount, 'like')}</span>
           <span>{timeAgo(board.updatedAt)}</span>
           <span>{VISIBILITY[board.visibility]}</span>
           {sharedWithMe && (

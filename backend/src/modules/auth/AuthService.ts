@@ -8,7 +8,7 @@ import { AuthenticationError, ConflictError } from '../../domain/errors/index.js
 import type { Logger } from '../../infrastructure/logging/Logger.js';
 import type { OAuthProfile } from './ports/OAuthProvider.js';
 import type { PasswordHasher } from './ports/PasswordHasher.js';
-import type { UserRepository } from './ports/UserRepository.js';
+import type { UserPatch, UserRepository } from './ports/UserRepository.js';
 import type { TokenService } from './ports/TokenService.js';
 
 export interface AuthServiceDeps {
@@ -55,6 +55,19 @@ export class AuthService {
     });
     this.log.info({ userId: user.id }, 'User registered');
     return this.startSession(user);
+  }
+
+  /** Name and bio are the person's own to change; everything else stays as registered. */
+  async updateProfile(userId: string, patch: UserPatch): Promise<PublicUser> {
+    const user = await this.deps.users.update(userId, patch);
+    this.log.info({ userId }, 'Profile updated');
+    return toPublicUser(user);
+  }
+
+  /** Removes the account and, through the database's cascades, everything it owned or added. */
+  async deleteAccount(userId: string): Promise<void> {
+    await this.deps.users.delete(userId);
+    this.log.info({ userId }, 'Account deleted');
   }
 
   async login(input: LoginInput): Promise<AuthResult> {

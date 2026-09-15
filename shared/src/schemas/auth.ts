@@ -3,7 +3,7 @@
  * Password hashes never appear in any schema here.
  */
 import { z } from 'zod';
-import { idSchema, timestampSchema } from './common.js';
+import { atLeastOneField, idSchema, timestampSchema } from './common.js';
 
 /** Normalizes before validating so " Foo@Bar.com " and "foo@bar.com" are the same account. */
 export const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
@@ -25,11 +25,22 @@ export const loginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
+export const bioSchema = z.string().trim().max(160);
+
+/** PATCH /auth/me: any subset of what a person may change about themselves, but not nothing. */
+export const updateProfileRequestSchema = z
+  .object({ displayName: displayNameSchema, bio: bioSchema })
+  .partial()
+  .refine(atLeastOneField, { error: 'At least one field must be provided' });
+export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>;
+
 /** The authenticated user's own profile. */
 export const userSchema = z.object({
   id: idSchema,
   email: z.email(),
   displayName: z.string(),
+  /** Shown on the person's page; empty until they write one. */
+  bio: z.string(),
   createdAt: timestampSchema,
 });
 export type User = z.infer<typeof userSchema>;

@@ -11,6 +11,7 @@ import { useAuthDialog } from '@/hooks/useAuthDialog';
 import { ApiError } from '@/lib/api';
 import { pluralize } from '@/lib/format';
 import { BoardSettingsDialog } from '../components/BoardSettingsDialog';
+import { LikeButton } from '../components/LikeButton';
 import { VisibilityBadge } from '../components/VisibilityBadge';
 import { useBoard, useBoards } from '../queries';
 import { useSession } from '@/features/auth';
@@ -116,6 +117,7 @@ export default function BoardPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <LikeButton board={collection} signedIn={user !== null} />
           {canEdit && (
             <Link
               to={`/discover?board=${collection.id}`}

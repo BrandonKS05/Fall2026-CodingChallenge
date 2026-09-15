@@ -14,6 +14,8 @@ export function boardFixture(overrides: Partial<Collection> = {}): Collection {
     previewImageIds: [],
     itemCount: 0,
     role: 'owner',
+    likeCount: 0,
+    likedByViewer: false,
     createdAt: now,
     updatedAt: now,
     ...overrides,
@@ -84,5 +86,6 @@ export const userFixture = {
   id: 'u1',
   email: 'ada@example.com',
   displayName: 'Ada',
+  bio: '',
   createdAt: now,
 };

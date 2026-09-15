@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Image } from '../../domain/entities/Image.js';
-import { ForbiddenError, NotFoundError } from '../../domain/errors/index.js';
+import { ForbiddenError, InvalidOperationError, NotFoundError } from '../../domain/errors/index.js';
 import { CollectionService } from './CollectionService.js';
 import { silentLogger } from '../../testing/fakes/fakeAuth.js';
 import { RecordingEventBus } from '../../testing/fakes/RecordingEventBus.js';
@@ -202,6 +202,30 @@ describe('CollectionService', () => {
     it('is empty without public boards', async () => {
       await service.create(ownerId, draft);
       expect(await service.listPublicImages(10)).toEqual([]);
+    });
+  });
+
+  describe('likes', () => {
+    it('lets a viewer like and unlike a board they can see, once, and tells the owner', async () => {
+      const events = new RecordingEventBus();
+      service = new CollectionService({ ...repos, events, logger: silentLogger });
+      const board = await service.create(ownerId, { ...draft, visibility: 'public' });
+
+      const liked = await service.like(board.id, otherId);
+      expect(liked).toMatchObject({ likeCount: 1, likedByViewer: true });
+      expect((await service.get(board.id, ownerId)).likedByViewer).toBe(false);
+      expect(events.published.map((event) => event.name)).toEqual(['collection.liked']);
+
+      await service.like(board.id, otherId); // idempotent, no second event
+      expect(events.published).toHaveLength(1);
+      expect((await service.unlike(board.id, otherId)).likeCount).toBe(0);
+
+      await expect(service.like(board.id, ownerId)).rejects.toBeInstanceOf(InvalidOperationError);
+      const hidden = await service.create(ownerId, draft);
+      await expect(service.like(hidden.id, otherId)).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(
+        service.like('00000000-0000-0000-0000-000000000000', otherId),
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
   });
 });

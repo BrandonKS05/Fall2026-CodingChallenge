@@ -21,6 +21,8 @@ export function describeNotification(notification: Notification, readerId: strin
       if (changes.includes('visibility')) return `${actor} changed who can see ${board}`;
       return `${actor} updated ${board}`;
     }
+    case 'collection_liked':
+      return `${actor} liked ${board}`;
     case 'member_added':
       return notification.payload.userId === readerId
         ? `${actor} added you to ${board}`

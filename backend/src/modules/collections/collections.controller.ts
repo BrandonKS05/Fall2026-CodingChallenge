@@ -24,6 +24,8 @@ export interface CollectionsController {
   get: RequestHandler;
   update: RequestHandler;
   remove: RequestHandler;
+  like: RequestHandler;
+  unlike: RequestHandler;
 }
 
 export function createCollectionsController(service: CollectionService): CollectionsController {
@@ -66,6 +68,16 @@ export function createCollectionsController(service: CollectionService): Collect
       const { params } = getValidated<unknown, unknown, IdParams>(res);
       await service.delete(params.id, currentUser(res).id);
       res.status(204).end();
+    },
+
+    like: async (_req, res) => {
+      const { params } = getValidated<unknown, unknown, IdParams>(res);
+      res.json(presentCollection(await service.like(params.id, currentUser(res).id)));
+    },
+
+    unlike: async (_req, res) => {
+      const { params } = getValidated<unknown, unknown, IdParams>(res);
+      res.json(presentCollection(await service.unlike(params.id, currentUser(res).id)));
     },
   };
 }

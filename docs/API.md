@@ -11,6 +11,8 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | POST   | /api/auth/logout                     | done   |
 | GET    | /api/auth/me                         | done   |
 | GET    | /api/auth/providers                  | done   |
+| PATCH  | /api/auth/me                         | done   |
+| DELETE | /api/auth/me                         | done   |
 | GET    | /api/auth/google                     | done   |
 | GET    | /api/auth/google/callback            | done   |
 | GET    | /api/collections                     | done   |
@@ -18,6 +20,8 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | GET    | /api/collections/:id                 | done   |
 | PATCH  | /api/collections/:id                 | done   |
 | DELETE | /api/collections/:id                 | done   |
+| POST   | /api/collections/:id/like            | done   |
+| DELETE | /api/collections/:id/like            | done   |
 | GET    | /api/explore                         | done   |
 | GET    | /api/explore/images                  | done   |
 | GET    | /api/search                          | done   |
@@ -84,6 +88,8 @@ production. Register and login are rate limited to 20 attempts per 15 minutes pe
 | `POST /api/auth/login`    | `{ email, password }`                   | 200 `{ user }` and sets the cookie. 401 for bad credentials, with the same message whether or not the email exists. |
 | `POST /api/auth/logout`   | none                                    | 204 and clears the cookie.                                                                                          |
 | `GET /api/auth/me`        | none                                    | 200 `{ user }` for a valid session, `{ user: null }` otherwise. Never 401, so the client can probe quietly.         |
+| `PATCH /api/auth/me`      | required                                | `{ displayName?, bio? }` (bio up to 160 characters). Returns the updated user.                                      |
+| `DELETE /api/auth/me`     | required                                | Deletes the account and everything it owned or added, and clears the session. 204.                                  |
 
 `user` is `{ id, email, displayName, createdAt }`. Emails are trimmed and lowercased before use.
 
@@ -110,15 +116,17 @@ A collection (board) is returned as:
 `role` is the requesting user's role (`owner`, `editor`, `viewer`) or `null` for a non-member.
 `previewImageIds` holds up to four recent image ids for the cover mosaic, each viewable at `/api/images/:id`.
 
-| Endpoint                          | Auth     | Notes                                                                                                                                                                                                                                                                                                                       |
-| --------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/collections`            | required | Boards the user owns or was added to, most recently updated first. `{ collections }`                                                                                                                                                                                                                                        |
-| `POST /api/collections`           | required | `{ title, description?, visibility? }` → 201 with the board. The caller becomes owner.                                                                                                                                                                                                                                      |
-| `GET /api/collections/:id`        | optional | `{ collection, items }`. Members always see it; non-members only if `unlisted` or `public`, otherwise 403.                                                                                                                                                                                                                  |
-| `PATCH /api/collections/:id`      | required | Any of `title`, `description`, `visibility`. Owner only (403 otherwise). Empty body is 400.                                                                                                                                                                                                                                 |
-| `DELETE /api/collections/:id`     | required | Owner only. 204. Items and memberships cascade.                                                                                                                                                                                                                                                                             |
-| `GET /api/explore?page=&perPage=` | optional | Public boards, newest first. `perPage` is capped at 50. `{ collections }`                                                                                                                                                                                                                                                   |
-| `GET /api/explore/images?limit=`  | none     | Images on public boards for the landing stage: each image once (credited to the most recently updated board holding it), boards interleaved so every board's newest comes before any board's second. `limit` 1-60, default 24. `{ images: [{ image, collection: { id, title } }] }`, where `image` is the item image shape. |
+| Endpoint                           | Auth     | Notes                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/collections`             | required | Boards the user owns or was added to, most recently updated first. `{ collections }`                                                                                                                                                                                                                                        |
+| `POST /api/collections`            | required | `{ title, description?, visibility? }` → 201 with the board. The caller becomes owner.                                                                                                                                                                                                                                      |
+| `GET /api/collections/:id`         | optional | `{ collection, items }`. Members always see it; non-members only if `unlisted` or `public`, otherwise 403.                                                                                                                                                                                                                  |
+| `PATCH /api/collections/:id`       | required | Any of `title`, `description`, `visibility`. Owner only (403 otherwise). Empty body is 400.                                                                                                                                                                                                                                 |
+| `DELETE /api/collections/:id`      | required | Owner only. 204. Items and memberships cascade.                                                                                                                                                                                                                                                                             |
+| `POST /api/collections/:id/like`   | required | Like a board you can see; owners cannot like their own (400). Returns the board with `likeCount` and `likedByViewer`, and the owner is notified.                                                                                                                                                                            |
+| `DELETE /api/collections/:id/like` | required | Remove your like. Returns the board.                                                                                                                                                                                                                                                                                        |
+| `GET /api/explore?page=&perPage=`  | optional | Public boards, newest first. `perPage` is capped at 50. `{ collections }`                                                                                                                                                                                                                                                   |
+| `GET /api/explore/images?limit=`   | none     | Images on public boards for the landing stage: each image once (credited to the most recently updated board holding it), boards interleaved so every board's newest comes before any board's second. `limit` 1-60, default 24. `{ images: [{ image, collection: { id, title } }] }`, where `image` is the item image shape. |
 
 Validation failures return `details` as `[{ path, code, message }]`, where `path` names the request part, e.g. `body.title` or `params.id`.
 

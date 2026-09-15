@@ -29,6 +29,7 @@ const TYPE_BY_EVENT: Record<DomainEvent['name'], NotificationType> = {
   'item.removed': 'item_removed',
   'collection.updated': 'collection_updated',
   'member.added': 'member_added',
+  'collection.liked': 'collection_liked',
 };
 
 export class NotificationService {
@@ -45,12 +46,14 @@ export class NotificationService {
     }
   }
 
-  /** One notification per member other than the actor. */
+  /** One notification per member other than the actor; a like goes to the owner alone. */
   async handle(event: DomainEvent): Promise<void> {
     const { collectionId, actorId, ...rest } = event.payload;
-    const recipients = (await this.deps.memberships.listMemberIds(collectionId)).filter(
-      (userId) => userId !== actorId,
-    );
+    const audience =
+      event.name === 'collection.liked'
+        ? [event.payload.ownerId]
+        : await this.deps.memberships.listMemberIds(collectionId);
+    const recipients = audience.filter((userId) => userId !== actorId);
     await this.deps.notifications.createMany(
       recipients.map((recipientId) => ({
         recipientId,

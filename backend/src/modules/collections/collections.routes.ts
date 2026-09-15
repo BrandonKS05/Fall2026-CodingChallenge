@@ -31,6 +31,9 @@ export function createCollectionsRouter(container: Container): Router {
     controller.update,
   );
   router.delete('/:id', signedIn, validate({ params: idParams }), controller.remove);
+  // Likes: anyone who can see the board, except its owner.
+  router.post('/:id/like', signedIn, validate({ params: idParams }), controller.like);
+  router.delete('/:id/like', signedIn, validate({ params: idParams }), controller.unlike);
   router.use('/:id/items', createItemsRouter(container));
   router.use('/:id', createSharingRouter(container));
   return router;

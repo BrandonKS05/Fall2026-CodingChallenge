@@ -33,9 +33,19 @@ export type MemberAddedEvent = BaseEvent<
   'member.added',
   BoardActivity & { userId: string; role: CollectionRole }
 >;
+/** Carries the owner, because a like is news for the owner rather than for every member. */
+export type CollectionLikedEvent = BaseEvent<
+  'collection.liked',
+  BoardActivity & { ownerId: string }
+>;
 
 export type DomainEvent =
-  ItemAddedEvent | ItemUpdatedEvent | ItemRemovedEvent | CollectionUpdatedEvent | MemberAddedEvent;
+  | ItemAddedEvent
+  | ItemUpdatedEvent
+  | ItemRemovedEvent
+  | CollectionUpdatedEvent
+  | MemberAddedEvent
+  | CollectionLikedEvent;
 
 export type DomainEventName = DomainEvent['name'];
 export type EventOf<TName extends DomainEventName> = Extract<DomainEvent, { name: TName }>;

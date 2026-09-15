@@ -103,6 +103,29 @@ describe('auth routes', () => {
     const me = await request(app).get('/api/auth/me').set('Cookie', sessionCookie(registered));
     expect(me.body).toEqual({ user: null });
   });
+
+  it('updates the profile and deletes the account through /me', async () => {
+    const registered = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'ada@example.com', password: 'lovelace-1815', displayName: 'Ada' });
+    const cookie = sessionCookie(registered);
+
+    expect((await request(app).patch('/api/auth/me').send({ bio: 'x' })).status).toBe(401);
+    const patched = await request(app)
+      .patch('/api/auth/me')
+      .set('Cookie', cookie)
+      .send({ bio: 'Collector of quiet kitchens.' });
+    expect(patched.status).toBe(200);
+    expect(patched.body).toMatchObject({ displayName: 'Ada', bio: 'Collector of quiet kitchens.' });
+    expect((await request(app).patch('/api/auth/me').set('Cookie', cookie).send({})).status).toBe(
+      400,
+    );
+
+    const deleted = await request(app).delete('/api/auth/me').set('Cookie', cookie);
+    expect(deleted.status).toBe(204);
+    expect(String(deleted.headers['set-cookie'])).toMatch(/wumboo_session=;/);
+    expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).body.user).toBeNull();
+  });
 });
 
 describe('Google sign-in routes', () => {

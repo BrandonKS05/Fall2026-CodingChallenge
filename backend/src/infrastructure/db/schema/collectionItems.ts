@@ -18,7 +18,8 @@ export const collectionItems = pgTable(
     // User deletion is out of scope; restrict keeps history intact if it is ever added.
     addedById: uuid()
       .notNull()
-      .references(() => users.id, { onDelete: 'restrict' }),
+      // An account that leaves takes the images it added with it, wherever they were saved.
+      .references(() => users.id, { onDelete: 'cascade' }),
     caption: text().notNull().default(''),
     tags: text()
       .array()

@@ -6,8 +6,10 @@
 import type { UserRepository } from '../../modules/auth/ports/UserRepository.js';
 import { DrizzleUserRepository } from '../../modules/auth/adapters/DrizzleUserRepository.js';
 import type { CollectionRepository } from '../../modules/collections/ports/CollectionRepository.js';
+import type { LikeRepository } from '../../modules/collections/ports/LikeRepository.js';
 import type { MembershipRepository } from '../../modules/collections/ports/MembershipRepository.js';
 import { DrizzleCollectionRepository } from '../../modules/collections/adapters/DrizzleCollectionRepository.js';
+import { DrizzleLikeRepository } from '../../modules/collections/adapters/DrizzleLikeRepository.js';
 import { DrizzleMembershipRepository } from '../../modules/collections/adapters/DrizzleMembershipRepository.js';
 import type { ImageRepository } from '../../modules/images/ports/ImageRepository.js';
 import { DrizzleImageRepository } from '../../modules/images/adapters/DrizzleImageRepository.js';
@@ -21,6 +23,7 @@ export interface Repositories {
   users: UserRepository;
   collections: CollectionRepository;
   memberships: MembershipRepository;
+  likes: LikeRepository;
   images: ImageRepository;
   items: ItemRepository;
   notifications: NotificationRepository;
@@ -31,6 +34,7 @@ export function createDrizzleRepositories(db: Db): Repositories {
     users: new DrizzleUserRepository(db),
     collections: new DrizzleCollectionRepository(db),
     memberships: new DrizzleMembershipRepository(db),
+    likes: new DrizzleLikeRepository(db),
     images: new DrizzleImageRepository(db),
     items: new DrizzleItemRepository(db),
     notifications: new DrizzleNotificationRepository(db),

@@ -4,6 +4,8 @@ import type {
   LoginRequest,
   RegisterRequest,
   SessionResponse,
+  UpdateProfileRequest,
+  User,
 } from '@wumboo/shared';
 import { http } from '@/lib/api';
 
@@ -15,4 +17,6 @@ export const authApi = {
   register: (body: RegisterRequest) => http.post<AuthResponse>('/auth/register', body),
   logout: () => http.post<void>('/auth/logout'),
   providers: () => http.get<AuthProvidersResponse>('/auth/providers'),
+  updateProfile: (body: UpdateProfileRequest) => http.patch<User>('/auth/me', body),
+  deleteAccount: () => http.delete('/auth/me'),
 };

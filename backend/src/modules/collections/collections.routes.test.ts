@@ -128,6 +128,46 @@ describe('collections routes', () => {
   });
 });
 
+describe('likes', () => {
+  let app: Express;
+  let owner: string;
+  let fan: string;
+
+  beforeEach(async () => {
+    app = buildTestApp({
+      repositories: createFakeRepositories(),
+      passwordHasher: new FakePasswordHasher(),
+    });
+    owner = await signUp(app, 'owner@example.com');
+    fan = await signUp(app, 'fan@example.com');
+  });
+
+  it('counts likes on the board and refuses the owner', async () => {
+    const board = (
+      await request(app)
+        .post('/api/collections')
+        .set('Cookie', owner)
+        .send({ title: 'Loved', visibility: 'public' })
+    ).body;
+    expect(board).toMatchObject({ likeCount: 0, likedByViewer: false });
+
+    const liked = await request(app).post(`/api/collections/${board.id}/like`).set('Cookie', fan);
+    expect(liked.status).toBe(200);
+    expect(liked.body).toMatchObject({ likeCount: 1, likedByViewer: true });
+    const seenByOwner = await request(app).get(`/api/collections/${board.id}`).set('Cookie', owner);
+    expect(seenByOwner.body.collection).toMatchObject({ likeCount: 1, likedByViewer: false });
+    expect(
+      (await request(app).post(`/api/collections/${board.id}/like`).set('Cookie', owner)).status,
+    ).toBe(400);
+    expect((await request(app).post(`/api/collections/${board.id}/like`)).status).toBe(401);
+
+    const unliked = await request(app)
+      .delete(`/api/collections/${board.id}/like`)
+      .set('Cookie', fan);
+    expect(unliked.body).toMatchObject({ likeCount: 0, likedByViewer: false });
+  });
+});
+
 describe('GET /api/explore/images', () => {
   let app: Express;
   let owner: string;
