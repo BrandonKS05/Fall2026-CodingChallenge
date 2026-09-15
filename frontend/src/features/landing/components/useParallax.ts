@@ -4,9 +4,11 @@
  * never know which one they got.
  *
  * Feel lives in `DEFAULT_TUNING`:
- * - `travel`: how far a depth-1 layer moves at the viewport edge (px). Bigger = more drama.
+ * - `travel` / `travelY`: how far a depth-1 layer moves at the viewport edge (px). Bigger = more
+ *   map to move around in. Vertical travel is the smaller of the two because a viewport is
+ *   shorter than it is wide, so the same pixels read as more movement down the screen.
  * - `stiffness` / `damping`: the spring the images follow. Lower stiffness = lazier glide;
- *   lower damping = more overshoot. 60/20 glides without bouncing.
+ *   lower damping = more overshoot. 50/18 glides a long way without bouncing.
  * - `cursorStiffness`: the dot's spring. Keep it above `stiffness` so the dot leads the images.
  */
 import { useMotionValue, useSpring, useTransform, type MotionValue } from 'motion/react';
@@ -14,15 +16,17 @@ import { useEffect, useState } from 'react';
 
 export interface ParallaxTuning {
   travel: number;
+  travelY: number;
   stiffness: number;
   damping: number;
   cursorStiffness: number;
 }
 
 export const DEFAULT_TUNING: ParallaxTuning = {
-  travel: 120,
-  stiffness: 60,
-  damping: 20,
+  travel: 320,
+  travelY: 200,
+  stiffness: 50,
+  damping: 18,
   cursorStiffness: 110,
 };
 
@@ -91,10 +95,11 @@ export function useParallax(enabled: boolean, tuning: ParallaxTuning = DEFAULT_T
   return { offsetX, offsetY, cursorX, cursorY, tuning };
 }
 
-/** Translation for one layer. Depth 1 travels the full distance, opposite to the cursor; depth 0.3 barely moves. */
+/** Translation for one layer. Depth 1 travels the full distance, opposite to the cursor; depth 0.6 drifts. */
 export function useLayerOffset(parallax: Parallax, depth: number) {
-  const distance = parallax.tuning.travel * depth;
-  const x = useTransform(parallax.offsetX, (value) => -value * distance);
-  const y = useTransform(parallax.offsetY, (value) => -value * distance);
+  const across = parallax.tuning.travel * depth;
+  const down = parallax.tuning.travelY * depth;
+  const x = useTransform(parallax.offsetX, (value) => -value * across);
+  const y = useTransform(parallax.offsetY, (value) => -value * down);
   return { x, y };
 }

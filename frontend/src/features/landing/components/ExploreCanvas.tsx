@@ -1,7 +1,9 @@
 /**
- * Landing hero: a fixed curation of images scattered across a dark stage that
- * drifts against the cursor. Tiles sit at fixed slots on a stage 40% larger
- * than the viewport; each slot has a depth, so near images travel further.
+ * Landing hero: a fixed curation of images scattered across a map larger than
+ * the screen, which drifts against the cursor. Tiles sit at fixed slots on a
+ * stage half again as wide as the viewport, and a ring of them starts off the
+ * edges; each slot has a depth, so the nearer ones sweep further and the ring
+ * comes into view as you move.
  *
  * The stage is one paint layer on purpose. The cursor dot is absolutely
  * positioned inside the isolated section, the grain overlay is plain paint,
@@ -18,7 +20,7 @@ import { Link } from 'react-router';
 import { StageChrome } from '@/components/common/StageChrome';
 import { http, queryKeys } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { SLOTS, SPARE_IMAGES, TILE_LIMIT, type Slot } from './slots';
+import { SLOTS, SPARE_IMAGES, STAGE_OVERHANG, TILE_LIMIT, type Slot } from './slots';
 import {
   DEFAULT_TUNING,
   useLayerOffset,
@@ -167,8 +169,12 @@ export function ExploreCanvas({
       />
 
       <div
-        className="absolute inset-[-26%]"
-        style={{ transform: `scale(${stageScale})`, transformOrigin: 'center center' }}
+        className="absolute"
+        style={{
+          inset: `${-STAGE_OVERHANG}%`,
+          transform: `scale(${stageScale})`,
+          transformOrigin: 'center center',
+        }}
       >
         {tiles.map((tile) => (
           <StageTile
