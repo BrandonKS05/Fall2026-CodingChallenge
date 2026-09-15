@@ -14,6 +14,7 @@ import {
 import { StageButton } from '@/components/common/StageButton';
 import { StageChrome } from '@/components/common/StageChrome';
 import { MessagesLink } from '@/features/messaging';
+import { NotificationBell } from '@/features/notifications';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,7 +75,12 @@ export default function ExplorePage() {
       <StageChrome
         signedIn={user !== null}
         position="sticky"
-        leading={<MessagesLink signedIn={user !== null} />}
+        leading={
+          <span className="stage-surface flex items-center gap-1">
+            <NotificationBell user={user} />
+            <MessagesLink signedIn={user !== null} />
+          </span>
+        }
       />
 
       <main className="mx-auto w-full max-w-[1800px] flex-1 px-4 pt-4 sm:px-6">

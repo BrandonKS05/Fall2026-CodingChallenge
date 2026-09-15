@@ -7,6 +7,7 @@
 import { NavLink, useParams } from 'react-router';
 import { StageChrome } from '@/components/common/StageChrome';
 import { MessagesLink } from '@/features/messaging';
+import { NotificationBell } from '@/features/notifications';
 import { cn } from '@/lib/utils';
 import { AccountManagementSection } from '../components/settings/AccountManagementSection';
 import { AccountSection } from '../components/settings/AccountSection';
@@ -45,7 +46,16 @@ export default function SettingsPage() {
 
   return (
     <div className="stage-surface flex min-h-svh flex-col bg-stage text-stage-ink">
-      <StageChrome signedIn position="sticky" leading={<MessagesLink signedIn />} />
+      <StageChrome
+        signedIn={user !== null}
+        position="sticky"
+        leading={
+          <span className="stage-surface flex items-center gap-1">
+            <NotificationBell user={user} />
+            <MessagesLink signedIn={user !== null} />
+          </span>
+        }
+      />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-24 sm:px-6">
         <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Settings</h1>
 

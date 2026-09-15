@@ -37,20 +37,25 @@ const sources = () => tileImages().map((img) => img.getAttribute('src'));
 const imgBySrc = (src: string) =>
   tileImages().find((img) => img.getAttribute('src') === src) as HTMLImageElement | undefined;
 /** The stage slot a tile occupies: the inline `left` of its positioned wrapper. */
-const slotOf = (img: HTMLElement) => (img.parentElement?.parentElement as HTMLElement).style.left;
+const slotOf = (img: HTMLElement) => (img.closest('a')?.parentElement as HTMLElement).style.left;
 
 describe('ExploreCanvas', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('fills every slot from the curated feed, in order, without linking anywhere', async () => {
+  it('fills every slot from the curated feed, in order, each tile leading to Explore', async () => {
     const api = renderCanvas();
     const tiles = await screen.findAllByTestId('stage-tile');
     expect(tiles).toHaveLength(TILE_LIMIT);
     expect(sources().slice(0, 3)).toEqual(['/api/images/i1', '/api/images/i2', '/api/images/i3']);
-    // Decoration: no board to open, nothing for a screen reader to announce.
-    expect(screen.queryByRole('link', { name: /^Open / })).not.toBeInTheDocument();
-    expect(tiles[0]).toHaveAttribute('alt', '');
-    expect(tiles[0]?.parentElement).toHaveStyle({ aspectRatio: '1600 / 1200' });
+
+    // The curation has no board behind it, so a tile leads where the boards are,
+    // and credits the photographer on the way.
+    const links = screen.getAllByRole('link', { name: /^Explore — photo by / });
+    expect(links).toHaveLength(TILE_LIMIT);
+    expect(links[0]).toHaveAttribute('href', '/explore');
+    expect(tiles[0]).toHaveAttribute('alt', 'Photo by photographer');
+    expect(links[0]).toHaveTextContent('photographer');
+    expect(links[0]).toHaveStyle({ aspectRatio: '1600 / 1200' });
     expect(api.calls[0]?.path).toBe('/api/landing/images');
     expect(api.calls[0]?.url).toContain(`limit=${FEED_SIZE}`);
   });

@@ -10,6 +10,7 @@ import { NavLink, useNavigate, useParams } from 'react-router';
 import { StageChrome } from '@/components/common/StageChrome';
 import { MessagesLink } from '../components/MessagesLink';
 import { useSession } from '@/features/auth';
+import { NotificationBell } from '@/features/notifications';
 import { cn } from '@/lib/utils';
 import { timeAgo } from '@/lib/format';
 import { Composer } from '../components/Composer';
@@ -26,7 +27,16 @@ export default function MessagesPage() {
 
   return (
     <div className="stage-surface flex min-h-svh flex-col bg-stage text-stage-ink">
-      <StageChrome signedIn position="sticky" leading={<MessagesLink signedIn />} />
+      <StageChrome
+        signedIn={user !== null}
+        position="sticky"
+        leading={
+          <span className="stage-surface flex items-center gap-1">
+            <NotificationBell user={user} />
+            <MessagesLink signedIn={user !== null} />
+          </span>
+        }
+      />
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-4 pb-10 sm:px-6">
         <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Messages</h1>
 

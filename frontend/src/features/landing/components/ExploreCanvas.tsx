@@ -39,6 +39,8 @@ const NOISE =
 interface Tile {
   key: string;
   src: string;
+  /** The photographer, which is both the caption and the attribution Pixabay asks for. */
+  title: string;
   /** CSS aspect-ratio, so the tile reserves its box before the image loads. */
   aspectRatio: string;
   slotIndex: number;
@@ -71,6 +73,7 @@ function toTiles(images: LandingImage[], placement: Placement, slots: Slot[]): T
     tiles.push({
       key: entry.id,
       src: http.url(`/images/${entry.id}`),
+      title: entry.credit.name,
       aspectRatio: `${entry.width} / ${entry.height}`,
       slotIndex: index,
       slot,
@@ -230,12 +233,13 @@ function StageTile({ tile, parallax, interactive, onHover, onError }: StageTileP
         y: interactive ? y : 0,
       }}
     >
-      {/* Decoration, not content: the stage is the same for everyone, and the
-          chrome above it is what leads anywhere, so these are not links and
-          carry no alt text for a screen reader to read out thirty-six times. */}
-      <div
-        aria-hidden
-        className="relative block"
+      {/* The curation belongs to no board, so every tile leads to Explore, which
+          is where the app's own boards live. The caption credits the
+          photographer, which is what Pixabay asks for in return. */}
+      <Link
+        to="/explore"
+        aria-label={`Explore — photo by ${tile.title}`}
+        className="group relative block"
         style={{ aspectRatio: tile.aspectRatio }}
         onPointerEnter={() => onHover(true)}
         onPointerLeave={() => onHover(false)}
@@ -243,13 +247,16 @@ function StageTile({ tile, parallax, interactive, onHover, onError }: StageTileP
         <img
           data-testid="stage-tile"
           src={tile.src}
-          alt=""
+          alt={`Photo by ${tile.title}`}
           draggable={false}
           decoding="async"
           onError={onError}
           className="block h-full w-full rounded-[2px] object-cover"
         />
-      </div>
+        <span className="pointer-events-none absolute -bottom-6 left-0 text-[11px] tracking-[0.2em] text-transparent uppercase transition-colors group-hover:text-stage-ink/70">
+          {tile.title}
+        </span>
+      </Link>
     </motion.div>
   );
 }
