@@ -17,7 +17,7 @@ const outfits = boardFixture({
   id: '22222222-2222-4222-8222-222222222222',
   title: 'Fall outfits',
   role: 'editor',
-  owner: { id: 'u2', displayName: 'Grace' },
+  owner: { id: 'u2', handle: 'grace', displayName: 'Grace' },
 });
 const pins = [
   { ...itemFixture({ id: 'p1' }), collection: { id: kitchens.id, title: 'Kitchen ideas' } },

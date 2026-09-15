@@ -6,7 +6,7 @@ const base: Notification = {
   id: 'n1',
   type: 'item_added',
   collection: { id: 'c1', title: 'Kitchens' },
-  actor: { id: 'u2', displayName: 'Grace' },
+  actor: { id: 'u2', handle: 'grace', displayName: 'Grace' },
   payload: {},
   readAt: null,
   createdAt: new Date().toISOString(),

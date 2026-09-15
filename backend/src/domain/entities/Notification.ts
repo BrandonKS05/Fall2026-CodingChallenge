@@ -22,6 +22,7 @@ export interface Notification {
 
 /** Read model for the notification list. */
 export interface NotificationDetail extends Notification {
+  actorHandle: string;
   actorDisplayName: string;
   collectionTitle: string;
 }

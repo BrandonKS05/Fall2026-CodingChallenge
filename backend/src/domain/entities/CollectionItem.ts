@@ -17,7 +17,7 @@ export interface CollectionItem {
 /** Read model for rendering a board: the item with its image and who added it. */
 export interface ItemDetail extends CollectionItem {
   image: Image;
-  addedBy: { id: string; displayName: string };
+  addedBy: { id: string; handle: string; displayName: string };
 }
 
 /** An item in a person's own Pins view: the detail plus the board it lives on. */

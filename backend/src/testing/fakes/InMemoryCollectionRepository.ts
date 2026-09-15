@@ -188,6 +188,7 @@ export class InMemoryCollectionRepository implements CollectionRepository {
     const newestFirst = [...items].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     return {
       ...collection,
+      ownerHandle: owner?.handle ?? '',
       ownerDisplayName: owner?.displayName ?? '',
       itemCount: items.length,
       previewImageIds: newestFirst.slice(0, 4).map((item) => item.imageId),

@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ConversationListResponse, MessageListResponse } from '@wumboo/shared';
+import type {
+  ConversationBox,
+  ConversationListResponse,
+  MessageListResponse,
+} from '@wumboo/shared';
+import { useNavigate } from 'react-router';
 import { queryKeys } from '@/lib/api';
 import { messagingApi } from './api';
 
@@ -11,13 +16,27 @@ import { messagingApi } from './api';
 const INBOX_INTERVAL = 15_000;
 const THREAD_INTERVAL = 5_000;
 
-/** Every conversation, with the unread total the header icon shows. */
-export function useInbox(enabled: boolean) {
+/**
+ * One box of conversations. The inbox carries the unread total the header icon
+ * shows; both boxes carry the request count, so the tab can be labelled from
+ * either one.
+ */
+export function useInbox(enabled: boolean, box: ConversationBox = 'inbox') {
   return useQuery({
-    queryKey: queryKeys.conversations.list(),
-    queryFn: () => messagingApi.inbox(),
+    queryKey: queryKeys.conversations.list(box),
+    queryFn: () => messagingApi.inbox(box),
     enabled,
     refetchInterval: enabled ? INBOX_INTERVAL : false,
+    meta: { silentError: true },
+  });
+}
+
+/** Moves a conversation out of requests; both sides may write after it. */
+export function useAcceptConversation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (conversationId: string) => messagingApi.accept(conversationId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.conversations.lists() }),
     meta: { silentError: true },
   });
 }
@@ -32,12 +51,19 @@ export function useConversation(conversationId: string | undefined) {
   });
 }
 
-/** Opens the one conversation with a handle; asking twice is not a mistake. */
+/**
+ * Opens the one conversation with a handle and goes to it. Asking twice is not a
+ * mistake: the server hands back the conversation that already exists.
+ */
 export function useStartConversation() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   return useMutation({
     mutationFn: (handle: string) => messagingApi.start(handle),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.conversations.all }),
+    onSuccess: (conversation) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.lists() });
+      void navigate(`/messages/${conversation.id}`);
+    },
   });
 }
 
@@ -52,7 +78,7 @@ export function useSendMessage(conversationId: string) {
       queryClient.setQueryData<MessageListResponse>(key, (current) =>
         current ? { ...current, messages: [...current.messages, message] } : current,
       );
-      void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.list() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.conversations.lists() });
     },
     meta: { silentError: true },
   });
@@ -65,7 +91,7 @@ export function useMarkRead() {
     mutationFn: (conversationId: string) => messagingApi.markRead(conversationId),
     onSuccess: (_result, conversationId) => {
       queryClient.setQueryData<ConversationListResponse>(
-        queryKeys.conversations.list(),
+        queryKeys.conversations.list('inbox'),
         (current) =>
           current && {
             ...current,

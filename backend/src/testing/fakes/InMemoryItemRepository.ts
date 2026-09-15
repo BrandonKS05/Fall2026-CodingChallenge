@@ -96,7 +96,11 @@ export class InMemoryItemRepository implements ItemRepository {
     return {
       ...item,
       image,
-      addedBy: { id: item.addedById, displayName: user?.displayName ?? '' },
+      addedBy: {
+        id: item.addedById,
+        handle: user?.handle ?? '',
+        displayName: user?.displayName ?? '',
+      },
     };
   }
 }

@@ -30,7 +30,12 @@ export class InMemoryMembershipRepository implements MembershipRepository {
     return Promise.all(
       members.map(async (row) => {
         const user = await this.users.findById(row.userId);
-        return { ...row, email: user?.email ?? '', displayName: user?.displayName ?? '' };
+        return {
+          ...row,
+          email: user?.email ?? '',
+          handle: user?.handle ?? '',
+          displayName: user?.displayName ?? '',
+        };
       }),
     );
   }

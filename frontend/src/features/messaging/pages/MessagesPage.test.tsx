@@ -10,6 +10,8 @@ const sam = { id: 'u2', handle: 'sam', displayName: 'Sam Rivera' };
 const conversation = {
   id: 'c1',
   participants: [sam],
+  state: 'accepted' as const,
+  canSend: true,
   lastMessage: {
     body: 'Found a board for you',
     senderId: sam.id,
@@ -29,7 +31,11 @@ const message = (id: string, body: string, sender = sam) => ({
 function renderMessages(route = '/messages', routes: Record<string, StubRoute> = {}) {
   const api = stubApi({
     'GET /api/auth/me': { body: { user: userFixture } },
-    'GET /api/conversations': { body: { conversations: [conversation], unreadTotal: 2 } },
+    'GET /api/conversations': ({ url }) =>
+      url.includes('box=requests')
+        ? { body: { conversations: [], unreadTotal: 0, requestCount: 0 } }
+        : { body: { conversations: [conversation], unreadTotal: 2, requestCount: 0 } },
+    'GET /api/users/ada/following': { body: { profiles: [sam] } },
     'GET /api/conversations/c1/messages': {
       body: { messages: [message('m1', 'Found a board for you')], hasMore: false },
     },
@@ -57,7 +63,7 @@ describe('MessagesPage', () => {
     expect(within(list).getByText('Found a board for you')).toBeInTheDocument();
     expect(within(list).getByText('2')).toBeInTheDocument();
     expect(
-      screen.getByText('Pick a conversation, or start one with a handle.'),
+      screen.getByText('Pick a conversation, or start one with the pencil.'),
     ).toBeInTheDocument();
   });
 
@@ -92,32 +98,45 @@ describe('MessagesPage', () => {
     ).toMatchObject({ body: { text: 'On my way' } });
   });
 
-  it('starts a conversation from a handle, and says so when nobody has it', async () => {
+  it('starts a conversation from the people you follow, and opens it', async () => {
     const api = renderMessages('/messages', {
-      'POST /api/conversations': ({ body }) =>
-        (body as { handle: string }).handle === 'sam'
-          ? { status: 201, body: conversation }
-          : {
-              status: 404,
-              body: { error: { code: 'NOT_FOUND', message: 'User not found' } },
-            },
+      'POST /api/conversations': { status: 201, body: conversation },
     });
 
-    const field = await screen.findByLabelText('New message');
-    await userEvent.type(field, 'ghost');
-    await userEvent.click(screen.getByRole('button', { name: 'Write' }));
-    expect(await screen.findByText('Nobody here goes by @ghost.')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'New message' }));
+    const list = await screen.findByRole('list', { name: 'People you follow' });
+    await userEvent.click(within(list).getByRole('button', { name: /Sam Rivera/ }));
 
-    await userEvent.clear(field);
-    await userEvent.type(field, '@SAM');
-    await userEvent.click(screen.getByRole('button', { name: 'Write' }));
-
-    // Opening the new conversation also posts a read, so match the start call by path.
     await waitFor(() =>
       expect(
-        api.calls.filter((call) => call.method === 'POST' && call.path === '/api/conversations'),
-      ).toMatchObject([{ body: { handle: 'ghost' } }, { body: { handle: 'sam' } }]),
+        api.calls.find((call) => call.method === 'POST' && call.path === '/api/conversations'),
+      ).toMatchObject({ body: { handle: 'sam' } }),
     );
+    // Opening it is the point: the composer for that person is on screen.
     expect(await screen.findByLabelText('Message Sam Rivera')).toBeInTheDocument();
+  });
+
+  it('keeps a request out of the messages until it is accepted', async () => {
+    const pending = { ...conversation, state: 'pending' as const, canSend: false };
+    const api = renderMessages('/messages/c1', {
+      'GET /api/conversations': ({ url }) =>
+        url.includes('box=requests')
+          ? { body: { conversations: [pending], unreadTotal: 0, requestCount: 1 } }
+          : { body: { conversations: [], unreadTotal: 0, requestCount: 1 } },
+      'POST /api/conversations/c1/accept': { body: { ...conversation } },
+    });
+
+    // The tab says how many are waiting.
+    expect(await screen.findByRole('tab', { name: 'Requests (1 waiting)' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Requests (1 waiting)' }));
+    expect(await screen.findByText(/is not someone you follow/)).toBeInTheDocument();
+    // No composer while it waits.
+    expect(screen.queryByLabelText('Message Sam Rivera')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Accept message' }));
+    await waitFor(() =>
+      expect(api.calls.some((call) => call.path === '/api/conversations/c1/accept')).toBe(true),
+    );
   });
 });

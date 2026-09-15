@@ -24,6 +24,7 @@ export interface Collection {
 
 /** Read model for board lists and cards: the entity plus what a card renders. */
 export interface CollectionSummary extends Collection {
+  ownerHandle: string;
   ownerDisplayName: string;
   itemCount: number;
   /** Up to four most recent image ids for the cover mosaic. */

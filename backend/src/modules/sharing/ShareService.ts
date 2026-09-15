@@ -152,7 +152,12 @@ export class ShareService {
   private async detailOf(membership: Membership): Promise<MemberDetail> {
     const user = await this.deps.users.findById(membership.userId);
     if (!user) throw new NotFoundError('User', membership.userId);
-    return { ...membership, email: user.email, displayName: user.displayName };
+    return {
+      ...membership,
+      email: user.email,
+      handle: user.handle,
+      displayName: user.displayName,
+    };
   }
 }
 

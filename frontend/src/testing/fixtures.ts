@@ -7,7 +7,7 @@ const now = new Date('2026-09-14T12:00:00Z').toISOString();
 export function boardFixture(overrides: Partial<Collection> = {}): Collection {
   return {
     id: '11111111-1111-4111-8111-111111111111',
-    owner: { id: 'u1', displayName: 'Ada' },
+    owner: { id: 'u1', handle: 'ada', displayName: 'Ada' },
     title: 'Kitchen ideas',
     description: 'Warm wood, black taps',
     visibility: 'private',
@@ -44,7 +44,7 @@ export function itemFixture(overrides: Partial<Item> = {}): Item {
     caption: 'Oak island',
     tags: ['island'],
     position: 0,
-    addedBy: { id: 'u1', displayName: 'Ada' },
+    addedBy: { id: 'u1', handle: 'ada', displayName: 'Ada' },
     createdAt: now,
     updatedAt: now,
     ...overrides,

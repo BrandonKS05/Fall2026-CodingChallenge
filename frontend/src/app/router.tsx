@@ -22,6 +22,7 @@ const ExplorePage = lazy(() => import('@/features/collections/pages/ExplorePage'
 const SharedBoardPage = lazy(() => import('@/features/sharing/pages/SharedBoardPage'));
 const SettingsPage = lazy(() => import('@/features/auth/pages/SettingsPage'));
 const MessagesPage = lazy(() => import('@/features/messaging/pages/MessagesPage'));
+const ProfilePage = lazy(() => import('@/features/social/pages/ProfilePage'));
 
 function page(element: ReactNode) {
   return <Suspense fallback={<PageSkeleton />}>{element}</Suspense>;
@@ -84,6 +85,8 @@ export const router = createBrowserRouter([
       { path: '/boards', element: <RequireAuth>{page(<BoardsPage />)}</RequireAuth> },
       { path: '/settings', element: <RequireAuth>{page(<SettingsPage />)}</RequireAuth> },
       { path: '/settings/:section', element: <RequireAuth>{page(<SettingsPage />)}</RequireAuth> },
+      // A profile is readable signed out — blurred, with a way in.
+      { path: '/u/:handle', element: page(<ProfilePage />) },
       { path: '/messages', element: <RequireAuth>{page(<MessagesPage />)}</RequireAuth> },
       { path: '/messages/:id', element: <RequireAuth>{page(<MessagesPage />)}</RequireAuth> },
       // Sign-in as a URL, for deep links and Google's return trip; the card floats over Explore.

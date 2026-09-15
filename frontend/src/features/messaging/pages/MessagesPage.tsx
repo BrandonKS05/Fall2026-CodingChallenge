@@ -2,31 +2,49 @@
  * Messages: conversations down the left, the open one on the right. The URL
  * carries the conversation (/messages/:id) so a thread can be linked to and the
  * back button walks between them.
+ *
+ * Two boxes. Messages holds the conversations you have taken; Requests holds the
+ * ones that arrived from someone you do not follow, each waiting on a single
+ * opening message until you accept it.
  */
-import type { ConversationSummary } from '@wumboo/shared';
-import { MessageCircleIcon } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import type { ConversationBox, ConversationSummary } from '@wumboo/shared';
+import { MessageCircleIcon, SearchIcon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router';
 import { StageChrome } from '@/components/common/StageChrome';
-import { MessagesLink } from '../components/MessagesLink';
+import { Input } from '@/components/ui/input';
 import { useSession } from '@/features/auth';
 import { NotificationBell } from '@/features/notifications';
+import { ProfileLink, useFollowList } from '@/features/social';
 import { cn } from '@/lib/utils';
 import { timeAgo } from '@/lib/format';
 import { Composer } from '../components/Composer';
-import { StartConversation } from '../components/StartConversation';
+import { MessagesLink } from '../components/MessagesLink';
+import { NewMessageDialog } from '../components/NewMessageDialog';
+import { RequestNotice } from '../components/RequestNotice';
 import { Thread } from '../components/Thread';
 import { useInbox, useMarkRead } from '../queries';
 
 export default function MessagesPage() {
   const { user } = useSession();
   const { id } = useParams();
-  const inbox = useInbox(true);
+  const [box, setBox] = useState<ConversationBox>('inbox');
+  const [search, setSearch] = useState('');
+
+  const inbox = useInbox(true, box);
   const conversations = inbox.data?.conversations ?? [];
+  const requestCount = inbox.data?.requestCount ?? 0;
   const open = conversations.find((row) => row.id === id);
+  // The picker offers the people you follow; nobody else has a chat waiting.
+  const following = useFollowList(user?.handle ?? '', 'following', true);
+
+  const needle = search.trim().toLowerCase();
+  const shown = needle
+    ? conversations.filter((conversation) => matches(conversation, needle))
+    : conversations;
 
   return (
-    <div className="stage-surface flex min-h-svh flex-col bg-stage text-stage-ink">
+    <div className="flex min-h-svh flex-col bg-stage text-stage-ink">
       <StageChrome
         signedIn={user !== null}
         position="sticky"
@@ -45,16 +63,51 @@ export default function MessagesPage() {
             aria-label="Conversations"
             className={cn('min-w-0 flex-col gap-3', id ? 'hidden md:flex' : 'flex')}
           >
-            <StartConversation />
+            <div className="stage-surface flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <SearchIcon
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search messages"
+                  aria-label="Search messages"
+                  autoComplete="off"
+                  className="h-9 pl-8"
+                />
+              </div>
+              <NewMessageDialog
+                people={following.data?.profiles ?? []}
+                loading={following.isPending}
+              />
+            </div>
+
+            <div role="tablist" aria-label="Message boxes" className="flex gap-4 text-sm">
+              <BoxTab current={box} value="inbox" label="Messages" onSelect={setBox} />
+              <BoxTab
+                current={box}
+                value="requests"
+                label="Requests"
+                count={requestCount}
+                onSelect={setBox}
+              />
+            </div>
+
             {inbox.isPending ? (
               <p className="text-sm text-stage-ink/50">Looking…</p>
-            ) : conversations.length === 0 ? (
+            ) : shown.length === 0 ? (
               <p className="text-sm text-stage-ink/50">
-                No conversations yet. Start one with someone’s handle.
+                {needle
+                  ? 'Nothing matches that.'
+                  : box === 'requests'
+                    ? 'No requests waiting.'
+                    : 'No conversations yet. Start one from the pencil, or from someone’s profile.'}
               </p>
             ) : (
               <ul className="flex flex-col gap-1">
-                {conversations.map((conversation) => (
+                {shown.map((conversation) => (
                   <li key={conversation.id}>
                     <ConversationRow conversation={conversation} viewerId={user?.id} />
                   </li>
@@ -67,11 +120,66 @@ export default function MessagesPage() {
             aria-label="Conversation"
             className={cn('min-w-0 flex-col', id ? 'flex' : 'hidden md:flex')}
           >
-            {id ? <OpenConversation id={id} conversation={open} /> : <NothingOpen />}
+            {id ? (
+              <OpenConversation id={id} conversation={open} onAccepted={() => setBox('inbox')} />
+            ) : (
+              <NothingOpen />
+            )}
           </section>
         </div>
       </main>
     </div>
+  );
+}
+
+/** Search looks where a person would: the name, the handle, and the last line. */
+function matches(conversation: ConversationSummary, needle: string): boolean {
+  const people = conversation.participants.map((person) =>
+    `${person.displayName} ${person.handle}`.toLowerCase(),
+  );
+  return (
+    people.some((person) => person.includes(needle)) ||
+    (conversation.lastMessage?.body.toLowerCase().includes(needle) ?? false)
+  );
+}
+
+function BoxTab({
+  current,
+  value,
+  label,
+  count = 0,
+  onSelect,
+}: {
+  current: ConversationBox;
+  value: ConversationBox;
+  label: string;
+  count?: number;
+  onSelect: (box: ConversationBox) => void;
+}) {
+  const selected = current === value;
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      aria-label={count > 0 ? `${label} (${count} waiting)` : label}
+      onClick={() => onSelect(value)}
+      className={cn(
+        'flex items-center gap-1.5 border-b-2 pb-1.5 transition-colors',
+        selected
+          ? 'border-stage-ink font-semibold text-stage-ink'
+          : 'border-transparent text-stage-ink/55 hover:text-stage-ink',
+      )}
+    >
+      <span>{label}</span>
+      {count > 0 && (
+        <>
+          <span aria-hidden>({count})</span>
+          {/* The blue dot: something is waiting, without a number to read. */}
+          <span aria-hidden className="size-2 rounded-full bg-sky-400" />
+        </>
+      )}
+    </button>
   );
 }
 
@@ -86,6 +194,8 @@ function ConversationRow({
   const name = other?.displayName ?? 'Someone';
   const preview = conversation.lastMessage;
   const fromYou = preview?.senderId === viewerId;
+  // Unread reads as bold, the way a mail list has always said it.
+  const unread = conversation.unreadCount > 0;
 
   return (
     <NavLink
@@ -98,18 +208,25 @@ function ConversationRow({
       }
     >
       <span className="flex items-baseline justify-between gap-2">
-        <span className="truncate font-medium">{name}</span>
-        {conversation.unreadCount > 0 && (
+        <span className={cn('truncate', unread ? 'font-bold' : 'font-medium')}>{name}</span>
+        {unread && (
           <span className="grid size-5 shrink-0 place-items-center rounded-full bg-stage-ink text-[10px] font-semibold text-stage">
             {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
           </span>
         )}
       </span>
-      <span className="mt-0.5 flex items-baseline justify-between gap-2 text-sm text-stage-ink/55">
+      <span
+        className={cn(
+          'mt-0.5 flex items-baseline justify-between gap-2 text-sm',
+          unread ? 'font-semibold text-stage-ink' : 'text-stage-ink/55',
+        )}
+      >
         <span className="truncate">
           {preview ? `${fromYou ? 'You: ' : ''}${preview.body}` : `@${other?.handle ?? ''}`}
         </span>
-        <span className="shrink-0 text-xs">{timeAgo(conversation.lastMessageAt)}</span>
+        <span className="shrink-0 text-xs font-normal text-stage-ink/45">
+          {timeAgo(conversation.lastMessageAt)}
+        </span>
       </span>
     </NavLink>
   );
@@ -118,9 +235,11 @@ function ConversationRow({
 function OpenConversation({
   id,
   conversation,
+  onAccepted,
 }: {
   id: string;
   conversation: ConversationSummary | undefined;
+  onAccepted: () => void;
 }) {
   const { user } = useSession();
   const markRead = useMarkRead();
@@ -135,6 +254,7 @@ function OpenConversation({
   }, [id, markRead]);
 
   const other = conversation?.participants[0];
+  const pending = conversation?.state === 'pending';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-stage-ink/15">
@@ -148,12 +268,25 @@ function OpenConversation({
         </button>
         <div className="min-w-0">
           <p className="truncate font-medium">{other?.displayName ?? 'Conversation'}</p>
-          {other && <p className="truncate text-sm text-stage-ink/50">@{other.handle}</p>}
+          {other && (
+            <p className="truncate text-sm text-stage-ink/50">
+              <ProfileLink handle={other.handle}>@{other.handle}</ProfileLink>
+            </p>
+          )}
         </div>
       </header>
 
       <Thread conversationId={id} viewerId={user?.id} />
-      <Composer conversationId={id} to={other?.displayName} />
+
+      {pending ? (
+        <RequestNotice conversationId={id} from={other?.displayName} onAccepted={onAccepted} />
+      ) : (
+        <Composer
+          conversationId={id}
+          to={other?.displayName}
+          disabled={conversation?.canSend === false}
+        />
+      )}
     </div>
   );
 }
@@ -164,7 +297,7 @@ function NothingOpen() {
       <div>
         <MessageCircleIcon className="mx-auto size-8 text-stage-ink/30" aria-hidden />
         <p className="mt-3 text-sm text-stage-ink/55">
-          Pick a conversation, or start one with a handle.
+          Pick a conversation, or start one with the pencil.
         </p>
       </div>
     </div>

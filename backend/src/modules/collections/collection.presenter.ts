@@ -12,7 +12,11 @@ import { presentItem } from '../items/item.presenter.js';
 export function presentCollection(summary: CollectionSummary): CollectionDto {
   return {
     id: summary.id,
-    owner: { id: summary.ownerId, displayName: summary.ownerDisplayName },
+    owner: {
+      id: summary.ownerId,
+      handle: summary.ownerHandle,
+      displayName: summary.ownerDisplayName,
+    },
     title: summary.title,
     description: summary.description,
     visibility: summary.visibility,

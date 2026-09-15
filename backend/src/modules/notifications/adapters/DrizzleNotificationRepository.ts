@@ -23,6 +23,7 @@ export class DrizzleNotificationRepository implements NotificationRepository {
         payload: notifications.payload,
         readAt: notifications.readAt,
         createdAt: notifications.createdAt,
+        actorHandle: users.handle,
         actorDisplayName: users.displayName,
         collectionTitle: collections.title,
       })

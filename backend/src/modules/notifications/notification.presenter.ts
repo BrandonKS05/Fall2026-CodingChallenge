@@ -7,7 +7,11 @@ export function presentNotification(detail: NotificationDetail): NotificationDto
     id: detail.id,
     type: detail.type,
     collection: { id: detail.collectionId, title: detail.collectionTitle },
-    actor: { id: detail.actorId, displayName: detail.actorDisplayName },
+    actor: {
+      id: detail.actorId,
+      handle: detail.actorHandle,
+      displayName: detail.actorDisplayName,
+    },
     payload: detail.payload,
     readAt: detail.readAt?.toISOString() ?? null,
     createdAt: detail.createdAt.toISOString(),

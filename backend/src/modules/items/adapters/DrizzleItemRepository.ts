@@ -30,13 +30,13 @@ const toItem = (row: ItemRow): CollectionItem => ({
 const detailSelection = {
   item: collectionItems,
   image: images,
-  addedBy: { id: users.id, displayName: users.displayName },
+  addedBy: { id: users.id, handle: users.handle, displayName: users.displayName },
 };
 
 type DetailRow = {
   item: ItemRow;
   image: typeof images.$inferSelect;
-  addedBy: { id: string; displayName: string };
+  addedBy: { id: string; handle: string; displayName: string };
 };
 
 const toDetail = (row: DetailRow): ItemDetail => ({

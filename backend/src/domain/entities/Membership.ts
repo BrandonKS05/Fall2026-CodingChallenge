@@ -12,5 +12,6 @@ export interface Membership {
 /** Read model for the members panel. */
 export interface MemberDetail extends Membership {
   email: string;
+  handle: string;
   displayName: string;
 }

@@ -20,11 +20,21 @@ export const queryKeys = {
   /** The landing stage's fixed curation. Nothing anyone posts can change it. */
   landingImages: (params: { limit: number }) => ['landing', 'images', params] as const,
   shared: (slug: string) => ['shared', slug] as const,
+  /** Someone's public page, and the two lists hanging off it. */
+  profiles: {
+    all: ['profiles'] as const,
+    detail: (handle: string) => ['profiles', handle] as const,
+    lists: (handle: string) => ['profiles', handle, 'lists'] as const,
+    list: (handle: string, direction: 'followers' | 'following') =>
+      ['profiles', handle, 'lists', direction] as const,
+  },
   notifications: ['notifications'] as const,
   /** Direct messages: the inbox, and one conversation's history. */
   conversations: {
     all: ['conversations'] as const,
-    list: () => ['conversations', 'list'] as const,
+    /** Both boxes, without touching the open conversation's messages. */
+    lists: () => ['conversations', 'list'] as const,
+    list: (box: 'inbox' | 'requests') => ['conversations', 'list', box] as const,
     messages: (id: string) => ['conversations', 'detail', id, 'messages'] as const,
   },
   /** The person's own saves across boards; every item mutation invalidates it. */

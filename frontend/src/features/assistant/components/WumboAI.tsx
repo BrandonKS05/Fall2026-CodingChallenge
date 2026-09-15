@@ -6,7 +6,7 @@
  * whole integration. The conversation lives in sessionStorage: it survives a
  * refresh, and it is gone when the tab closes.
  */
-import { MessageCircleIcon, SendIcon, XIcon } from 'lucide-react';
+import { SendIcon, SparklesIcon, XIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { askWumbo, ChatUnavailableError, type ChatTurn } from '../api';
@@ -108,9 +108,20 @@ export function WumboAI() {
         aria-expanded={open}
         aria-controls="wumbo-ai-panel"
         aria-label={open ? 'Close Wumbo AI' : 'Ask Wumbo AI'}
-        className="fixed right-5 bottom-5 z-50 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="group fixed right-5 bottom-5 z-50 grid size-14 place-items-center rounded-full bg-linear-to-br from-violet-500 to-sky-500 text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        {open ? <XIcon className="size-6" /> : <MessageCircleIcon className="size-6" />}
+        {open ? (
+          <XIcon className="size-6" />
+        ) : (
+          <>
+            <SparklesIcon className="size-6 transition-transform group-hover:rotate-12" />
+            {/* A slow halo, so the button reads as alive without demanding attention. */}
+            <span
+              aria-hidden
+              className="absolute inset-0 -z-10 animate-ping rounded-full bg-violet-500/30 [animation-duration:3s]"
+            />
+          </>
+        )}
       </button>
 
       {open && (
@@ -123,12 +134,12 @@ export function WumboAI() {
           <header className="flex items-center gap-2 border-b border-border px-4 py-3">
             <span
               aria-hidden
-              className="grid size-7 place-items-center rounded-full bg-primary text-primary-foreground"
+              className="grid size-7 place-items-center rounded-full bg-linear-to-br from-violet-500 to-sky-500 text-white"
             >
-              <MessageCircleIcon className="size-4" />
+              <SparklesIcon className="size-4" />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold">Wumbo AI</p>
+              <p className="text-sm font-semibold">Wumbo AI ✨</p>
               <p className="text-xs text-muted-foreground">Here to explain Wumboo</p>
             </div>
           </header>

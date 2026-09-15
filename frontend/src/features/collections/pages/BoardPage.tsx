@@ -15,6 +15,7 @@ import { LikeButton } from '../components/LikeButton';
 import { VisibilityBadge } from '../components/VisibilityBadge';
 import { useBoard, useBoards } from '../queries';
 import { useSession } from '@/features/auth';
+import { ProfileLink } from '@/features/social';
 import {
   EditItemDialog,
   ImageLightbox,
@@ -108,7 +109,12 @@ export default function BoardPage() {
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>{pluralize(collection.itemCount, 'image')}</span>
             <VisibilityBadge visibility={collection.visibility} />
-            <span>by {collection.owner.displayName}</span>
+            <span>
+              by{' '}
+              <ProfileLink handle={collection.owner.handle} className="text-stage-ink">
+                {collection.owner.displayName}
+              </ProfileLink>
+            </span>
             {collection.role && collection.role !== 'owner' && (
               <Badge variant="secondary" className="font-normal capitalize">
                 {collection.role}

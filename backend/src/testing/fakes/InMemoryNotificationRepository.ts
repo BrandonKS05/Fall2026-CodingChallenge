@@ -29,6 +29,7 @@ export class InMemoryNotificationRepository implements NotificationRepository {
     return Promise.all(
       mine.map(async (row) => ({
         ...row,
+        actorHandle: (await this.users.findById(row.actorId))?.handle ?? '',
         actorDisplayName: (await this.users.findById(row.actorId))?.displayName ?? '',
         collectionTitle: (await this.collections.findById(row.collectionId))?.title ?? '',
       })),

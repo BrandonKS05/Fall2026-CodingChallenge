@@ -43,6 +43,7 @@ export class DrizzleMembershipRepository implements MembershipRepository {
         role: collectionMembers.role,
         createdAt: collectionMembers.createdAt,
         email: users.email,
+        handle: users.handle,
         displayName: users.displayName,
       })
       .from(collectionMembers)

@@ -11,8 +11,10 @@ export const idSchema = z.uuid();
 export const timestampSchema = z.iso.datetime();
 
 /** A user reference embedded in other resources (owner, actor, addedBy). */
+/** A person as they appear anywhere else: enough to name them and open their profile. */
 export const userSummarySchema = z.object({
   id: idSchema,
+  handle: z.string(),
   displayName: z.string(),
 });
 export type UserSummary = z.infer<typeof userSummarySchema>;
