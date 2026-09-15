@@ -112,10 +112,12 @@ describe('DiscoverPage', () => {
   });
 
   it('asks visitors to log in instead of saving', async () => {
-    renderDiscover({ 'GET /api/auth/me': { body: { user: null } } }, '/?q=kitchen');
+    const api = renderDiscover({ 'GET /api/auth/me': { body: { user: null } } }, '/?q=kitchen');
     const cards = await screen.findAllByRole('figure');
     await userEvent.click(within(cards[0]!).getByRole('button', { name: /^Save/ }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('link', { name: 'Log in' })).toBeInTheDocument();
+    // A visitor's boards are never requested: that endpoint needs a session and would only 401.
+    expect(api.calls.some((call) => call.path === '/api/collections')).toBe(false);
   });
 });

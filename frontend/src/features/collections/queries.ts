@@ -5,10 +5,16 @@ import { collectionsApi } from './api';
 
 export const EXPLORE_PAGE_SIZE = 24;
 
-export function useBoards() {
+/**
+ * The signed-in user's boards. Pages a visitor can see pass `enabled: false`
+ * while signed out, so the request (which needs a session) is never made and
+ * never surfaces a 401 as an error toast.
+ */
+export function useBoards(enabled = true) {
   return useQuery({
     queryKey: queryKeys.collections.list(),
     queryFn: () => collectionsApi.list().then((response) => response.collections),
+    enabled,
   });
 }
 

@@ -44,7 +44,7 @@ export default function DiscoverPage() {
   const targetBoardId = params.get('board');
 
   const { user } = useSession();
-  const boards = useBoards();
+  const boards = useBoards(user !== null);
   const createBoard = useCreateBoard();
   const quickSave = useSaveToBoard();
   const search = useImageSearch(filters);

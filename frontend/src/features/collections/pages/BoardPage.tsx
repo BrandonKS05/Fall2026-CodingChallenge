@@ -26,7 +26,7 @@ export default function BoardPage() {
   const { user } = useSession();
   const auth = useAuthDialog();
   // Only needed for "move to"; fetched lazily by the query cache, cheap when already loaded.
-  const myBoards = useBoards();
+  const myBoards = useBoards(user !== null);
   const addItem = useAddItem(id);
   const removeItem = useRemoveItem(id);
   const [opened, setOpened] = useState<Item | null>(null);
