@@ -50,9 +50,7 @@ describe('AuthRoute', () => {
   it('lands on Explore when the card is dismissed', async () => {
     renderRoutes('/register');
     const dialog = await screen.findByRole('dialog');
-    expect(
-      within(dialog).getByRole('heading', { name: 'Create your account' }),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('heading', { name: 'Start your gallery' })).toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');
 

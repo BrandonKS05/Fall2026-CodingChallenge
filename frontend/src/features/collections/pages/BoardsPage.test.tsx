@@ -32,6 +32,25 @@ describe('BoardsPage', () => {
     expect(screen.getByRole('link', { name: /fall outfits/i })).toHaveTextContent('Editor · Grace');
   });
 
+  it('shows blank cards ready to be filled, and any of them opens the creator', async () => {
+    vi.stubGlobal(
+      'fetch',
+      stubApi({
+        'GET /api/collections': {
+          body: { collections: [boardFixture({ title: 'Kitchen ideas' })] },
+        },
+      }).fetchMock,
+    );
+    renderWithProviders(<BoardsPage />);
+    await screen.findByRole('link', { name: /kitchen ideas/i });
+
+    // One real board, seven blank cards to reach a full grid, plus the header button.
+    const blanks = screen.getAllByRole('button', { name: 'New board' });
+    expect(blanks).toHaveLength(8);
+    await userEvent.click(blanks[blanks.length - 1]!);
+    expect(await screen.findByLabelText('Title')).toBeInTheDocument();
+  });
+
   it('creates a board from the dialog and moves to it', async () => {
     const created = boardFixture({
       id: '33333333-3333-4333-8333-333333333333',

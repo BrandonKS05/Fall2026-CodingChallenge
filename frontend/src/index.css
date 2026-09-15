@@ -2,6 +2,7 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
+@import '@fontsource/caveat-brush';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -11,6 +12,19 @@
   --color-stage-ink: var(--stage-ink);
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
+  /* Brush script for the few places that get a handwritten headline (the sign-in card). */
+  --font-hand: 'Caveat Brush', 'Segoe Print', cursive;
+  /* Idle drift for floating cards; motion-safe only where it is used. */
+  --animate-float: float 7s ease-in-out infinite;
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -120,6 +134,32 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/*
+ * Paper: the sign-in card's own palette, identical in light and dark mode.
+ * Every shadcn control inside reads these tokens, so the cream card needs no
+ * per-control overrides.
+ */
+.paper {
+  color-scheme: light;
+  --background: #f1efe1;
+  --foreground: #151515;
+  --card: #f1efe1;
+  --card-foreground: #151515;
+  --popover: #f1efe1;
+  --popover-foreground: #151515;
+  --primary: #151515;
+  --primary-foreground: #f1efe1;
+  --secondary: #e4e1cf;
+  --secondary-foreground: #151515;
+  --muted: #e7e4d3;
+  --muted-foreground: #5a584f;
+  --accent: #e4e1cf;
+  --accent-foreground: #151515;
+  --border: rgb(21 21 21 / 18%);
+  --input: rgb(21 21 21 / 30%);
+  --ring: #151515;
 }
 
 @layer base {

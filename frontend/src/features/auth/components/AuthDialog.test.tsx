@@ -50,9 +50,7 @@ describe('AuthDialog', () => {
     expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass('backdrop-blur-lg');
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create an account' }));
-    expect(
-      within(dialog).getByRole('heading', { name: 'Create your account' }),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('heading', { name: 'Start your gallery' })).toBeInTheDocument();
     expect(within(dialog).getByLabelText('Name')).toBeInTheDocument();
     expect(screen.getByTestId('path')).toHaveTextContent('/discover');
   });
