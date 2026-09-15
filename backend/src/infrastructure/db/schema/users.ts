@@ -1,5 +1,5 @@
 import type { UserPreferences } from '@wumboo/shared';
-import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
+import { integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { id, timestamps } from './_helpers.js';
 
 export const users = pgTable('users', {
@@ -7,6 +7,10 @@ export const users = pgTable('users', {
   /** Stored lowercased; the API contract normalizes before it gets here. */
   email: text().notNull().unique(),
   displayName: text().notNull(),
+  /** The name people are found by: lowercase and unique. */
+  handle: text().notNull().unique('users_handle_unique'),
+  /** When the handle last changed; null while it is still the one chosen at sign-up. */
+  handleChangedAt: timestamp({ withTimezone: true }),
   /** Null when the account only signs in with Google. */
   passwordHash: text(),
   /** Google subject id; unique so one Google account maps to one user. */

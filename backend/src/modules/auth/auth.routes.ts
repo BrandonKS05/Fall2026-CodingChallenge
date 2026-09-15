@@ -1,5 +1,6 @@
 import {
   changePasswordRequestSchema,
+  handleAvailabilityQuerySchema,
   loginRequestSchema,
   registerRequestSchema,
   updateProfileRequestSchema,
@@ -53,6 +54,13 @@ export function createAuthRouter(container: Container): Router {
   );
   router.post('/me/sessions/revoke', signedIn, controller.revokeSessions);
   router.delete('/me', signedIn, controller.deleteAccount);
+  // Open, because the sign-up form asks before an account exists; limited, because it is a lookup.
+  router.get(
+    '/handle-available',
+    credentialLimiter,
+    validate({ query: handleAvailabilityQuerySchema }),
+    controller.handleAvailability,
+  );
   router.get('/providers', controller.providers);
   router.get('/google', credentialLimiter, controller.googleStart);
   router.get('/google/callback', credentialLimiter, controller.googleCallback);

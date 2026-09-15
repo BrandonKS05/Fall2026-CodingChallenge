@@ -1,4 +1,9 @@
-import { parsePreferences, type UserPreferences } from '@wumboo/shared';
+import {
+  handleFromSeed,
+  HANDLE_MAX_LENGTH,
+  parsePreferences,
+  type UserPreferences,
+} from '@wumboo/shared';
 import { eq, inArray, sql } from 'drizzle-orm';
 import type { User } from '../../../domain/entities/User.js';
 import { ConflictError, NotFoundError } from '../../../domain/errors/index.js';
@@ -14,6 +19,8 @@ const toUser = (row: UserRow): User => ({
   id: row.id,
   email: row.email,
   displayName: row.displayName,
+  handle: row.handle,
+  handleChangedAt: row.handleChangedAt,
   passwordHash: row.passwordHash,
   googleId: row.googleId,
   bio: row.bio,
@@ -22,6 +29,12 @@ const toUser = (row: UserRow): User => ({
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 });
+
+/** Keeps the number inside the length limit: ada, ada2, ada3. */
+const withSuffix = (base: string, n: number): string => {
+  const suffix = String(n);
+  return `${base.slice(0, HANDLE_MAX_LENGTH - suffix.length)}${suffix}`;
+};
 
 export class DrizzleUserRepository implements UserRepository {
   constructor(private readonly db: Db) {}
@@ -41,22 +54,44 @@ export class DrizzleUserRepository implements UserRepository {
     return row ? toUser(row) : null;
   }
 
+  async findByHandle(handle: string): Promise<User | null> {
+    const row = await this.db.query.users.findFirst({ where: eq(users.handle, handle) });
+    return row ? toUser(row) : null;
+  }
+
+  /**
+   * A handle the person chose is theirs to fix when it clashes; one derived
+   * from their email is ours to vary, so a Google sign-in never fails on a
+   * name the person never saw.
+   */
   async create(input: NewUser): Promise<User> {
-    try {
-      const [row] = await this.db
-        .insert(users)
-        .values({ ...input, googleId: input.googleId ?? null })
-        .returning();
-      if (!row) throw new Error('Insert returned no row');
-      return toUser(row);
-    } catch (error) {
-      if (isUniqueViolation(error, 'users_email_unique')) {
-        throw new ConflictError('An account with this email already exists');
+    const chosen = input.handle !== undefined;
+    let handle = input.handle ?? handleFromSeed(input.email);
+
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        const [row] = await this.db
+          .insert(users)
+          .values({ ...input, handle, googleId: input.googleId ?? null })
+          .returning();
+        if (!row) throw new Error('Insert returned no row');
+        return toUser(row);
+      } catch (error) {
+        if (isUniqueViolation(error, 'users_email_unique')) {
+          throw new ConflictError('An account with this email already exists');
+        }
+        if (isUniqueViolation(error, 'users_google_id_unique')) {
+          throw new ConflictError('That Google account is already linked to a user');
+        }
+        if (isUniqueViolation(error, 'users_handle_unique') && !chosen && attempt < 5) {
+          handle = withSuffix(handleFromSeed(input.email), attempt + 2);
+          continue;
+        }
+        if (isUniqueViolation(error, 'users_handle_unique')) {
+          throw new ConflictError('That handle is already taken');
+        }
+        throw error;
       }
-      if (isUniqueViolation(error, 'users_google_id_unique')) {
-        throw new ConflictError('That Google account is already linked to a user');
-      }
-      throw error;
     }
   }
 
@@ -71,13 +106,20 @@ export class DrizzleUserRepository implements UserRepository {
   }
 
   async update(userId: string, patch: UserPatch): Promise<User> {
-    const [row] = await this.db
-      .update(users)
-      .set({ ...patch, updatedAt: sql`now()` })
-      .where(eq(users.id, userId))
-      .returning();
-    if (!row) throw new NotFoundError('User', userId);
-    return toUser(row);
+    try {
+      const [row] = await this.db
+        .update(users)
+        .set({ ...patch, updatedAt: sql`now()` })
+        .where(eq(users.id, userId))
+        .returning();
+      if (!row) throw new NotFoundError('User', userId);
+      return toUser(row);
+    } catch (error) {
+      if (isUniqueViolation(error, 'users_handle_unique')) {
+        throw new ConflictError('That handle is already taken');
+      }
+      throw error;
+    }
   }
 
   async setPassword(userId: string, passwordHash: string): Promise<void> {

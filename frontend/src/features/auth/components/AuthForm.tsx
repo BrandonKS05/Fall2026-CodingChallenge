@@ -6,11 +6,13 @@
  */
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import {
+  handleFromSeed,
   loginRequestSchema,
   registerRequestSchema,
   type LoginRequest,
   type RegisterRequest,
 } from '@wumboo/shared';
+import { CheckIcon } from 'lucide-react';
 import { z } from 'zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -18,8 +20,12 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import type { AuthMode } from '@/hooks/useAuthDialog';
 import { ApiError } from '@/lib/api';
-import { useAuthProviders, useLogin, useRegister } from '../queries';
+import { useAuthProviders, useHandleAvailability, useLogin, useRegister } from '../queries';
 import { FormField } from '@/components/common/FormField';
+import { PasswordField } from '@/components/common/PasswordField';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { cn } from '@/lib/utils';
+import { PASSWORD_RULES } from '../passwordRules';
 import { GoogleButton } from './GoogleButton';
 
 /** Reasons the Google callback can send the browser back with. */
@@ -50,13 +56,25 @@ const copy: Record<
 
 const ROUTE_FOR: Record<AuthMode, string> = { login: '/login', register: '/register' };
 
-type FormValues = RegisterRequest;
+type FormValues = RegisterRequest & { confirmPassword: string };
 
-// Both modes share one field set so a single form type works; login simply ignores the name.
-const loginFormSchema = loginRequestSchema.extend({ displayName: z.string() });
+/** Typing the password twice is the client's business, so the second copy never leaves the form. */
+const registerFormSchema = registerRequestSchema
+  .extend({ confirmPassword: z.string().min(1, 'Type your password once more') })
+  .refine((values) => values.password === values.confirmPassword, {
+    path: ['confirmPassword'],
+    error: 'Those two do not match',
+  });
+
+// Both modes share one field set so a single form type works; login ignores all but two.
+const loginFormSchema = loginRequestSchema.extend({
+  displayName: z.string(),
+  handle: z.string(),
+  confirmPassword: z.string(),
+});
 const resolvers = {
   login: standardSchemaResolver<FormValues, unknown, FormValues>(loginFormSchema),
-  register: standardSchemaResolver<FormValues, unknown, FormValues>(registerRequestSchema),
+  register: standardSchemaResolver<FormValues, unknown, FormValues>(registerFormSchema),
 };
 
 export interface AuthFormProps {
@@ -81,7 +99,26 @@ export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
 
   const form = useForm<FormValues>({
     resolver: resolvers[mode],
-    defaultValues: { email: '', password: '', displayName: '' },
+    defaultValues: { email: '', handle: '', password: '', confirmPassword: '', displayName: '' },
+  });
+
+  const signingUp = mode === 'register';
+  const password = form.watch('password');
+  const handle = form.watch('handle');
+  // One lookup per pause in typing, and only once the handle could be valid at all.
+  const debouncedHandle = useDebouncedValue(handle, 400);
+  const availability = useHandleAvailability(signingUp ? debouncedHandle : '');
+  const taken = availability.data?.available === false ? availability.data.handle : null;
+  const free = availability.data?.available === true ? availability.data.handle : null;
+
+  // A handle nobody has touched follows the email, which is what most people would pick anyway.
+  const emailField = form.register('email', {
+    onBlur: (event: React.FocusEvent<HTMLInputElement>) => {
+      const typed = event.target.value;
+      if (signingUp && typed && !form.getFieldState('handle').isDirty) {
+        form.setValue('handle', handleFromSeed(typed));
+      }
+    },
   });
 
   const destination = (location.state as { from?: string } | null)?.from ?? '/boards';
@@ -93,7 +130,12 @@ export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
         const body: LoginRequest = { email: values.email, password: values.password };
         await login.mutateAsync(body);
       } else {
-        await register.mutateAsync(values);
+        await register.mutateAsync({
+          email: values.email,
+          handle: values.handle,
+          displayName: values.displayName,
+          password: values.password,
+        });
       }
       if (onSuccess) onSuccess();
       else await navigate(destination, { replace: true });
@@ -119,11 +161,12 @@ export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
         </>
       )}
       <form onSubmit={onSubmit} noValidate className="space-y-4">
-        {mode === 'register' && (
+        {signingUp && (
           <FormField
             id="displayName"
             label="Name"
             autoComplete="name"
+            hint="What people see. Change it whenever you like."
             error={form.formState.errors.displayName?.message}
             {...form.register('displayName')}
           />
@@ -134,16 +177,48 @@ export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
           type="email"
           autoComplete="email"
           error={form.formState.errors.email?.message}
-          {...form.register('email')}
+          {...emailField}
         />
-        <FormField
+        {signingUp && (
+          <FormField
+            id="handle"
+            label="Handle"
+            prefix="@"
+            autoComplete="username"
+            autoCapitalize="off"
+            spellCheck={false}
+            placeholder="yourname"
+            error={
+              form.formState.errors.handle?.message ??
+              (taken === handle && handle ? `@${handle} is taken` : undefined)
+            }
+            hint={
+              free === handle && handle ? (
+                <span className="text-emerald-600 dark:text-emerald-400">@{handle} is free</span>
+              ) : (
+                'How people find you. It can only change every two weeks.'
+              )
+            }
+            {...form.register('handle')}
+          />
+        )}
+        <PasswordField
           id="password"
           label="Password"
-          type="password"
-          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+          autoComplete={signingUp ? 'new-password' : 'current-password'}
           error={form.formState.errors.password?.message}
+          hint={signingUp ? <PasswordRules password={password} /> : undefined}
           {...form.register('password')}
         />
+        {signingUp && (
+          <PasswordField
+            id="confirmPassword"
+            label="Confirm password"
+            autoComplete="new-password"
+            error={form.formState.errors.confirmPassword?.message}
+            {...form.register('confirmPassword')}
+          />
+        )}
         {serverError && (
           <p
             role="alert"
@@ -173,5 +248,29 @@ export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
         </p>
       </form>
     </div>
+  );
+}
+
+/** The rules, ticking off as they are met. Quiet until there is something to say. */
+function PasswordRules({ password }: { password: string }) {
+  return (
+    <ul className="space-y-1">
+      {PASSWORD_RULES.map((rule) => {
+        const met = rule.holds(password);
+        return (
+          <li key={rule.label} className="flex items-center gap-1.5">
+            <CheckIcon
+              aria-hidden
+              className={cn(
+                'size-3',
+                met ? 'text-emerald-600 dark:text-emerald-400' : 'opacity-30',
+              )}
+            />
+            <span className={cn(met && 'text-foreground')}>{rule.label}</span>
+            <span className="sr-only">{met ? ' met' : ' not met yet'}</span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

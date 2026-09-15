@@ -1,3 +1,4 @@
+import { handleSchema } from '@wumboo/shared';
 import type { LoginRequest, RegisterRequest, UpdateProfileRequest, User } from '@wumboo/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
@@ -52,6 +53,18 @@ export function useLogout() {
       queryClient.removeQueries({ queryKey: queryKeys.collections.all });
       queryClient.removeQueries({ queryKey: queryKeys.notifications });
     },
+  });
+}
+
+/** Asks whether a handle is free. Skipped until the handle could be valid at all. */
+export function useHandleAvailability(handle: string) {
+  const valid = handleSchema.safeParse(handle).success;
+  return useQuery({
+    queryKey: queryKeys.handleAvailability(handle),
+    queryFn: () => authApi.handleAvailability(handle),
+    enabled: valid,
+    staleTime: 30_000,
+    meta: { silentError: true },
   });
 }
 

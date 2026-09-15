@@ -29,7 +29,12 @@ describe('AuthService', () => {
     });
   });
 
-  const credentials = { email: 'ada@example.com', password: 'correct horse', displayName: 'Ada' };
+  const credentials = {
+    email: 'ada@example.com',
+    handle: 'ada',
+    password: 'correct horse',
+    displayName: 'Ada',
+  };
 
   it('registers a user, stores only the hash, and starts a session', async () => {
     const result = await service.register(credentials);
@@ -80,6 +85,60 @@ describe('AuthService', () => {
     await expect(
       service.login({ email: credentials.email, password: credentials.password }),
     ).rejects.toBeInstanceOf(AuthenticationError);
+  });
+
+  describe('handles', () => {
+    it('keeps handles unique, and refuses one that is taken', async () => {
+      await service.register(credentials);
+      expect((await users.findByHandle('ada'))?.email).toBe('ada@example.com');
+      expect(await service.isHandleAvailable('ada')).toBe(false);
+      expect(await service.isHandleAvailable('nobody')).toBe(true);
+
+      await expect(
+        service.register({
+          email: 'other@example.com',
+          handle: 'ada',
+          password: 'password-123',
+          displayName: 'Other',
+        }),
+      ).rejects.toBeInstanceOf(ConflictError);
+    });
+
+    it('names a Google account after its email, varying it when that is taken', async () => {
+      await service.register({ ...credentials, email: 'ada@other.com', handle: 'ada' });
+
+      const arrived = await service.loginWithOAuth({
+        providerId: 'g-1',
+        email: 'ada@example.com',
+        displayName: 'Ada L',
+        emailVerified: true,
+      });
+
+      expect(arrived.user.handle).toBe('ada2');
+    });
+
+    it('lets the first handle change through, then settles for two weeks', async () => {
+      const { user } = await service.register(credentials);
+      expect(user.handleChangedAt).toBeNull();
+
+      const renamed = await service.updateProfile(user.id, { handle: 'ada_l' });
+      expect(renamed.handle).toBe('ada_l');
+      expect(renamed.handleChangedAt).toBeInstanceOf(Date);
+
+      await expect(service.updateProfile(user.id, { handle: 'ada_x' })).rejects.toBeInstanceOf(
+        InvalidOperationError,
+      );
+      // Re-sending the handle it already has is not a change, so it is never refused.
+      await expect(
+        service.updateProfile(user.id, { handle: 'ada_l', bio: 'Hello' }),
+      ).resolves.toMatchObject({ handle: 'ada_l', bio: 'Hello' });
+
+      // Two weeks and a minute later, it moves again.
+      await users.update(user.id, { handleChangedAt: new Date(Date.now() - 15 * 86_400_000) });
+      await expect(service.updateProfile(user.id, { handle: 'ada_x' })).resolves.toMatchObject({
+        handle: 'ada_x',
+      });
+    });
   });
 
   describe('settings', () => {
@@ -182,6 +241,7 @@ describe('AuthService with Google', () => {
   it('links Google to an existing password account with the same verified email', async () => {
     const registered = await service.register({
       email: 'ada@example.com',
+      handle: 'reg',
       password: 'correct horse',
       displayName: 'Ada',
     });
@@ -203,7 +263,12 @@ describe('AuthService with Google', () => {
       /signs in with Google/,
     );
     await expect(
-      service.register({ email: 'ada@example.com', password: 'password-123', displayName: 'Dup' }),
+      service.register({
+        email: 'ada@example.com',
+        handle: 'dup',
+        password: 'password-123',
+        displayName: 'Dup',
+      }),
     ).rejects.toBeInstanceOf(ConflictError);
   });
 });

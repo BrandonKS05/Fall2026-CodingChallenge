@@ -6,6 +6,8 @@ import { randomBytes } from 'node:crypto';
 import type {
   AuthProvidersResponse,
   ChangePasswordRequest,
+  HandleAvailabilityQuery,
+  HandleAvailabilityResponse,
   LoginRequest,
   RegisterRequest,
   UpdateProfileRequest,
@@ -33,6 +35,7 @@ export interface AuthControllerDeps {
 }
 
 export interface AuthController {
+  handleAvailability: RequestHandler;
   changePassword: RequestHandler;
   revokeSessions: RequestHandler;
   register: RequestHandler;
@@ -106,6 +109,15 @@ export function createAuthController({ auth, env, google }: AuthControllerDeps):
       await auth.deleteAccount(currentUser(res).id);
       clearSessionCookie(res, env);
       res.status(204).end();
+    },
+
+    handleAvailability: async (_req, res) => {
+      const { query } = getValidated<unknown, HandleAvailabilityQuery>(res);
+      const body: HandleAvailabilityResponse = {
+        handle: query.handle,
+        available: await auth.isHandleAvailable(query.handle),
+      };
+      res.json(body);
     },
 
     providers: (_req, res) => {

@@ -8,6 +8,10 @@ export interface User {
   passwordHash: string | null;
   /** Google's stable subject id, once the account has signed in with Google. */
   googleId: string | null;
+  /** Unique, lowercase, and slow to change: how other people find this account. */
+  handle: string;
+  /** When the handle last changed; null while it is the one chosen at sign-up. */
+  handleChangedAt: Date | null;
   /** Shown on the person's own page; empty until written. */
   bio: string;
   /** The account's own settings, always complete: stored gaps are filled with defaults. */
@@ -27,6 +31,8 @@ export function toPublicUser(user: User): PublicUser {
     id: user.id,
     email: user.email,
     displayName: user.displayName,
+    handle: user.handle,
+    handleChangedAt: user.handleChangedAt,
     bio: user.bio,
     preferences: user.preferences,
     createdAt: user.createdAt,

@@ -6,6 +6,8 @@ import type { SearchQuery } from '@wumboo/shared';
 
 export const queryKeys = {
   session: ['session'] as const,
+  /** Whether a handle is free. Its own key per handle, so typing back and forth is free. */
+  handleAvailability: (handle: string) => ['handle-availability', handle] as const,
   search: (params: Partial<SearchQuery>) => ['search', params] as const,
   collections: {
     all: ['collections'] as const,

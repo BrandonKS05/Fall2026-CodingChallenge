@@ -1,5 +1,6 @@
 import { notificationListResponseSchema } from '@wumboo/shared';
 import type { Express } from 'express';
+import { handleFromSeed } from '@wumboo/shared';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { FakePasswordHasher } from '../../testing/fakes/fakeAuth.js';
@@ -11,7 +12,12 @@ import { buildTestApp } from '../../testing/testApp.js';
 async function signUp(app: Express, email: string): Promise<string> {
   const res = await request(app)
     .post('/api/auth/register')
-    .send({ email, password: 'password-123', displayName: email.split('@')[0] });
+    .send({
+      email,
+      handle: handleFromSeed(email),
+      password: 'password-123',
+      displayName: email.split('@')[0],
+    });
   const header = res.headers['set-cookie'];
   const cookies = Array.isArray(header) ? header : [header ?? ''];
   return cookies.find((c) => c.startsWith('wumboo_session=')) ?? '';

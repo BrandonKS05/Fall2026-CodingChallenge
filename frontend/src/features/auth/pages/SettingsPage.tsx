@@ -5,7 +5,13 @@
  * borrowing the app theme's light surfaces.
  */
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { bioSchema, displayNameSchema } from '@wumboo/shared';
+import {
+  bioSchema,
+  displayNameSchema,
+  handleSchema,
+  nextHandleChangeAt,
+  type User,
+} from '@wumboo/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
@@ -27,7 +33,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api';
 import { useDeleteAccount, useSession, useUpdateProfile } from '../queries';
 
-const profileFormSchema = z.object({ displayName: displayNameSchema, bio: bioSchema });
+const profileFormSchema = z.object({
+  displayName: displayNameSchema,
+  handle: handleSchema,
+  bio: bioSchema,
+});
 type ProfileForm = z.infer<typeof profileFormSchema>;
 const BIO_LIMIT = 160;
 
@@ -40,7 +50,7 @@ export default function SettingsPage() {
         <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Settings</h1>
         {user && (
           <div className="mt-8 space-y-6">
-            <ProfileSection key={user.id + user.displayName + user.bio} user={user} />
+            <ProfileSection key={user.id + user.displayName + user.handle + user.bio} user={user} />
             <AccountSection email={user.email} createdAt={user.createdAt} />
             <DangerSection />
           </div>
@@ -60,14 +70,18 @@ function Sheet({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function ProfileSection({ user }: { user: { displayName: string; bio: string } }) {
+function ProfileSection({ user }: { user: User }) {
   const update = useUpdateProfile();
   const [serverError, setServerError] = useState<string | null>(null);
   const form = useForm<ProfileForm>({
     resolver: standardSchemaResolver(profileFormSchema),
-    defaultValues: { displayName: user.displayName, bio: user.bio },
+    defaultValues: { displayName: user.displayName, handle: user.handle, bio: user.bio },
   });
   const bio = form.watch('bio');
+
+  // A handle can move once for free; after that it settles, so people stay findable.
+  const unlocksAt = nextHandleChangeAt(user.handleChangedAt);
+  const settled = unlocksAt !== null && unlocksAt > new Date();
 
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null);
@@ -89,6 +103,21 @@ function ProfileSection({ user }: { user: { displayName: string; bio: string } }
           autoComplete="name"
           error={form.formState.errors.displayName?.message}
           {...form.register('displayName')}
+        />
+        <FormField
+          id="handle"
+          label="Handle"
+          prefix="@"
+          autoCapitalize="off"
+          spellCheck={false}
+          disabled={settled}
+          hint={
+            settled && unlocksAt
+              ? `Settled until ${unlocksAt.toLocaleDateString(undefined, { dateStyle: 'long' })}.`
+              : 'How people find you. Once you change it, it stays put for two weeks.'
+          }
+          error={form.formState.errors.handle?.message}
+          {...form.register('handle')}
         />
         <div className="space-y-2">
           <div className="flex items-baseline justify-between">

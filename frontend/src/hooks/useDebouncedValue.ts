@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 
-/** Returns `value` once it has stopped changing for `delayMs`. */
+/** Trails a fast-changing value, so a keystroke does not become a request. */
 export function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
+  const [settled, setSettled] = useState(value);
+
   useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
+    const timer = setTimeout(() => setSettled(value), delayMs);
     return () => clearTimeout(timer);
   }, [value, delayMs]);
-  return debounced;
+
+  return settled;
 }

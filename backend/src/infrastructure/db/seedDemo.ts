@@ -18,11 +18,13 @@ import type { CollectionVisibility } from '../../domain/entities/Collection.js';
 
 export const DEMO_ACCOUNT = {
   email: 'demo@wumboo.app',
+  handle: 'demo',
   password: 'demo-password-123',
   displayName: 'Demo User',
 };
 const FRIEND_ACCOUNT = {
   email: 'sam@wumboo.app',
+  handle: 'sam',
   password: 'demo-password-123',
   displayName: 'Sam Rivera',
 };

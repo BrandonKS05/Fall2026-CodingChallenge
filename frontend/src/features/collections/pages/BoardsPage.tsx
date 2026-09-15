@@ -76,6 +76,7 @@ export default function BoardsPage() {
                 </span>
                 <span className="pr-2">
                   <span className="block font-semibold">{name}</span>
+                  <span className="block text-sm text-stage-ink/50">@{user?.handle}</span>
                   <span className="block text-sm text-stage-ink/60">
                     {pluralize(owned.length, 'board')} · {pluralize(likes, 'like')}
                   </span>

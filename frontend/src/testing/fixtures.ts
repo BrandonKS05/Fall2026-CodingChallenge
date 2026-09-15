@@ -87,6 +87,8 @@ export const userFixture: User = {
   id: 'u1',
   email: 'ada@example.com',
   displayName: 'Ada',
+  handle: 'ada',
+  handleChangedAt: null,
   bio: '',
   preferences: DEFAULT_USER_PREFERENCES,
   createdAt: now,

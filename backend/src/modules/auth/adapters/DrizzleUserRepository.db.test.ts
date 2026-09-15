@@ -78,6 +78,23 @@ describe.skipIf(!RUN_DB_TESTS)('DrizzleUserRepository (postgres)', () => {
     expect(await collections.findById(theirs.id)).not.toBeNull();
   });
 
+  it('derives a free handle when none is chosen, and keeps chosen ones unique', async () => {
+    const first = await repository.create(input);
+    expect(first).toMatchObject({ handle: 'linus', handleChangedAt: null });
+    expect(await repository.findByHandle('linus')).toMatchObject({ id: first.id });
+
+    // A second account with the same email stem gets the next free variation.
+    const second = await repository.create({ ...input, email: 'linus@other.com' });
+    expect(second.handle).toBe('linus2');
+
+    await expect(
+      repository.create({ ...input, email: 'third@x.com', handle: 'linus' }),
+    ).rejects.toBeInstanceOf(ConflictError);
+    await expect(repository.update(second.id, { handle: 'linus' })).rejects.toBeInstanceOf(
+      ConflictError,
+    );
+  });
+
   it('stores settings as one document, filling in whatever a row predates', async () => {
     const user = await repository.create(input);
     expect(user.preferences).toEqual(DEFAULT_USER_PREFERENCES);

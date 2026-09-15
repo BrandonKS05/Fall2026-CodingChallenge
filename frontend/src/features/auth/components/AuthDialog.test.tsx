@@ -28,6 +28,9 @@ function Page() {
 function renderPage(routes: Parameters<typeof stubApi>[0] = {}) {
   const api = stubApi({
     'GET /api/auth/me': { body: { user: null } },
+    'GET /api/auth/handle-available': ({ url }) => ({
+      body: { handle: new URL(url, 'http://x').searchParams.get('handle'), available: true },
+    }),
     'GET /api/auth/providers': { body: { google: false } },
     ...routes,
   });
@@ -62,14 +65,17 @@ describe('AuthDialog', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create an account' }));
     await userEvent.type(within(dialog).getByLabelText('Name'), 'Ada');
     await userEvent.type(within(dialog).getByLabelText('Email'), 'ada@example.com');
+    await userEvent.clear(within(dialog).getByLabelText('Handle'));
+    await userEvent.type(within(dialog).getByLabelText('Handle'), 'ada');
     await userEvent.type(within(dialog).getByLabelText('Password'), 'lovelace-1815');
+    await userEvent.type(within(dialog).getByLabelText('Confirm password'), 'lovelace-1815');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Sign up' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.getByTestId('path')).toHaveTextContent('/discover');
     expect(api.calls.find((call) => call.method === 'POST')).toMatchObject({
       path: '/api/auth/register',
-      body: { email: 'ada@example.com', displayName: 'Ada' },
+      body: { email: 'ada@example.com', handle: 'ada', displayName: 'Ada' },
     });
   });
 

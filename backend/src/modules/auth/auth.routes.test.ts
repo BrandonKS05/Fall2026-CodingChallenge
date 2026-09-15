@@ -7,7 +7,12 @@ import { FakeOAuthProvider } from '../../testing/fakes/FakeOAuthProvider.js';
 import { InMemoryUserRepository } from '../../testing/fakes/InMemoryUserRepository.js';
 import { buildTestApp } from '../../testing/testApp.js';
 
-const account = { email: 'Grace@Example.com', password: 'hopper-1906', displayName: 'Grace' };
+const account = {
+  email: 'Grace@Example.com',
+  handle: 'grace',
+  password: 'hopper-1906',
+  displayName: 'Grace',
+};
 
 function sessionCookie(res: request.Response): string {
   const header = res.headers['set-cookie'];
@@ -105,9 +110,12 @@ describe('auth routes', () => {
   });
 
   it('updates the profile and deletes the account through /me', async () => {
-    const registered = await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'ada@example.com', password: 'lovelace-1815', displayName: 'Ada' });
+    const registered = await request(app).post('/api/auth/register').send({
+      email: 'ada@example.com',
+      handle: 'ada',
+      password: 'lovelace-1815',
+      displayName: 'Ada',
+    });
     const cookie = sessionCookie(registered);
 
     expect((await request(app).patch('/api/auth/me').send({ bio: 'x' })).status).toBe(401);
@@ -125,6 +133,45 @@ describe('auth routes', () => {
     expect(deleted.status).toBe(204);
     expect(String(deleted.headers['set-cookie'])).toMatch(/wumboo_session=;/);
     expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).body.user).toBeNull();
+  });
+
+  it('requires a free, well-formed handle to sign up, and says which are free', async () => {
+    const shouted = await request(app)
+      .post('/api/auth/register')
+      .send({ ...account, handle: 'AD A' });
+    expect(shouted.status).toBe(400);
+
+    const reserved = await request(app)
+      .post('/api/auth/register')
+      .send({ ...account, handle: 'settings' });
+    expect(reserved.status).toBe(400);
+
+    const registered = await request(app).post('/api/auth/register').send(account);
+    expect(registered.body.user).toMatchObject({ handle: 'grace', handleChangedAt: null });
+
+    const taken = await request(app)
+      .post('/api/auth/register')
+      .send({ ...account, email: 'other@example.com', handle: '@GRACE' });
+    expect(taken.status).toBe(409);
+
+    expect((await request(app).get('/api/auth/handle-available?handle=grace')).body).toEqual({
+      handle: 'grace',
+      available: false,
+    });
+    expect((await request(app).get('/api/auth/handle-available?handle=ada')).body).toEqual({
+      handle: 'ada',
+      available: true,
+    });
+  });
+
+  it('refuses a weak password at sign-up', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ ...account, password: 'nodigitshere' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.map((issue: { path: string }) => issue.path)).toContain(
+      'body.password',
+    );
   });
 
   it('patches preferences without disturbing the rest, and keeps them out of other views', async () => {
@@ -160,13 +207,13 @@ describe('auth routes', () => {
     const wrong = await request(app)
       .post('/api/auth/me/password')
       .set('Cookie', oldCookie)
-      .send({ currentPassword: 'not-it', newPassword: 'a-longer-secret' });
+      .send({ currentPassword: 'not-it', newPassword: 'a-longer-secret-9' });
     expect(wrong.status).toBe(401);
 
     const changed = await request(app)
       .post('/api/auth/me/password')
       .set('Cookie', oldCookie)
-      .send({ currentPassword: account.password, newPassword: 'a-longer-secret' });
+      .send({ currentPassword: account.password, newPassword: 'a-longer-secret-9' });
     expect(changed.status).toBe(204);
 
     const newCookie = sessionCookie(changed);
@@ -179,7 +226,7 @@ describe('auth routes', () => {
 
     const relogin = await request(app)
       .post('/api/auth/login')
-      .send({ email: account.email, password: 'a-longer-secret' });
+      .send({ email: account.email, password: 'a-longer-secret-9' });
     expect(relogin.status).toBe(200);
   });
 

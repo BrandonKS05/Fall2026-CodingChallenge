@@ -6,16 +6,24 @@ export interface NewUser {
   displayName: string;
   /** Null for identity-provider-only accounts. */
   passwordHash: string | null;
+  /**
+   * The handle the person chose. A taken one is a ConflictError. Absent for
+   * accounts arriving from Google: the repository then derives a free one.
+   */
+  handle?: string;
   googleId?: string | null;
 }
 
 /** What a person may change about themselves. */
-export type UserPatch = Partial<Pick<User, 'displayName' | 'bio' | 'preferences'>>;
+export type UserPatch = Partial<
+  Pick<User, 'displayName' | 'bio' | 'preferences' | 'handle' | 'handleChangedAt'>
+>;
 
 export interface UserRepository {
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   findByGoogleId(googleId: string): Promise<User | null>;
+  findByHandle(handle: string): Promise<User | null>;
   /** Throws ConflictError when the email is already registered. */
   create(input: NewUser): Promise<User>;
   /** Attaches a Google identity to an existing account. Throws NotFoundError for an unknown id. */

@@ -3,7 +3,7 @@
  * be tested with in-memory fakes and reused by any transport.
  */
 import { randomUUID } from 'node:crypto';
-import { mergePreferences, type UserPreferencesPatch } from '@wumboo/shared';
+import { mergePreferences, nextHandleChangeAt, type UserPreferencesPatch } from '@wumboo/shared';
 import { toPublicUser, type PublicUser, type User } from '../../domain/entities/User.js';
 import {
   AuthenticationError,
@@ -25,6 +25,7 @@ export interface AuthServiceDeps {
 
 export interface RegisterInput {
   email: string;
+  handle: string;
   password: string;
   displayName: string;
 }
@@ -37,6 +38,7 @@ export interface LoginInput {
 /** What a person may change about themselves in one request. */
 export interface ProfilePatch {
   displayName?: string | undefined;
+  handle?: string | undefined;
   bio?: string | undefined;
   preferences?: UserPreferencesPatch | undefined;
 }
@@ -67,6 +69,7 @@ export class AuthService {
     const passwordHash = await this.deps.passwordHasher.hash(input.password);
     const user = await this.deps.users.create({
       email: input.email,
+      handle: input.handle,
       displayName: input.displayName,
       passwordHash,
     });
@@ -80,13 +83,24 @@ export class AuthService {
    * that flips one switch cannot silently reset the others.
    */
   async updateProfile(userId: string, patch: ProfilePatch): Promise<PublicUser> {
-    const { preferences, ...fields } = patch;
+    const { preferences, handle, ...fields } = patch;
     const next: UserPatch = { ...fields };
-    if (preferences) {
-      next.preferences = mergePreferences(
-        (await this.requireUser(userId)).preferences,
-        preferences,
-      );
+    const current =
+      preferences || handle !== undefined ? await this.requireUser(userId) : undefined;
+
+    if (current && preferences) {
+      next.preferences = mergePreferences(current.preferences, preferences);
+    }
+    if (current && handle !== undefined && handle !== current.handle) {
+      const unlocksAt = nextHandleChangeAt(current.handleChangedAt);
+      if (unlocksAt && unlocksAt > new Date()) {
+        const when = unlocksAt.toLocaleDateString('en-US', { dateStyle: 'long' });
+        throw new InvalidOperationError(
+          `Handles settle for two weeks. You can change yours again on ${when}.`,
+        );
+      }
+      next.handle = handle;
+      next.handleChangedAt = new Date();
     }
     const user = await this.deps.users.update(userId, next);
     this.log.info({ userId }, 'Profile updated');
@@ -165,6 +179,11 @@ export class AuthService {
     });
     this.log.info({ userId: created.id }, 'User registered with Google');
     return this.startSession(created);
+  }
+
+  /** One lookup behind the sign-up field, so a taken handle is caught before submitting. */
+  async isHandleAvailable(handle: string): Promise<boolean> {
+    return (await this.deps.users.findByHandle(handle)) === null;
   }
 
   /** Resolves the session's user, or throws when the account no longer exists. */
