@@ -1,0 +1,7 @@
+# Wumbo AI service. Pinned to major versions so a rebuild cannot pick up a
+# breaking release; run `pip install -r requirements.txt` inside a virtualenv.
+openai>=1.40,<2
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+pydantic>=2.7,<3
+pydantic-settings>=2.3,<3

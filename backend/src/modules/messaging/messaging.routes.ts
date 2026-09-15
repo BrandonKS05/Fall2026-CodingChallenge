@@ -1,4 +1,5 @@
 import {
+  conversationListQuerySchema,
   messagesQuerySchema,
   sendMessageRequestSchema,
   startConversationRequestSchema,
@@ -17,7 +18,7 @@ export function createConversationsRouter(container: Container): Router {
 
   const router = Router();
   router.use(signedIn);
-  router.get('/', controller.inbox);
+  router.get('/', validate({ query: conversationListQuerySchema }), controller.inbox);
   router.post('/', validate({ body: startConversationRequestSchema }), controller.start);
   router.get(
     '/:id/messages',
@@ -29,6 +30,7 @@ export function createConversationsRouter(container: Container): Router {
     validate({ params: idParams, body: sendMessageRequestSchema }),
     controller.send,
   );
+  router.post('/:id/accept', validate({ params: idParams }), controller.accept);
   router.post('/:id/read', validate({ params: idParams }), controller.markRead);
   return router;
 }

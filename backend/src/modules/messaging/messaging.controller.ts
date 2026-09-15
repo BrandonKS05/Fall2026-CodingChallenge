@@ -1,4 +1,9 @@
-import type { MessagesQuery, SendMessageRequest, StartConversationRequest } from '@wumboo/shared';
+import type {
+  ConversationListQuery,
+  MessagesQuery,
+  SendMessageRequest,
+  StartConversationRequest,
+} from '@wumboo/shared';
 import type { RequestHandler } from 'express';
 import type { IdParams } from '../../http/params.js';
 import { currentUser } from '../../http/middleware/authenticate.js';
@@ -13,6 +18,7 @@ import {
 
 export interface MessagingController {
   inbox: RequestHandler;
+  accept: RequestHandler;
   start: RequestHandler;
   messages: RequestHandler;
   send: RequestHandler;
@@ -22,7 +28,14 @@ export interface MessagingController {
 export function createMessagingController(messaging: MessagingService): MessagingController {
   return {
     inbox: async (_req, res) => {
-      res.json(presentInbox(await messaging.inbox(currentUser(res).id)));
+      const { query } = getValidated<unknown, ConversationListQuery>(res);
+      res.json(presentInbox(await messaging.inbox(currentUser(res).id, query.box)));
+    },
+
+    accept: async (_req, res) => {
+      const { params } = getValidated<unknown, unknown, IdParams>(res);
+      const summary = await messaging.accept(currentUser(res).id, params.id);
+      res.json(presentConversation(summary));
     },
 
     start: async (_req, res) => {

@@ -68,6 +68,7 @@ export function useMarkRead() {
         queryKeys.conversations.list(),
         (current) =>
           current && {
+            ...current,
             conversations: current.conversations.map((row) =>
               row.id === conversationId ? { ...row, unreadCount: 0 } : row,
             ),

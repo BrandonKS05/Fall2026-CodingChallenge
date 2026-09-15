@@ -1,4 +1,4 @@
-import { and, desc, eq, lt } from 'drizzle-orm';
+import { and, desc, eq, lt, sql } from 'drizzle-orm';
 import type { MessageDetail } from '../../../domain/entities/Conversation.js';
 import { NotFoundError } from '../../../domain/errors/index.js';
 import type { Db } from '../../../infrastructure/db/client.js';
@@ -74,6 +74,14 @@ export class DrizzleMessageRepository implements MessageRepository {
     const detail = created[0];
     if (!detail) throw new NotFoundError('Message', row.id);
     return toDetail(detail);
+  }
+
+  async countByConversation(conversationId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId));
+    return row?.count ?? 0;
   }
 
   /** A cursor is a message id on the wire and its sequence number underneath. */

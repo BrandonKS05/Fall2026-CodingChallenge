@@ -31,6 +31,10 @@ export class InMemoryMessageRepository implements MessageRepository {
     return { messages: history.slice(start, upTo), hasMore: start > 0 };
   }
 
+  async countByConversation(conversationId: string): Promise<number> {
+    return this.forConversation(conversationId).length;
+  }
+
   async create(input: NewMessage): Promise<MessageDetail> {
     const sender = await this.users.findById(input.senderId);
     if (!sender) throw new NotFoundError('User', input.senderId);

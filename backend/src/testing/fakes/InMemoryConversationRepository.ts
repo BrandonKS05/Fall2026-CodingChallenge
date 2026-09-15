@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import type { Conversation, ConversationSummary } from '../../domain/entities/Conversation.js';
+import type {
+  Conversation,
+  ConversationMemberState,
+  ConversationSummary,
+} from '../../domain/entities/Conversation.js';
 import { directKeyFor } from '../../domain/entities/Conversation.js';
 import type { ConversationRepository } from '../../modules/messaging/ports/ConversationRepository.js';
 import { nextInstant } from './clock.js';
@@ -9,6 +13,7 @@ import type { InMemoryUserRepository } from './InMemoryUserRepository.js';
 interface Membership {
   conversationId: string;
   userId: string;
+  state: ConversationMemberState;
   lastReadAt: Date;
 }
 
@@ -31,23 +36,55 @@ export class InMemoryConversationRepository implements ConversationRepository {
     return [...this.rows.values()].find((row) => row.directKey === key) ?? null;
   }
 
-  async createDirect(userA: string, userB: string): Promise<Conversation> {
+  async createDirect(
+    initiatorId: string,
+    recipientId: string,
+    recipientState: ConversationMemberState,
+  ): Promise<Conversation> {
     const now = nextInstant();
     const conversation: Conversation = {
       id: randomUUID(),
-      directKey: directKeyFor(userA, userB),
+      directKey: directKeyFor(initiatorId, recipientId),
       lastMessageAt: now,
       createdAt: now,
     };
     this.rows.set(conversation.id, conversation);
-    for (const userId of [userA, userB]) {
-      this.members.push({ conversationId: conversation.id, userId, lastReadAt: now });
-    }
+    this.members.push(
+      { conversationId: conversation.id, userId: initiatorId, state: 'accepted', lastReadAt: now },
+      {
+        conversationId: conversation.id,
+        userId: recipientId,
+        state: recipientState,
+        lastReadAt: now,
+      },
+    );
     return conversation;
   }
 
-  async listForUser(userId: string): Promise<ConversationSummary[]> {
-    const mine = this.members.filter((member) => member.userId === userId);
+  async countPending(userId: string): Promise<number> {
+    return this.members.filter((member) => member.userId === userId && member.state === 'pending')
+      .length;
+  }
+
+  async memberState(
+    conversationId: string,
+    userId: string,
+  ): Promise<ConversationMemberState | null> {
+    return this.memberRow(conversationId, userId)?.state ?? null;
+  }
+
+  async accept(conversationId: string, userId: string): Promise<void> {
+    const member = this.memberRow(conversationId, userId);
+    if (member) member.state = 'accepted';
+  }
+
+  async listForUser(
+    userId: string,
+    state: ConversationMemberState,
+  ): Promise<ConversationSummary[]> {
+    const mine = this.members.filter(
+      (member) => member.userId === userId && member.state === state,
+    );
     const summaries = await Promise.all(mine.map((member) => this.summarize(member)));
     return summaries.sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
   }
@@ -75,6 +112,8 @@ export class InMemoryConversationRepository implements ConversationRepository {
     return {
       id: member.conversationId,
       participants,
+      state: member.state,
+      awaitingOther: others.some((row) => row.state === 'pending'),
       lastMessage: last
         ? { body: last.body, senderId: last.senderId, createdAt: last.createdAt }
         : null,

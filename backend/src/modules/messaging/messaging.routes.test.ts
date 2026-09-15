@@ -27,6 +27,9 @@ describe('conversation routes', () => {
     app = buildTestApp();
     ada = await signUp(app, 'ada@example.com');
     sam = await signUp(app, 'sam@example.com');
+    // Mutual follows, so what they send each other goes straight to the messages.
+    await request(app).post(`/api/users/${sam.handle}/follow`).set('Cookie', ada.cookie);
+    await request(app).post(`/api/users/${ada.handle}/follow`).set('Cookie', sam.cookie);
   });
 
   const start = (as: { cookie: string }, handle: string) =>
@@ -100,5 +103,49 @@ describe('conversation routes', () => {
           .set('Cookie', outsider.cookie)
       ).status,
     ).toBe(403);
+  });
+
+  it('puts a message from someone you do not follow in requests until you accept it', async () => {
+    const outsider = await signUp(app, 'outsider@example.com');
+    const conversation = (await start(outsider, ada.handle)).body;
+
+    const opener = await request(app)
+      .post(`/api/conversations/${conversation.id}/messages`)
+      .set('Cookie', outsider.cookie)
+      .send({ text: 'You do not know me' });
+    expect(opener.status).toBe(201);
+
+    // One message, then nothing more until it is accepted.
+    expect(
+      (
+        await request(app)
+          .post(`/api/conversations/${conversation.id}/messages`)
+          .set('Cookie', outsider.cookie)
+          .send({ text: 'Hello?' })
+      ).status,
+    ).toBe(400);
+
+    const inbox = await request(app).get('/api/conversations').set('Cookie', ada.cookie);
+    expect(inbox.body.conversations).toEqual([]);
+    expect(inbox.body.requestCount).toBe(1);
+    expect(inbox.body.unreadTotal).toBe(0);
+
+    const requests = await request(app)
+      .get('/api/conversations?box=requests')
+      .set('Cookie', ada.cookie);
+    expect(requests.body.conversations[0]).toMatchObject({ id: conversation.id, state: 'pending' });
+    expect(requests.body.conversations[0].canSend).toBe(false);
+
+    const accepted = await request(app)
+      .post(`/api/conversations/${conversation.id}/accept`)
+      .set('Cookie', ada.cookie);
+    expect(accepted.status).toBe(200);
+    expect(accepted.body).toMatchObject({ state: 'accepted', canSend: true });
+
+    const after = await request(app).get('/api/conversations').set('Cookie', ada.cookie);
+    expect(after.body.conversations.map((row: { id: string }) => row.id)).toEqual([
+      conversation.id,
+    ]);
+    expect(after.body.requestCount).toBe(0);
   });
 });

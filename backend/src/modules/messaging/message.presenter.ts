@@ -12,6 +12,10 @@ export function presentConversation(summary: ConversationSummary): ConversationS
   return {
     id: summary.id,
     participants: summary.participants,
+    state: summary.state,
+    // A request allows exactly one message, and only from the side that started it.
+    canSend:
+      summary.state === 'accepted' && (!summary.awaitingOther || summary.lastMessage === null),
     lastMessage: summary.lastMessage
       ? { ...summary.lastMessage, createdAt: summary.lastMessage.createdAt.toISOString() }
       : null,
@@ -24,6 +28,7 @@ export function presentInbox(inbox: Inbox): ConversationListResponse {
   return {
     conversations: inbox.conversations.map(presentConversation),
     unreadTotal: inbox.unreadTotal,
+    requestCount: inbox.requestCount,
   };
 }
 

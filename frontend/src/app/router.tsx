@@ -6,6 +6,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { createBrowserRouter, Outlet, useLocation } from 'react-router';
 import { AuthDialogProvider } from './AuthDialogProvider';
+import { WumboAI } from '@/features/assistant';
 import { AuthRoute } from '@/features/auth/pages/AuthRoute';
 import { AppShell } from './layout/AppShell';
 import { NotFoundPage } from './NotFoundPage';
@@ -72,6 +73,8 @@ export const router = createBrowserRouter([
         <RouteTransition>
           <Outlet />
         </RouteTransition>
+        {/* Floats over every page; it holds its own state and its own service. */}
+        <WumboAI />
       </AuthDialogProvider>
     ),
     children: [

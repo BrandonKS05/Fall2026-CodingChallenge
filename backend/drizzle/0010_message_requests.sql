@@ -1,0 +1,2 @@
+CREATE TYPE "public"."conversation_member_state" AS ENUM('pending', 'accepted');--> statement-breakpoint
+ALTER TABLE "conversation_members" ADD COLUMN "state" "conversation_member_state" DEFAULT 'accepted' NOT NULL;

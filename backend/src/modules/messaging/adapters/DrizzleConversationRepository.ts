@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import type {
   Conversation,
+  ConversationMemberState,
   ConversationParticipant,
   ConversationSummary,
 } from '../../../domain/entities/Conversation.js';
@@ -34,6 +35,14 @@ const lastMessage = sql<{ body: string; senderId: string; createdAt: string } | 
   limit 1
 )`;
 
+/** True while anyone else in the conversation has yet to accept it. */
+const awaitingOther = sql<boolean>`exists (
+  select 1 from ${conversationMembers} other
+  where other.conversation_id = ${conversations.id}
+    and other.user_id <> ${conversationMembers.userId}
+    and other.state = 'pending'
+)`;
+
 /** Anything the other people said after this member last looked. */
 const unreadCount = sql<number>`(
   select count(*)::int
@@ -42,6 +51,25 @@ const unreadCount = sql<number>`(
     and m.sender_id <> ${conversationMembers.userId}
     and m.created_at > ${conversationMembers.lastReadAt}
 )`;
+
+/** The one row shape both listings read, so they cannot drift apart. */
+const summaryColumns = {
+  id: conversations.id,
+  lastMessageAt: conversations.lastMessageAt,
+  state: conversationMembers.state,
+  awaitingOther,
+  lastMessage,
+  unreadCount,
+};
+
+type SummaryRow = {
+  id: string;
+  lastMessageAt: Date;
+  state: ConversationMemberState;
+  awaitingOther: boolean;
+  lastMessage: { body: string; senderId: string; createdAt: string } | null;
+  unreadCount: number;
+};
 
 export class DrizzleConversationRepository implements ConversationRepository {
   constructor(private readonly db: Db) {}
@@ -58,25 +86,33 @@ export class DrizzleConversationRepository implements ConversationRepository {
     return row ? toConversation(row) : null;
   }
 
-  /** Both memberships or neither: a conversation with one member is not a conversation. */
-  async createDirect(userA: string, userB: string): Promise<Conversation> {
+  /**
+   * Both memberships or neither: a conversation with one member is not a
+   * conversation. The initiator is accepted at once; the other side lands
+   * wherever the caller says, which is what makes a request a request.
+   */
+  async createDirect(
+    initiatorId: string,
+    recipientId: string,
+    recipientState: ConversationMemberState,
+  ): Promise<Conversation> {
     try {
       return await this.db.transaction(async (tx) => {
         const [row] = await tx
           .insert(conversations)
-          .values({ directKey: directKeyFor(userA, userB) })
+          .values({ directKey: directKeyFor(initiatorId, recipientId) })
           .returning();
         if (!row) throw new Error('Insert returned no row');
         await tx.insert(conversationMembers).values([
-          { conversationId: row.id, userId: userA },
-          { conversationId: row.id, userId: userB },
+          { conversationId: row.id, userId: initiatorId, state: 'accepted' },
+          { conversationId: row.id, userId: recipientId, state: recipientState },
         ]);
         return toConversation(row);
       });
     } catch (error) {
       if (isUniqueViolation(error, 'conversations_direct_key_unique')) {
         // Someone else opened the same conversation first; theirs is just as good.
-        const existing = await this.findDirect(userA, userB);
+        const existing = await this.findDirect(initiatorId, recipientId);
         if (existing) return existing;
         throw new ConflictError('That conversation already exists');
       }
@@ -84,14 +120,12 @@ export class DrizzleConversationRepository implements ConversationRepository {
     }
   }
 
-  async listForUser(userId: string): Promise<ConversationSummary[]> {
+  async listForUser(
+    userId: string,
+    state: ConversationMemberState,
+  ): Promise<ConversationSummary[]> {
     const rows = await this.db
-      .select({
-        id: conversations.id,
-        lastMessageAt: conversations.lastMessageAt,
-        lastMessage,
-        unreadCount,
-      })
+      .select(summaryColumns)
       .from(conversations)
       .innerJoin(
         conversationMembers,
@@ -100,19 +134,48 @@ export class DrizzleConversationRepository implements ConversationRepository {
           eq(conversationMembers.userId, userId),
         ),
       )
+      .where(eq(conversationMembers.state, state))
       .orderBy(desc(conversations.lastMessageAt), desc(conversations.id));
 
     return this.withParticipants(rows, userId);
   }
 
+  async countPending(userId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(conversationMembers)
+      .where(and(eq(conversationMembers.userId, userId), eq(conversationMembers.state, 'pending')));
+    return row?.count ?? 0;
+  }
+
+  async memberState(
+    conversationId: string,
+    userId: string,
+  ): Promise<ConversationMemberState | null> {
+    const row = await this.db.query.conversationMembers.findFirst({
+      where: and(
+        eq(conversationMembers.conversationId, conversationId),
+        eq(conversationMembers.userId, userId),
+      ),
+    });
+    return row?.state ?? null;
+  }
+
+  async accept(conversationId: string, userId: string): Promise<void> {
+    await this.db
+      .update(conversationMembers)
+      .set({ state: 'accepted' })
+      .where(
+        and(
+          eq(conversationMembers.conversationId, conversationId),
+          eq(conversationMembers.userId, userId),
+        ),
+      );
+  }
+
   async findSummary(conversationId: string, userId: string): Promise<ConversationSummary | null> {
     const rows = await this.db
-      .select({
-        id: conversations.id,
-        lastMessageAt: conversations.lastMessageAt,
-        lastMessage,
-        unreadCount,
-      })
+      .select(summaryColumns)
       .from(conversations)
       .innerJoin(
         conversationMembers,
@@ -129,12 +192,7 @@ export class DrizzleConversationRepository implements ConversationRepository {
 
   /** One extra query for everyone in the listed conversations, rather than one per row. */
   private async withParticipants(
-    rows: {
-      id: string;
-      lastMessageAt: Date;
-      lastMessage: { body: string; senderId: string; createdAt: string } | null;
-      unreadCount: number;
-    }[],
+    rows: SummaryRow[],
     viewerId: string,
   ): Promise<ConversationSummary[]> {
     if (rows.length === 0) return [];
@@ -168,6 +226,8 @@ export class DrizzleConversationRepository implements ConversationRepository {
     return rows.map((row) => ({
       id: row.id,
       participants: byConversation.get(row.id) ?? [],
+      state: row.state,
+      awaitingOther: row.awaitingOther,
       lastMessage: row.lastMessage
         ? { ...row.lastMessage, createdAt: new Date(row.lastMessage.createdAt) }
         : null,

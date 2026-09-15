@@ -26,10 +26,20 @@ export const messageSchema = z.object({
 });
 export type Message = z.infer<typeof messageSchema>;
 
+export const conversationMemberStateSchema = z.enum(['pending', 'accepted']);
+export type ConversationMemberState = z.infer<typeof conversationMemberStateSchema>;
+
 export const conversationSummarySchema = z.object({
   id: idSchema,
   /** Everyone in the conversation except the person asking. */
   participants: z.array(conversationParticipantSchema),
+  /** `pending` means it is sitting in your requests, waiting for you to accept. */
+  state: conversationMemberStateSchema,
+  /**
+   * False when there is nothing more you may send: either you have yet to accept,
+   * or you have already sent the one message a request allows.
+   */
+  canSend: z.boolean(),
   lastMessage: z
     .object({ body: z.string(), senderId: idSchema, createdAt: timestampSchema })
     .nullable(),
@@ -39,10 +49,21 @@ export const conversationSummarySchema = z.object({
 });
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 
+/** Which box to read: the conversations you have taken, or the ones waiting. */
+export const conversationBoxSchema = z.enum(['inbox', 'requests']);
+export type ConversationBox = z.infer<typeof conversationBoxSchema>;
+
+export const conversationListQuerySchema = z.object({
+  box: conversationBoxSchema.default('inbox'),
+});
+export type ConversationListQuery = z.infer<typeof conversationListQuerySchema>;
+
 export const conversationListResponseSchema = z.object({
   conversations: z.array(conversationSummarySchema),
-  /** Across every conversation: what the icon in the header shows. */
+  /** Unread across the inbox: what the icon in the header shows. */
   unreadTotal: z.number().int().nonnegative(),
+  /** How many conversations are waiting to be accepted, whichever box was asked for. */
+  requestCount: z.number().int().nonnegative(),
 });
 export type ConversationListResponse = z.infer<typeof conversationListResponseSchema>;
 

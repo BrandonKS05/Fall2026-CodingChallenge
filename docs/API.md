@@ -49,6 +49,7 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | DELETE | /api/users/:handle/follow            | done   |
 | GET    | /api/conversations                   | done   |
 | POST   | /api/conversations                   | done   |
+| POST   | /api/conversations/:id/accept        | done   |
 | GET    | /api/conversations/:id/messages      | done   |
 | POST   | /api/conversations/:id/messages      | done   |
 | POST   | /api/conversations/:id/read          | done   |
@@ -269,6 +270,11 @@ about boards, and a follow has none. The profile's counts are its surface.
 
 Direct messages between two people. Membership is the only permission: everything
 here is 401 without a session, and 403 for a conversation you are not in.
+
+A conversation sits in one of two boxes for each member. Writing to someone who
+already follows you lands in their messages; writing to anyone else lands in
+their **requests**, where it waits with a single opening message until they
+accept it.
 
 | Endpoint                               | Auth     | Notes                                                                                                                                                               |
 | -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

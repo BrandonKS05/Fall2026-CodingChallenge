@@ -19,4 +19,6 @@ export interface MessageRepository {
     options: ListMessagesOptions,
   ): Promise<{ messages: MessageDetail[]; hasMore: boolean }>;
   create(input: NewMessage): Promise<MessageDetail>;
+  /** How many messages the conversation holds, which is what rations a request's opener. */
+  countByConversation(conversationId: string): Promise<number>;
 }

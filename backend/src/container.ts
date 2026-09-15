@@ -179,6 +179,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
       conversations: repositories.conversations,
       messages: repositories.messages,
       users: repositories.users,
+      follows: repositories.follows,
       // Swapped for the socket registry once the realtime layer is attached.
       broadcaster: noBroadcast,
       logger,
