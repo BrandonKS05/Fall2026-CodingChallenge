@@ -44,7 +44,7 @@ describe('AuthRoute', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(
       'Google sign-in was cancelled.',
     );
-    expect(await screen.findByText(/Public boards from everyone/)).toBeInTheDocument();
+    expect(await screen.findByText(/browse the public boards/)).toBeInTheDocument();
   });
 
   it('lands on Explore when the card is dismissed', async () => {

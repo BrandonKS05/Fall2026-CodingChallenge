@@ -35,7 +35,7 @@ function renderPage(routes: Parameters<typeof stubApi>[0] = {}) {
     ...routes,
   });
   vi.stubGlobal('fetch', api.fetchMock);
-  renderWithProviders(<Page />, { route: '/discover' });
+  renderWithProviders(<Page />, { route: '/explore' });
   return api;
 }
 
@@ -55,7 +55,7 @@ describe('AuthDialog', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create an account' }));
     expect(within(dialog).getByRole('heading', { name: 'Start your gallery' })).toBeInTheDocument();
     expect(within(dialog).getByLabelText('Name')).toBeInTheDocument();
-    expect(screen.getByTestId('path')).toHaveTextContent('/discover');
+    expect(screen.getByTestId('path')).toHaveTextContent('/explore');
   });
 
   it('signs up, closes, and stays on the page', async () => {
@@ -72,7 +72,7 @@ describe('AuthDialog', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Sign up' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(screen.getByTestId('path')).toHaveTextContent('/discover');
+    expect(screen.getByTestId('path')).toHaveTextContent('/explore');
     expect(api.calls.find((call) => call.method === 'POST')).toMatchObject({
       path: '/api/auth/register',
       body: { email: 'ada@example.com', handle: 'ada', displayName: 'Ada' },
@@ -87,6 +87,6 @@ describe('AuthDialog', () => {
     await userEvent.keyboard('{Escape}');
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(screen.getByTestId('path')).toHaveTextContent('/discover');
+    expect(screen.getByTestId('path')).toHaveTextContent('/explore');
   });
 });

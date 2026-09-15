@@ -1,11 +1,14 @@
 /**
- * Explore: every image on every public board, laid out as justified rows the
- * way a studio's "all work" page is, on the same dark stage as the landing.
- * Filters dock at the bottom so the pictures keep the whole width.
+ * Explore is the one place to look for anything: search the free-photo library
+ * and save what you find, or, with the box empty, browse every image on every
+ * public board. Filters live behind one button rather than spread across the
+ * page, because there are now a great many of them.
  */
-import type { ExploreImage } from '@wumboo/shared';
-import { ChevronDownIcon } from 'lucide-react';
+import type { Collection, ExploreImage, SearchResult } from '@wumboo/shared';
+import { ChevronDownIcon, ImageOffIcon, SearchIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
+import { toast } from 'sonner';
 import {
   JustifiedRows,
   JustifiedRowsSkeleton,
@@ -21,10 +24,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth';
+import { SaveToBoardDialog, useSaveToBoard } from '@/features/items';
+import {
+  FilterPanel,
+  readFilters,
+  ResultGrid,
+  ResultGridSkeleton,
+  SearchBar,
+  useImageSearch,
+  writeFilters,
+  type SearchFilters,
+} from '@/features/search';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
 import { http } from '@/lib/api';
 import { pluralize } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { useBoards, useCreateBoard } from '../queries';
 import { useExploreImages } from '../queries';
 
 /** The API's ceiling; five seed boards fill forty of these. */
@@ -51,9 +69,20 @@ function boardsIn(images: ExploreImage[]): BoardOption[] {
   return [...seen.values()];
 }
 
+const SUGGESTIONS = [
+  'warm kitchen',
+  'fog over pines',
+  'brutalist library',
+  'tide pools',
+  'neon rain',
+];
+
 export default function ExplorePage() {
   const { user } = useSession();
   const auth = useAuthDialog();
+  const [params, setParams] = useSearchParams();
+  const filters = readFilters(params);
+  const searching = filters.q.trim().length > 0;
   const feed = useExploreImages(FEED_LIMIT);
   const [boardId, setBoardId] = useState<string | null>(null);
   const [order, setOrder] = useState<Order>('newest');
@@ -65,6 +94,60 @@ export default function ExplorePage() {
     return order === 'newest' ? ofBoard : [...ofBoard].reverse();
   }, [images, boardId, order]);
   const boardLabel = boards.find((board) => board.id === boardId)?.title ?? 'All boards';
+
+  const boardsQuery = useBoards(user !== null);
+  const createBoard = useCreateBoard();
+  const quickSave = useSaveToBoard();
+  const search = useImageSearch(filters);
+  const [picking, setPicking] = useState<SearchResult | null>(null);
+  const [savedTo, setSavedTo] = useState<Record<string, string>>({});
+  const targetBoardId = params.get('board');
+  const targetBoard = boardsQuery.data?.find(
+    (board) => board.id === targetBoardId && (board.role === 'owner' || board.role === 'editor'),
+  );
+  const results = search.data?.pages.flatMap((page) => page.results) ?? [];
+  const total = search.data?.pages[0]?.total ?? 0;
+
+  function markSaved(result: SearchResult, board: Collection) {
+    setSavedTo((current) => ({ ...current, [result.providerImageId]: board.title }));
+    toast.success(`Saved to “${board.title}”`, {
+      action: { label: 'View board', onClick: () => window.location.assign(`/boards/${board.id}`) },
+    });
+  }
+
+  function handleSave(result: SearchResult) {
+    if (user && targetBoard) {
+      // Arrived from a board's "Add images": one click saves straight into it.
+      quickSave.mutate(
+        {
+          collectionId: targetBoard.id,
+          body: {
+            provider: result.provider,
+            providerImageId: result.providerImageId,
+            caption: '',
+            tags: [],
+          },
+        },
+        {
+          onSuccess: () => markSaved(result, targetBoard),
+          onError: (error) => {
+            // Already on the board counts as saved; anything else is worth saying.
+            if (error.code === 'CONFLICT') markSaved(result, targetBoard);
+            else toast.error(error.message);
+          },
+        },
+      );
+      return;
+    }
+    setPicking(result);
+  }
+
+  const setFilters = (next: SearchFilters) => {
+    const nextParams = writeFilters(next);
+    const board = params.get('board');
+    if (board) nextParams.set('board', board);
+    setParams(nextParams, { replace: true });
+  };
   // Visitors get a taste; the rest waits behind the sign-in card, which opens right here.
   const gated = user === null && shown.length > FREE_PREVIEW;
   const sharp = gated ? shown.slice(0, FREE_PREVIEW) : shown;
@@ -94,9 +177,86 @@ export default function ExplorePage() {
               : ' '}
           </p>
         </header>
-        <p className="sr-only">Public boards from everyone on Wumboo, newest first.</p>
+        <p className="sr-only">Search the free-photo library, or browse the public boards below.</p>
 
-        {feed.isPending ? (
+        <div className="stage-surface mt-5 flex items-center gap-2">
+          <SearchBar filters={filters} onChange={setFilters} />
+          <FilterPanel filters={filters} onChange={setFilters} />
+        </div>
+
+        {targetBoard && (
+          <p className="stage-surface mt-3 rounded-lg border border-stage-ink/20 px-3 py-2 text-sm text-stage-ink">
+            Saving straight into <strong>{targetBoard.title}</strong>.{' '}
+            <Link to={`/boards/${targetBoard.id}`} className="underline underline-offset-4">
+              Back to the board
+            </Link>
+          </p>
+        )}
+
+        {!searching && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {SUGGESTIONS.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => setFilters({ ...filters, q: suggestion })}
+                className="rounded-full border border-stage-ink/25 px-3 py-1 text-xs text-stage-ink/70 transition-colors hover:border-stage-ink/60 hover:text-stage-ink"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {searching ? (
+          <section aria-label="Search results" className="stage-surface mt-6 text-stage-ink">
+            {search.isPending ? (
+              <ResultGridSkeleton />
+            ) : search.error ? (
+              <EmptyState
+                icon={<ImageOffIcon />}
+                title="Search is unavailable right now"
+                description={search.error.message}
+                action={
+                  <Button variant="outline" onClick={() => void search.refetch()}>
+                    Try again
+                  </Button>
+                }
+              />
+            ) : results.length === 0 ? (
+              <EmptyState
+                icon={<SearchIcon />}
+                title={`Nothing for “${filters.q}”`}
+                description="Try fewer words, or loosen a filter."
+              />
+            ) : (
+              <>
+                <p className="mb-4 text-sm text-stage-ink/60">
+                  {total.toLocaleString()} results for “{filters.q}”
+                </p>
+                <ResultGrid
+                  results={results}
+                  savedTo={savedTo}
+                  onSave={handleSave}
+                  hasMore={Boolean(search.hasNextPage)}
+                  loadingMore={search.isFetchingNextPage}
+                  onLoadMore={() => void search.fetchNextPage()}
+                />
+                <p className="mt-8 text-center text-xs text-stage-ink/50">
+                  Photos from{' '}
+                  <a
+                    href="https://pixabay.com/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-4"
+                  >
+                    Pixabay
+                  </a>
+                </p>
+              </>
+            )}
+          </section>
+        ) : feed.isPending ? (
           <JustifiedRowsSkeleton label="Loading public images" className="mt-6" />
         ) : feed.isError ? (
           <Notice>Could not load the public boards. Try again in a moment.</Notice>
@@ -117,8 +277,24 @@ export default function ExplorePage() {
         )}
       </main>
 
-      {/* Docked filters, like a contact sheet's tabs: they stay put while the rows scroll under them. */}
-      <div className="pointer-events-none sticky bottom-0 z-40 flex justify-center px-4 pt-10 pb-4">
+      <SaveToBoardDialog
+        result={picking}
+        user={user}
+        boards={boardsQuery.data ?? []}
+        onClose={() => setPicking(null)}
+        onSaved={(board) => picking && markSaved(picking, board)}
+        onCreateBoard={(title) =>
+          createBoard.mutateAsync({ title, description: '', visibility: 'private' })
+        }
+      />
+
+      {/* The browse filters, docked, and only while there is something to browse. */}
+      <div
+        className={cn(
+          'pointer-events-none sticky bottom-0 z-40 justify-center px-4 pt-10 pb-4',
+          searching ? 'hidden' : 'flex',
+        )}
+      >
         <div className="pointer-events-auto flex divide-x divide-stage-ink/20 overflow-hidden rounded-md bg-stage-ink/10 text-[11px] tracking-[0.2em] uppercase shadow-lg ring-1 ring-stage-ink/15 backdrop-blur-md">
           <FilterMenu label="Board" value={boardLabel}>
             <DropdownMenuItem onClick={() => setBoardId(null)}>All boards</DropdownMenuItem>

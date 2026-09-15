@@ -12,7 +12,6 @@
  */
 import type { Image as LandingImage, LandingImagesResponse } from '@wumboo/shared';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRightIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -198,13 +197,6 @@ export function ExploreCanvas({
       />
 
       <StageChrome signedIn={signedIn} leading={chromeLeading} />
-
-      <Link
-        to="/explore"
-        className="absolute right-6 bottom-6 z-40 inline-flex items-center gap-2 border border-stage-ink/50 px-4 py-2.5 text-[11px] tracking-[0.2em] uppercase transition-colors hover:bg-stage-ink hover:text-stage"
-      >
-        See more work <ArrowRightIcon className="size-3.5" />
-      </Link>
 
       {interactive && <CursorDot parallax={parallax} hovering={hovering} />}
     </section>

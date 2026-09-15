@@ -60,19 +60,17 @@ export function StageChrome({
         <NavLink to="/boards" className={link}>
           Boards
         </NavLink>
-        <span aria-hidden>·</span>
-        {signedIn ? (
-          <NavLink to="/discover" className={link}>
-            Discover
-          </NavLink>
-        ) : (
-          <Link
-            to="/login"
-            onClick={auth.intercept({ mode: 'login' })}
-            className="transition-colors hover:text-stage-ink/70"
-          >
-            Sign in
-          </Link>
+        {!signedIn && (
+          <>
+            <span aria-hidden>·</span>
+            <Link
+              to="/login"
+              onClick={auth.intercept({ mode: 'login' })}
+              className="transition-colors hover:text-stage-ink/70"
+            >
+              Sign in
+            </Link>
+          </>
         )}
         {trailing}
       </nav>

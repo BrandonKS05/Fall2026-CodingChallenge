@@ -126,7 +126,7 @@ export default function BoardPage() {
           <LikeButton board={collection} signedIn={user !== null} />
           {canEdit && (
             <Link
-              to={`/discover?board=${collection.id}`}
+              to={`/explore?board=${collection.id}`}
               className={buttonVariants({ variant: 'outline' })}
             >
               <ImagePlusIcon /> Add images
@@ -150,7 +150,7 @@ export default function BoardPage() {
           }
           action={
             canEdit && (
-              <Link to={`/discover?board=${collection.id}`} className={buttonVariants()}>
+              <Link to={`/explore?board=${collection.id}`} className={buttonVariants()}>
                 Find images
               </Link>
             )

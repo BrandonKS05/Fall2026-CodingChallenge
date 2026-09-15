@@ -6,7 +6,16 @@ export interface ImageSearchQuery {
   page: number;
   perPage: number;
   orientation: 'all' | 'horizontal' | 'vertical';
-  color?: string;
+  /** A named colour the provider indexes. */
+  color?: string | undefined;
+  /** A colour picked from the wheel, matched to the nearest name by the adapter. */
+  colorHex?: string | undefined;
+  type?: 'all' | 'photo' | 'illustration' | 'vector' | undefined;
+  category?: string | undefined;
+  order?: 'popular' | 'latest' | undefined;
+  editorsChoice?: boolean | undefined;
+  minWidth?: number | undefined;
+  minHeight?: number | undefined;
 }
 
 export interface ImageSearchResult {

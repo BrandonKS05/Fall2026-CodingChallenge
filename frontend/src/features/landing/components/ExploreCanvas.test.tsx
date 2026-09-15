@@ -60,23 +60,19 @@ describe('ExploreCanvas', () => {
     expect(api.calls[0]?.url).toContain(`limit=${FEED_SIZE}`);
   });
 
-  it('renders the chrome and the custom cursor, and swaps Sign in for Discover when signed in', async () => {
+  it('renders the chrome and the custom cursor, and drops Sign in once there is a session', async () => {
     renderCanvas();
-    expect(screen.getByRole('link', { name: /see more work/i })).toHaveAttribute(
-      'href',
-      '/explore',
-    );
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
     expect(screen.getByRole('link', { name: 'Boards' })).toBeInTheDocument();
     expect(screen.getByTestId('cursor-dot')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Featured boards' })).toHaveClass('cursor-none');
+    cleanup();
     vi.unstubAllGlobals();
 
     renderCanvas({ body: { images: [] } }, { signedIn: true });
-    expect(await screen.findByRole('link', { name: 'Discover' })).toHaveAttribute(
-      'href',
-      '/discover',
-    );
+    // Signed in there is no Sign in link, and no Discover: Explore holds the search now.
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull());
+    expect(screen.queryByRole('link', { name: 'Discover' })).toBeNull();
   });
 
   it('keeps the stage on one paint layer: no fixed or blended layers over the moving tiles', () => {
@@ -140,7 +136,7 @@ describe('ExploreCanvas', () => {
   it('fails silently to an empty stage', async () => {
     renderCanvas({ status: 500, body: { error: { code: 'INTERNAL_ERROR', message: 'down' } } });
     await waitFor(() => expect(tileImages()).toHaveLength(0));
-    expect(screen.getByRole('link', { name: /see more work/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Explore' })).toBeInTheDocument();
   });
 
   it('falls back to a static scatter with the native cursor for reduced motion and touch', async () => {

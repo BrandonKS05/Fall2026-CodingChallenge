@@ -5,9 +5,7 @@ import { searchApi } from './api';
 
 export const SEARCH_PAGE_SIZE = 30;
 
-export type SearchParams = Pick<SearchQuery, 'q' | 'orientation'> & {
-  color?: SearchQuery['color'];
-};
+export type SearchParams = Omit<SearchQuery, 'page' | 'perPage'>;
 
 /**
  * Pages of results for a query. Pixabay caps reachable hits at 500, and the

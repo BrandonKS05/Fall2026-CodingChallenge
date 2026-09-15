@@ -29,10 +29,103 @@ export const searchColorSchema = z.enum([
   'brown',
 ]);
 
+export type SearchColor = z.infer<typeof searchColorSchema>;
+
+/** What Pixabay indexes each named colour as, so a hex can be matched to one. */
+const COLOR_SWATCHES: Record<Exclude<SearchColor, 'transparent' | 'grayscale'>, string> = {
+  red: '#e02020',
+  orange: '#f07818',
+  yellow: '#f0c020',
+  green: '#3cb043',
+  turquoise: '#18c0b0',
+  blue: '#2060e0',
+  lilac: '#a878e8',
+  pink: '#e858a0',
+  white: '#ffffff',
+  gray: '#909090',
+  black: '#101010',
+  brown: '#8a5a2b',
+};
+
+/**
+ * The nearest colour Pixabay knows about. The provider indexes by name, not by
+ * value, so a colour picked from a wheel has to be answered with the closest
+ * word rather than the exact shade.
+ */
+export function nearestSearchColor(hex: string): SearchColor {
+  const target = rgbOf(hex);
+  let best: SearchColor = 'gray';
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const [name, swatch] of Object.entries(COLOR_SWATCHES)) {
+    const candidate = rgbOf(swatch);
+    const distance =
+      (target[0] - candidate[0]) ** 2 +
+      (target[1] - candidate[1]) ** 2 +
+      (target[2] - candidate[2]) ** 2;
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = name as SearchColor;
+    }
+  }
+  return best;
+}
+
+function rgbOf(hex: string): [number, number, number] {
+  const value = hex.replace('#', '');
+  return [
+    Number.parseInt(value.slice(0, 2), 16),
+    Number.parseInt(value.slice(2, 4), 16),
+    Number.parseInt(value.slice(4, 6), 16),
+  ];
+}
+
+/** Pixabay's own categories, in its own order. */
+export const searchCategorySchema = z.enum([
+  'backgrounds',
+  'fashion',
+  'nature',
+  'science',
+  'education',
+  'feelings',
+  'health',
+  'people',
+  'religion',
+  'places',
+  'animals',
+  'industry',
+  'computer',
+  'food',
+  'sports',
+  'transportation',
+  'travel',
+  'buildings',
+  'business',
+  'music',
+]);
+export type SearchCategory = z.infer<typeof searchCategorySchema>;
+
+export const imageTypeSchema = z.enum(['all', 'photo', 'illustration', 'vector']);
+export type ImageType = z.infer<typeof imageTypeSchema>;
+
+export const searchOrderSchema = z.enum(['popular', 'latest']);
+export type SearchOrder = z.infer<typeof searchOrderSchema>;
+
 export const searchQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().min(1).max(100),
   orientation: imageOrientationSchema.default('all'),
   color: searchColorSchema.optional(),
+  /** A colour picked from the wheel. Matched to the nearest name the provider knows. */
+  colorHex: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Use a colour like #4f46e5')
+    .optional(),
+  type: imageTypeSchema.default('all'),
+  category: searchCategorySchema.optional(),
+  order: searchOrderSchema.default('popular'),
+  /** Pixabay's own pick of the best of a search. */
+  editorsChoice: z.stringbool().default(false),
+  minWidth: z.coerce.number().int().min(0).max(6000).optional(),
+  minHeight: z.coerce.number().int().min(0).max(6000).optional(),
 });
 export type SearchQuery = z.infer<typeof searchQuerySchema>;
 

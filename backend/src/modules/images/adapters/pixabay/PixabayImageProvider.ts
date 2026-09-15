@@ -1,3 +1,4 @@
+import { nearestSearchColor } from '@wumboo/shared';
 import { UpstreamError } from '../../../../domain/errors/index.js';
 import type { FetchFn } from '../../../../infrastructure/http/fetch.js';
 import type {
@@ -40,8 +41,14 @@ export class PixabayImageProvider implements ImageProvider {
       page: query.page,
       per_page: Math.max(MIN_PER_PAGE, query.perPage),
       orientation: query.orientation,
-      colors: query.color,
-      image_type: 'photo',
+      // Pixabay indexes colours by name, so a picked shade becomes the nearest word.
+      colors: query.colorHex ? nearestSearchColor(query.colorHex) : query.color,
+      image_type: query.type ?? 'all',
+      category: query.category,
+      order: query.order ?? 'popular',
+      editors_choice: query.editorsChoice ? 'true' : undefined,
+      min_width: query.minWidth,
+      min_height: query.minHeight,
       safesearch: 'true',
     });
     return {

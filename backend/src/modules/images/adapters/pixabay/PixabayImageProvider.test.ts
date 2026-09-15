@@ -32,12 +32,43 @@ describe('PixabayImageProvider', () => {
       per_page: '3', // Pixabay's minimum, even when the caller wants 1
       orientation: 'horizontal',
       colors: 'red',
-      image_type: 'photo',
+      image_type: 'all',
+      order: 'popular',
       safesearch: 'true',
     });
     expect(result).toMatchObject({ page: 2, perPage: 1, total: 1 });
     expect(result.results).toHaveLength(1);
     expect(result.results[0]?.providerImageId).toBe('195893');
+  });
+
+  it('sends every filter it is given, and matches a picked colour to the nearest name', async () => {
+    const { fetchFn, provider } = providerWith({ body: okBody });
+
+    await provider.search({
+      q: 'kitchen',
+      page: 1,
+      perPage: 10,
+      orientation: 'all',
+      colorHex: '#12c0b4',
+      type: 'illustration',
+      category: 'food',
+      order: 'latest',
+      editorsChoice: true,
+      minWidth: 1920,
+      minHeight: 1080,
+    });
+
+    const params = Object.fromEntries(new URL(fetchFn.calls[0] ?? '').searchParams);
+    expect(params).toMatchObject({
+      image_type: 'illustration',
+      category: 'food',
+      order: 'latest',
+      editors_choice: 'true',
+      min_width: '1920',
+      min_height: '1080',
+      // #12c0b4 is closest to the colour Pixabay calls turquoise.
+      colors: 'turquoise',
+    });
   });
 
   it('looks up a single image by id', async () => {

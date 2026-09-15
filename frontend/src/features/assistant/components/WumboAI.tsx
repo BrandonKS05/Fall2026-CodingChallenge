@@ -6,12 +6,18 @@
  * whole integration. The conversation lives in sessionStorage: it survives a
  * refresh, and it is gone when the tab closes.
  */
-import { SendIcon, SparklesIcon, XIcon } from 'lucide-react';
+import { ArrowUpIcon, WandSparklesIcon, XIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { askWumbo, ChatUnavailableError, type ChatTurn } from '../api';
 
 const STORAGE_KEY = 'wumbo-ai:conversation';
+/** Openers, so an empty panel suggests what it is for rather than waiting. */
+const SUGGESTIONS = [
+  'Who can see a follower-only board?',
+  'How do message requests work?',
+  'Can I change my handle?',
+];
 /** Long enough to keep context, short enough that the request stays small. */
 const REMEMBERED_TURNS = 20;
 
@@ -114,7 +120,7 @@ export function WumboAI() {
           <XIcon className="size-6" />
         ) : (
           <>
-            <SparklesIcon className="size-6 transition-transform group-hover:rotate-12" />
+            <WandSparklesIcon className="size-6 drop-shadow-sm transition-transform duration-300 group-hover:-rotate-12" />
             {/* A slow halo, so the button reads as alive without demanding attention. */}
             <span
               aria-hidden
@@ -136,7 +142,7 @@ export function WumboAI() {
               aria-hidden
               className="grid size-7 place-items-center rounded-full bg-linear-to-br from-violet-500 to-sky-500 text-white"
             >
-              <SparklesIcon className="size-4" />
+              <WandSparklesIcon className="size-4" />
             </span>
             <div className="min-w-0">
               <p className="text-sm font-semibold">Wumbo AI ✨</p>
@@ -146,9 +152,31 @@ export function WumboAI() {
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3" aria-live="polite">
             {bubbles.length === 0 && !thinking ? (
-              <p className="mt-6 text-center text-sm text-muted-foreground">
-                Ask Wumbo AI anything
-              </p>
+              <div className="mt-8 px-1 text-center">
+                <span
+                  aria-hidden
+                  className="mx-auto grid size-12 place-items-center rounded-2xl bg-linear-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-[0_8px_24px_-8px] shadow-violet-500/60"
+                >
+                  <WandSparklesIcon className="size-6" />
+                </span>
+                <p className="mt-3 text-sm font-medium">Ask Wumbo AI anything ✨</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Boards, pins, following, messages — try one of these:
+                </p>
+                <ul className="mt-3 flex flex-col gap-1.5">
+                  {SUGGESTIONS.map((suggestion) => (
+                    <li key={suggestion}>
+                      <button
+                        type="button"
+                        onClick={() => setDraft(suggestion)}
+                        className="w-full rounded-xl border border-border px-3 py-2 text-left text-xs transition-colors hover:border-violet-400/60 hover:bg-accent"
+                      >
+                        {suggestion}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : (
               <ol className="flex flex-col gap-2">
                 {bubbles.map((bubble) => (
@@ -212,7 +240,7 @@ export function WumboAI() {
               aria-label="Send"
               className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
             >
-              <SendIcon className="size-4" />
+              <ArrowUpIcon className="size-4" />
             </button>
           </form>
         </section>
