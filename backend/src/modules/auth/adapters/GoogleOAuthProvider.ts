@@ -50,7 +50,13 @@ export class GoogleOAuthProvider implements OAuthProvider {
     return url.toString();
   }
 
-  async exchangeCode({ code, redirectUri }: { code: string; redirectUri: string }): Promise<OAuthProfile> {
+  async exchangeCode({
+    code,
+    redirectUri,
+  }: {
+    code: string;
+    redirectUri: string;
+  }): Promise<OAuthProfile> {
     const fetchFn = this.options.fetchFn ?? fetch;
     let response: Response;
     try {

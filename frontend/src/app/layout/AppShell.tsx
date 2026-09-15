@@ -1,18 +1,26 @@
 import { type ReactNode } from 'react';
 import { NavLink } from 'react-router';
+import { useSession } from '@/features/auth/queries';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { cn } from '@/lib/utils';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { UserMenu } from './UserMenu';
 
-const links = [
-  { to: '/', label: 'Discover', end: true },
+interface NavItem {
+  to: string;
+  label: string;
+  end?: boolean;
+}
+
+const links: NavItem[] = [
+  { to: '/discover', label: 'Discover' },
   { to: '/explore', label: 'Explore' },
   { to: '/boards', label: 'My boards' },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { user } = useSession();
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -27,7 +35,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   cn(
                     'rounded-md px-3 py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground',
-                    isActive ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground',
+                    isActive
+                      ? 'bg-accent text-accent-foreground font-medium'
+                      : 'text-muted-foreground',
                   )
                 }
               >
@@ -36,7 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-1">
-            <NotificationBell />
+            <NotificationBell user={user} />
             <ThemeToggle />
             <UserMenu />
           </div>

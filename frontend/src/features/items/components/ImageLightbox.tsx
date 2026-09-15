@@ -32,11 +32,14 @@ export function ImageLightbox({ item, onClose }: ImageLightboxProps) {
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
                 >
-                  Photo by {item.image.credit.name} on Pixabay <ExternalLinkIcon className="size-3" />
+                  Photo by {item.image.credit.name} on Pixabay{' '}
+                  <ExternalLinkIcon className="size-3" />
                 </a>
               </DialogDescription>
               {item.tags.length > 0 && (
-                <p className="text-xs text-muted-foreground">{item.tags.map((tag) => `#${tag}`).join(' ')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {item.tags.map((tag) => `#${tag}`).join(' ')}
+                </p>
               )}
             </div>
           </div>

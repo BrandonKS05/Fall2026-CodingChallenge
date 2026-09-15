@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "pnpm -r --parallel --stream run dev",
     "build": "pnpm -r run build",
-    "lint": "pnpm -r run lint",
+    "lint": "eslint .",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
     "format": "prettier --write .",
@@ -21,10 +21,20 @@
     "db:migrate": "pnpm --filter @trove/backend run db:migrate",
     "db:seed": "pnpm --filter @trove/backend run db:seed",
     "db:generate": "pnpm --filter @trove/backend run db:generate",
-    "test:db": "pnpm --filter @trove/backend run test:db"
+    "test:db": "pnpm --filter @trove/backend run test:db",
+    "lint:fix": "eslint . --fix"
   },
   "devDependencies": {
-    "prettier": "^3.6.0"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-boundaries": "^5.4.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.12.0",
+    "prettier": "^3.6.0",
+    "typescript-eslint": "^8.70.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

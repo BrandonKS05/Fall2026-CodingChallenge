@@ -16,18 +16,26 @@ interface BoardActivity {
   actorId: string;
 }
 
-export type ItemAddedEvent = BaseEvent<'item.added', BoardActivity & { itemId: string; imageId: string }>;
-export type ItemUpdatedEvent = BaseEvent<'item.updated', BoardActivity & { itemId: string; moved: boolean }>;
+export type ItemAddedEvent = BaseEvent<
+  'item.added',
+  BoardActivity & { itemId: string; imageId: string }
+>;
+export type ItemUpdatedEvent = BaseEvent<
+  'item.updated',
+  BoardActivity & { itemId: string; moved: boolean }
+>;
 export type ItemRemovedEvent = BaseEvent<'item.removed', BoardActivity & { itemId: string }>;
-export type CollectionUpdatedEvent = BaseEvent<'collection.updated', BoardActivity & { changes: string[] }>;
-export type MemberAddedEvent = BaseEvent<'member.added', BoardActivity & { userId: string; role: CollectionRole }>;
+export type CollectionUpdatedEvent = BaseEvent<
+  'collection.updated',
+  BoardActivity & { changes: string[] }
+>;
+export type MemberAddedEvent = BaseEvent<
+  'member.added',
+  BoardActivity & { userId: string; role: CollectionRole }
+>;
 
 export type DomainEvent =
-  | ItemAddedEvent
-  | ItemUpdatedEvent
-  | ItemRemovedEvent
-  | CollectionUpdatedEvent
-  | MemberAddedEvent;
+  ItemAddedEvent | ItemUpdatedEvent | ItemRemovedEvent | CollectionUpdatedEvent | MemberAddedEvent;
 
 export type DomainEventName = DomainEvent['name'];
 export type EventOf<TName extends DomainEventName> = Extract<DomainEvent, { name: TName }>;

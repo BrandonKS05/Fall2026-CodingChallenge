@@ -50,7 +50,12 @@ export function createShareController(share: ShareService): ShareController {
 
     updateRole: async (_req, res) => {
       const { params, body } = getValidated<UpdateMemberRequest, unknown, MemberParams>(res);
-      const member = await share.updateRole(params.id, currentUser(res).id, params.userId, body.role);
+      const member = await share.updateRole(
+        params.id,
+        currentUser(res).id,
+        params.userId,
+        body.role,
+      );
       res.json(presentMember(member));
     },
 

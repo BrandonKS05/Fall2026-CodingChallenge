@@ -40,7 +40,11 @@ export function BoardSettingsDialog({ board }: { board: Collection }) {
           <DialogDescription>Rename it, describe it, or change who can see it.</DialogDescription>
         </DialogHeader>
         <BoardForm
-          defaultValues={{ title: board.title, description: board.description, visibility: board.visibility }}
+          defaultValues={{
+            title: board.title,
+            description: board.description,
+            visibility: board.visibility,
+          }}
           submitLabel="Save changes"
           pending={update.isPending}
           onSubmit={async (values) => {
@@ -53,7 +57,8 @@ export function BoardSettingsDialog({ board }: { board: Collection }) {
         <div className="space-y-2">
           <p className="text-sm font-medium">Delete this board</p>
           <p className="text-xs text-muted-foreground">
-            Removes the board and everything saved to it. Images stay available on your other boards.
+            Removes the board and everything saved to it. Images stay available on your other
+            boards.
           </p>
           {confirmingDelete ? (
             <div className="flex gap-2">

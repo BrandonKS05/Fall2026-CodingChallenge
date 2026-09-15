@@ -9,7 +9,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { FormField } from '@/features/auth/components/FormField';
+import { FormField } from '@/components/common/FormField';
 import { VisibilityPicker } from './VisibilityPicker';
 
 export type BoardFormValues = CreateCollectionRequest;
@@ -25,7 +25,9 @@ interface BoardFormProps {
 
 export function BoardForm({ defaultValues, submitLabel, pending, onSubmit }: BoardFormProps) {
   const form = useForm<BoardFormInput, unknown, BoardFormValues>({
-    resolver: standardSchemaResolver<BoardFormInput, unknown, BoardFormValues>(createCollectionRequestSchema),
+    resolver: standardSchemaResolver<BoardFormInput, unknown, BoardFormValues>(
+      createCollectionRequestSchema,
+    ),
     defaultValues: { title: '', description: '', visibility: 'private', ...defaultValues },
   });
 
@@ -59,7 +61,11 @@ export function BoardForm({ defaultValues, submitLabel, pending, onSubmit }: Boa
           control={form.control}
           name="visibility"
           render={({ field }) => (
-            <VisibilityPicker value={field.value ?? 'private'} onChange={field.onChange} disabled={pending} />
+            <VisibilityPicker
+              value={field.value ?? 'private'}
+              onChange={field.onChange}
+              disabled={pending}
+            />
           )}
         />
       </div>

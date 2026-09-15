@@ -4,12 +4,7 @@
  * the api layer, so these carry a `kind` rather than a status code.
  */
 export type DomainErrorKind =
-  | 'not_found'
-  | 'forbidden'
-  | 'conflict'
-  | 'invalid'
-  | 'unauthenticated'
-  | 'upstream';
+  'not_found' | 'forbidden' | 'conflict' | 'invalid' | 'unauthenticated' | 'upstream';
 
 export abstract class DomainError extends Error {
   abstract readonly kind: DomainErrorKind;

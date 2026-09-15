@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { Image, ImageProviderName } from '../../domain/entities/Image.js';
 import { ConflictError, NotFoundError } from '../../domain/errors/index.js';
-import type { ImagePatch, ImageRepository, NewImage } from '../../modules/images/ports/ImageRepository.js';
+import type {
+  ImagePatch,
+  ImageRepository,
+  NewImage,
+} from '../../modules/images/ports/ImageRepository.js';
 
 export class InMemoryImageRepository implements ImageRepository {
   readonly rows = new Map<string, Image>();
@@ -10,7 +14,10 @@ export class InMemoryImageRepository implements ImageRepository {
     return this.rows.get(id) ?? null;
   }
 
-  async findByProviderId(provider: ImageProviderName, providerImageId: string): Promise<Image | null> {
+  async findByProviderId(
+    provider: ImageProviderName,
+    providerImageId: string,
+  ): Promise<Image | null> {
     return (
       [...this.rows.values()].find(
         (image) => image.provider === provider && image.providerImageId === providerImageId,

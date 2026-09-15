@@ -14,7 +14,9 @@ export function describeNotification(notification: Notification, readerId: strin
         ? `${actor} moved an image out of ${board}`
         : `${actor} edited an image on ${board}`;
     case 'collection_updated': {
-      const changes = Array.isArray(notification.payload.changes) ? (notification.payload.changes as string[]) : [];
+      const changes = Array.isArray(notification.payload.changes)
+        ? (notification.payload.changes as string[])
+        : [];
       if (changes.includes('title')) return `${actor} renamed a board to ${board}`;
       if (changes.includes('visibility')) return `${actor} changed who can see ${board}`;
       return `${actor} updated ${board}`;

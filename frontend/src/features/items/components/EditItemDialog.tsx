@@ -1,11 +1,23 @@
 import type { Collection, Item } from '@trove/shared';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { parseTags } from '@/lib/format';
 import { useUpdateItem } from '../queries';
@@ -26,13 +38,15 @@ export function EditItemDialog({ collectionId, item, destinations, onClose }: Ed
   const [tags, setTags] = useState('');
   const [target, setTarget] = useState(STAY);
 
-  // Reset the fields whenever a different item is opened.
-  useEffect(() => {
-    if (!item) return;
+  // Reset the fields when a different item opens. Adjusting state during render is React's
+  // documented pattern for this; an effect would render the stale values first.
+  const [openedItemId, setOpenedItemId] = useState<string | null>(null);
+  if (item && item.id !== openedItemId) {
+    setOpenedItemId(item.id);
     setCaption(item.caption);
     setTags(item.tags.join(', '));
     setTarget(STAY);
-  }, [item]);
+  }
 
   const options = [
     { value: STAY, label: 'Keep it on this board' },
@@ -91,7 +105,11 @@ export function EditItemDialog({ collectionId, item, destinations, onClose }: Ed
           {destinations.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="item-move">Move to</Label>
-              <Select items={options} value={target} onValueChange={(value) => setTarget(String(value ?? STAY))}>
+              <Select
+                items={options}
+                value={target}
+                onValueChange={(value) => setTarget(String(value ?? STAY))}
+              >
                 <SelectTrigger id="item-move" className="w-full">
                   <SelectValue />
                 </SelectTrigger>

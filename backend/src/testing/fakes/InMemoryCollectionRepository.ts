@@ -63,7 +63,11 @@ export class InMemoryCollectionRepository implements CollectionRepository {
       updatedAt: now,
     };
     this.rows.set(collection.id, collection);
-    await this.memberships.add({ collectionId: collection.id, userId: input.ownerId, role: 'owner' });
+    await this.memberships.add({
+      collectionId: collection.id,
+      userId: input.ownerId,
+      role: 'owner',
+    });
     return collection;
   }
 
@@ -102,7 +106,10 @@ export class InMemoryCollectionRepository implements CollectionRepository {
     return [...this.rows.values()].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
   }
 
-  private async toSummary(collection: Collection, viewerId: string | null): Promise<CollectionSummary> {
+  private async toSummary(
+    collection: Collection,
+    viewerId: string | null,
+  ): Promise<CollectionSummary> {
     const owner = await this.users.findById(collection.ownerId);
     const membership = viewerId ? await this.memberships.find(collection.id, viewerId) : null;
     const items = await this.items.listByCollection(collection.id);

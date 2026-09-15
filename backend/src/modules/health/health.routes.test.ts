@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import type { HealthIndicator } from './HealthIndicator.js';
+import type { HealthIndicator } from './ports/HealthIndicator.js';
 import { buildTestApp, passingIndicator } from '../../testing/testApp.js';
 
 const failingIndicator: HealthIndicator = {

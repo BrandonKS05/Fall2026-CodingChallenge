@@ -1,11 +1,7 @@
 import { asc, desc, eq, sql } from 'drizzle-orm';
 import type { CollectionItem, ItemDetail } from '../../../domain/entities/CollectionItem.js';
 import { ConflictError, NotFoundError } from '../../../domain/errors/index.js';
-import type {
-  ItemPatch,
-  ItemRepository,
-  NewItem,
-} from '../ports/ItemRepository.js';
+import type { ItemPatch, ItemRepository, NewItem } from '../ports/ItemRepository.js';
 import type { Db } from '../../../infrastructure/db/client.js';
 import { isUniqueViolation } from '../../../infrastructure/db/errors.js';
 import { collectionItems, images, users } from '../../../infrastructure/db/schema/index.js';
@@ -32,7 +28,11 @@ const detailSelection = {
   addedBy: { id: users.id, displayName: users.displayName },
 };
 
-type DetailRow = { item: ItemRow; image: typeof images.$inferSelect; addedBy: { id: string; displayName: string } };
+type DetailRow = {
+  item: ItemRow;
+  image: typeof images.$inferSelect;
+  addedBy: { id: string; displayName: string };
+};
 
 const toDetail = (row: DetailRow): ItemDetail => ({
   ...toItem(row.item),
@@ -46,7 +46,9 @@ export class DrizzleItemRepository implements ItemRepository {
   constructor(private readonly db: Db) {}
 
   async findById(id: string): Promise<CollectionItem | null> {
-    const row = await this.db.query.collectionItems.findFirst({ where: eq(collectionItems.id, id) });
+    const row = await this.db.query.collectionItems.findFirst({
+      where: eq(collectionItems.id, id),
+    });
     return row ? toItem(row) : null;
   }
 

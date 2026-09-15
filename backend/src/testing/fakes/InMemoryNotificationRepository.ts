@@ -22,7 +22,10 @@ export class InMemoryNotificationRepository implements NotificationRepository {
   }
 
   async listForUser(userId: string, limit: number): Promise<NotificationDetail[]> {
-    const mine = this.rows.filter((row) => row.recipientId === userId).reverse().slice(0, limit);
+    const mine = this.rows
+      .filter((row) => row.recipientId === userId)
+      .reverse()
+      .slice(0, limit);
     return Promise.all(
       mine.map(async (row) => ({
         ...row,

@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  canEditItems,
-  canManage,
-  canView,
-  roleAtLeast,
-} from './collectionAccess.js';
+import { canEditItems, canManage, canView, roleAtLeast } from './collectionAccess.js';
 
 describe('collection access policy', () => {
   it('ranks roles owner > editor > viewer', () => {

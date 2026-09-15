@@ -22,9 +22,20 @@ describe.skipIf(!RUN_DB_TESTS)('DrizzleNotificationRepository (postgres)', () =>
   beforeEach(async () => {
     await truncateAll(database.db);
     const users = new DrizzleUserRepository(database.db);
-    actorId = (await users.create({ email: 'actor@x.com', displayName: 'Actor', passwordHash: 'h' })).id;
-    recipientId = (await users.create({ email: 'r@x.com', displayName: 'Recipient', passwordHash: 'h' })).id;
-    collectionId = (await collections.create({ ownerId: actorId, title: 'Board', description: '', visibility: 'private' })).id;
+    actorId = (
+      await users.create({ email: 'actor@x.com', displayName: 'Actor', passwordHash: 'h' })
+    ).id;
+    recipientId = (
+      await users.create({ email: 'r@x.com', displayName: 'Recipient', passwordHash: 'h' })
+    ).id;
+    collectionId = (
+      await collections.create({
+        ownerId: actorId,
+        title: 'Board',
+        description: '',
+        visibility: 'private',
+      })
+    ).id;
   });
 
   afterAll(() => database.close());
@@ -38,7 +49,11 @@ describe.skipIf(!RUN_DB_TESTS)('DrizzleNotificationRepository (postgres)', () =>
 
     const listed = await repository.listForUser(recipientId, 10);
     expect(listed).toHaveLength(2);
-    expect(listed[0]).toMatchObject({ actorDisplayName: 'Actor', collectionTitle: 'Board', readAt: null });
+    expect(listed[0]).toMatchObject({
+      actorDisplayName: 'Actor',
+      collectionTitle: 'Board',
+      readAt: null,
+    });
     expect(await repository.countUnread(recipientId)).toBe(2);
     expect(await repository.countUnread(actorId)).toBe(0);
 
@@ -48,11 +63,13 @@ describe.skipIf(!RUN_DB_TESTS)('DrizzleNotificationRepository (postgres)', () =>
     expect(await repository.countUnread(recipientId)).toBe(1);
     await repository.markRead(recipientId);
     expect(await repository.countUnread(recipientId)).toBe(0);
-    expect((await repository.listForUser(recipientId, 1))).toHaveLength(1);
+    expect(await repository.listForUser(recipientId, 1)).toHaveLength(1);
   });
 
   it('disappears with its board', async () => {
-    await repository.createMany([{ recipientId, actorId, collectionId, type: 'collection_updated', payload: {} }]);
+    await repository.createMany([
+      { recipientId, actorId, collectionId, type: 'collection_updated', payload: {} },
+    ]);
     await collections.delete(collectionId);
     expect(await repository.listForUser(recipientId, 10)).toEqual([]);
   });

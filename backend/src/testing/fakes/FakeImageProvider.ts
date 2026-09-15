@@ -1,8 +1,15 @@
 import type { ProviderImage } from '../../domain/entities/ProviderImage.js';
-import type { ImageProvider, ImageSearchQuery, ImageSearchResult } from '../../modules/images/ports/ImageProvider.js';
+import type {
+  ImageProvider,
+  ImageSearchQuery,
+  ImageSearchResult,
+} from '../../modules/images/ports/ImageProvider.js';
 
 /** Builds a plausible provider hit; every URL points at a fake host so tests never touch the network. */
-export function fakeProviderImage(id: string, overrides: Partial<ProviderImage> = {}): ProviderImage {
+export function fakeProviderImage(
+  id: string,
+  overrides: Partial<ProviderImage> = {},
+): ProviderImage {
   return {
     provider: 'pixabay',
     providerImageId: id,

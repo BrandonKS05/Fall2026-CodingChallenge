@@ -30,8 +30,15 @@ function applyLinkChange(queryClient: QueryClient, collectionId: string, slug: s
     if (!previous) return previous;
     const { visibility } = previous.collection;
     const nextVisibility =
-      slug && visibility === 'private' ? 'unlisted' : !slug && visibility === 'unlisted' ? 'private' : visibility;
-    return { ...previous, collection: { ...previous.collection, shareSlug: slug, visibility: nextVisibility } };
+      slug && visibility === 'private'
+        ? 'unlisted'
+        : !slug && visibility === 'unlisted'
+          ? 'private'
+          : visibility;
+    return {
+      ...previous,
+      collection: { ...previous.collection, shareSlug: slug, visibility: nextVisibility },
+    };
   });
   void queryClient.invalidateQueries({ queryKey: queryKeys.collections.all });
 }
@@ -56,7 +63,8 @@ export function useInviteMember(collectionId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: InviteMemberRequest) => sharingApi.invite(collectionId, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.collections.members(collectionId) }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.collections.members(collectionId) }),
     meta: { silentError: true },
   });
 }
@@ -66,7 +74,8 @@ export function useUpdateMemberRole(collectionId: string) {
   return useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: GrantableRole }) =>
       sharingApi.updateRole(collectionId, userId, { role }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.collections.members(collectionId) }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.collections.members(collectionId) }),
   });
 }
 

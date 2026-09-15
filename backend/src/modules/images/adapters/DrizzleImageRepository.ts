@@ -1,11 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import type { Image, ImageProviderName } from '../../../domain/entities/Image.js';
 import { ConflictError, NotFoundError } from '../../../domain/errors/index.js';
-import type {
-  ImagePatch,
-  ImageRepository,
-  NewImage,
-} from '../ports/ImageRepository.js';
+import type { ImagePatch, ImageRepository, NewImage } from '../ports/ImageRepository.js';
 import type { Db } from '../../../infrastructure/db/client.js';
 import { isUniqueViolation } from '../../../infrastructure/db/errors.js';
 import { images } from '../../../infrastructure/db/schema/index.js';
@@ -50,7 +46,10 @@ export class DrizzleImageRepository implements ImageRepository {
     return row ? toImage(row) : null;
   }
 
-  async findByProviderId(provider: ImageProviderName, providerImageId: string): Promise<Image | null> {
+  async findByProviderId(
+    provider: ImageProviderName,
+    providerImageId: string,
+  ): Promise<Image | null> {
     const row = await this.db.query.images.findFirst({
       where: and(eq(images.provider, provider), eq(images.providerImageId, providerImageId)),
     });

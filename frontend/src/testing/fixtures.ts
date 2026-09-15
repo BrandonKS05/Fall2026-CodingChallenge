@@ -48,7 +48,10 @@ export function itemFixture(overrides: Partial<Item> = {}): Item {
   };
 }
 
-export function searchResultFixture(id: string, overrides: Partial<SearchResult> = {}): SearchResult {
+export function searchResultFixture(
+  id: string,
+  overrides: Partial<SearchResult> = {},
+): SearchResult {
   return {
     provider: 'pixabay',
     providerImageId: id,
@@ -65,4 +68,9 @@ export function searchResultFixture(id: string, overrides: Partial<SearchResult>
   };
 }
 
-export const userFixture = { id: 'u1', email: 'ada@example.com', displayName: 'Ada', createdAt: now };
+export const userFixture = {
+  id: 'u1',
+  email: 'ada@example.com',
+  displayName: 'Ada',
+  createdAt: now,
+};

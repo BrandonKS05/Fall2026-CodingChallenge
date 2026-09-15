@@ -21,39 +21,68 @@ describe('GoogleOAuthProvider', () => {
   });
 
   it('exchanges the code with the secret and maps the verified token into a profile', async () => {
-    const fetchFn = createFakeFetch({ 'https://oauth2.googleapis.com/token': { body: JSON.stringify({ id_token: 'signed' }) } });
+    const fetchFn = createFakeFetch({
+      'https://oauth2.googleapis.com/token': { body: JSON.stringify({ id_token: 'signed' }) },
+    });
     const provider = new GoogleOAuthProvider({
       clientId: 'client',
       clientSecret: 'secret',
       fetchFn,
       verifyIdToken: async (token) => {
         expect(token).toBe('signed');
-        return { sub: 'g-123', email: ' Ada@Example.com ', email_verified: true, name: 'Ada Lovelace' };
+        return {
+          sub: 'g-123',
+          email: ' Ada@Example.com ',
+          email_verified: true,
+          name: 'Ada Lovelace',
+        };
       },
     });
 
     const profile = await provider.exchangeCode({ code: 'the-code', redirectUri });
-    expect(profile).toEqual({ providerId: 'g-123', email: 'ada@example.com', emailVerified: true, displayName: 'Ada Lovelace' });
+    expect(profile).toEqual({
+      providerId: 'g-123',
+      email: 'ada@example.com',
+      emailVerified: true,
+      displayName: 'Ada Lovelace',
+    });
     expect(fetchFn.calls).toEqual(['https://oauth2.googleapis.com/token']);
   });
 
   it('falls back to the email local part as a name and treats unverified as unverified', async () => {
-    const fetchFn = createFakeFetch({ 'https://oauth2.googleapis.com/token': { body: JSON.stringify({ id_token: 't' }) } });
+    const fetchFn = createFakeFetch({
+      'https://oauth2.googleapis.com/token': { body: JSON.stringify({ id_token: 't' }) },
+    });
     const provider = new GoogleOAuthProvider({
       clientId: 'c',
       clientSecret: 's',
       fetchFn,
       verifyIdToken: async () => ({ sub: 'g-1', email: 'linus@example.com' }),
     });
-    expect(await provider.exchangeCode({ code: 'x', redirectUri })).toMatchObject({ displayName: 'linus', emailVerified: false });
+    expect(await provider.exchangeCode({ code: 'x', redirectUri })).toMatchObject({
+      displayName: 'linus',
+      emailVerified: false,
+    });
   });
 
   it('turns a rejected code, garbage, and an unreachable Google into the right errors', async () => {
-    const rejected = new GoogleOAuthProvider({ clientId: 'c', clientSecret: 's', fetchFn: createFakeFetch({ '*': { status: 400, body: '{}' } }) });
-    await expect(rejected.exchangeCode({ code: 'bad', redirectUri })).rejects.toBeInstanceOf(AuthenticationError);
+    const rejected = new GoogleOAuthProvider({
+      clientId: 'c',
+      clientSecret: 's',
+      fetchFn: createFakeFetch({ '*': { status: 400, body: '{}' } }),
+    });
+    await expect(rejected.exchangeCode({ code: 'bad', redirectUri })).rejects.toBeInstanceOf(
+      AuthenticationError,
+    );
 
-    const garbage = new GoogleOAuthProvider({ clientId: 'c', clientSecret: 's', fetchFn: createFakeFetch({ '*': { body: 'not json' } }) });
-    await expect(garbage.exchangeCode({ code: 'x', redirectUri })).rejects.toBeInstanceOf(UpstreamError);
+    const garbage = new GoogleOAuthProvider({
+      clientId: 'c',
+      clientSecret: 's',
+      fetchFn: createFakeFetch({ '*': { body: 'not json' } }),
+    });
+    await expect(garbage.exchangeCode({ code: 'x', redirectUri })).rejects.toBeInstanceOf(
+      UpstreamError,
+    );
 
     const offline = new GoogleOAuthProvider({
       clientId: 'c',

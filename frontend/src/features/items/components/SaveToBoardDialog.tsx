@@ -7,7 +7,13 @@ import { ImageIcon, PlusIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ApiError, http } from '@/lib/api';
 import { pluralize } from '@/lib/format';
@@ -22,7 +28,14 @@ interface SaveToBoardDialogProps {
   onCreateBoard: (title: string) => Promise<Collection>;
 }
 
-export function SaveToBoardDialog({ result, user, boards, onClose, onSaved, onCreateBoard }: SaveToBoardDialogProps) {
+export function SaveToBoardDialog({
+  result,
+  user,
+  boards,
+  onClose,
+  onSaved,
+  onCreateBoard,
+}: SaveToBoardDialogProps) {
   const save = useSaveToBoard();
   const [newTitle, setNewTitle] = useState('');
   const [creating, setCreating] = useState(false);
@@ -36,7 +49,12 @@ export function SaveToBoardDialog({ result, user, boards, onClose, onSaved, onCr
     try {
       await save.mutateAsync({
         collectionId: board.id,
-        body: { provider: result.provider, providerImageId: result.providerImageId, caption: '', tags: [] },
+        body: {
+          provider: result.provider,
+          providerImageId: result.providerImageId,
+          caption: '',
+          tags: [],
+        },
       });
       onSaved(board);
     } catch (caught) {
@@ -74,13 +92,19 @@ export function SaveToBoardDialog({ result, user, boards, onClose, onSaved, onCr
         <DialogHeader>
           <DialogTitle>Save to a board</DialogTitle>
           <DialogDescription>
-            {user ? 'Pick a board, or start a new one.' : 'Boards keep what you find. Log in to start one.'}
+            {user
+              ? 'Pick a board, or start a new one.'
+              : 'Boards keep what you find. Log in to start one.'}
           </DialogDescription>
         </DialogHeader>
 
         {!user ? (
           <div className="flex gap-2">
-            <Link to="/login" state={{ from: window.location.pathname + window.location.search }} className={buttonVariants()}>
+            <Link
+              to="/login"
+              state={{ from: window.location.pathname + window.location.search }}
+              className={buttonVariants()}
+            >
               Log in
             </Link>
             <Link to="/register" className={buttonVariants({ variant: 'outline' })}>
@@ -100,7 +124,11 @@ export function SaveToBoardDialog({ result, user, boards, onClose, onSaved, onCr
                       className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent disabled:opacity-50"
                     >
                       {board.previewImageIds[0] ? (
-                        <img src={http.url(`/images/${board.previewImageIds[0]}`)} alt="" className="size-10 rounded-md object-cover" />
+                        <img
+                          src={http.url(`/images/${board.previewImageIds[0]}`)}
+                          alt=""
+                          className="size-10 rounded-md object-cover"
+                        />
                       ) : (
                         <span className="grid size-10 place-items-center rounded-md bg-muted text-muted-foreground">
                           <ImageIcon className="size-4" />
@@ -108,7 +136,9 @@ export function SaveToBoardDialog({ result, user, boards, onClose, onSaved, onCr
                       )}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{board.title}</span>
-                        <span className="block text-xs text-muted-foreground">{pluralize(board.itemCount, 'image')}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {pluralize(board.itemCount, 'image')}
+                        </span>
                       </span>
                     </button>
                   </li>
@@ -124,7 +154,11 @@ export function SaveToBoardDialog({ result, user, boards, onClose, onSaved, onCr
                 maxLength={80}
                 disabled={busy}
               />
-              <Button type="submit" variant="outline" disabled={busy || newTitle.trim().length === 0}>
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={busy || newTitle.trim().length === 0}
+              >
                 <PlusIcon /> Create
               </Button>
             </form>

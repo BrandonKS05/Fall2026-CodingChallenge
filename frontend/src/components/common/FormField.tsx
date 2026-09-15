@@ -14,7 +14,12 @@ export function FormField({ id, label, error, ...inputProps }: FormFieldProps) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined} {...inputProps} />
+      <Input
+        id={id}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
+        {...inputProps}
+      />
       {error && (
         <p id={errorId} role="alert" className="text-sm text-destructive">
           {error}

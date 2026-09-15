@@ -1,6 +1,5 @@
 export type HealthCheckResult =
-  | { status: 'ok'; latencyMs: number }
-  | { status: 'error'; latencyMs: number; message: string };
+  { status: 'ok'; latencyMs: number } | { status: 'error'; latencyMs: number; message: string };
 
 /**
  * Strategy: one implementation per dependency (database, image provider,

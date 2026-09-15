@@ -39,13 +39,20 @@ describe.skipIf(!RUN_DB_TESTS)('DrizzleImageRepository (postgres)', () => {
 
   it('enforces one row per provider image', async () => {
     await repository.create(input);
-    await expect(repository.create({ ...input, storageKey: 'images/dup.jpg' })).rejects.toBeInstanceOf(ConflictError);
+    await expect(
+      repository.create({ ...input, storageKey: 'images/dup.jpg' }),
+    ).rejects.toBeInstanceOf(ConflictError);
   });
 
   it('updates enrichment fields and reports missing images', async () => {
     const created = await repository.create(input);
-    const updated = await repository.update(created.id, { blurhash: 'LEHV6nWB2yk8', palette: ['#aabbcc', '#112233'] });
+    const updated = await repository.update(created.id, {
+      blurhash: 'LEHV6nWB2yk8',
+      palette: ['#aabbcc', '#112233'],
+    });
     expect(updated).toMatchObject({ blurhash: 'LEHV6nWB2yk8', palette: ['#aabbcc', '#112233'] });
-    await expect(repository.update('00000000-0000-0000-0000-000000000000', { blurhash: 'x' })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      repository.update('00000000-0000-0000-0000-000000000000', { blurhash: 'x' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

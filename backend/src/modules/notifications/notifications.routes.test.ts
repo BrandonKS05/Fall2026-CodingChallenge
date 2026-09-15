@@ -28,20 +28,31 @@ describe('notifications routes', () => {
       repositories: createFakeRepositories(),
       passwordHasher: new FakePasswordHasher(),
       imageProvider: new FakeImageProvider([fakeProviderImage('101')]),
-      fetchFn: createFakeFetch({ 'https://fake.test/download/101.jpg': { contentType: 'image/jpeg', body: FAKE_JPEG } }),
+      fetchFn: createFakeFetch({
+        'https://fake.test/download/101.jpg': { contentType: 'image/jpeg', body: FAKE_JPEG },
+      }),
     });
     owner = await signUp(app, 'owner@example.com');
     friend = await signUp(app, 'friend@example.com');
-    boardId = (await request(app).post('/api/collections').set('Cookie', owner).send({ title: 'Kitchens' })).body.id;
-    await request(app).post(`/api/collections/${boardId}/members`).set('Cookie', owner).send({ email: 'friend@example.com' });
+    boardId = (
+      await request(app).post('/api/collections').set('Cookie', owner).send({ title: 'Kitchens' })
+    ).body.id;
+    await request(app)
+      .post(`/api/collections/${boardId}/members`)
+      .set('Cookie', owner)
+      .send({ email: 'friend@example.com' });
   });
 
-  it('tells members about each other\'s activity and lets them clear the badge', async () => {
+  it("tells members about each other's activity and lets them clear the badge", async () => {
     const friendInbox = await request(app).get('/api/notifications').set('Cookie', friend);
     expect(friendInbox.status).toBe(200);
     expect(notificationListResponseSchema.safeParse(friendInbox.body).success).toBe(true);
     expect(friendInbox.body.unreadCount).toBe(1);
-    expect(friendInbox.body.notifications[0]).toMatchObject({ type: 'member_added', actor: { displayName: 'owner' }, collection: { title: 'Kitchens' } });
+    expect(friendInbox.body.notifications[0]).toMatchObject({
+      type: 'member_added',
+      actor: { displayName: 'owner' },
+      collection: { title: 'Kitchens' },
+    });
 
     await request(app)
       .post(`/api/collections/${boardId}/items`)
@@ -50,12 +61,26 @@ describe('notifications routes', () => {
 
     const ownerInbox = await request(app).get('/api/notifications').set('Cookie', owner);
     expect(ownerInbox.body.unreadCount).toBe(1);
-    expect(ownerInbox.body.notifications[0]).toMatchObject({ type: 'item_added', actor: { displayName: 'friend' } });
+    expect(ownerInbox.body.notifications[0]).toMatchObject({
+      type: 'item_added',
+      actor: { displayName: 'friend' },
+    });
     expect(ownerInbox.body.notifications[0].payload.imageId).toMatch(/[0-9a-f-]{36}/);
 
-    expect((await request(app).post('/api/notifications/read').set('Cookie', owner).send({ ids: ['nope'] })).status).toBe(400);
-    expect((await request(app).post('/api/notifications/read').set('Cookie', owner).send({})).status).toBe(204);
-    expect((await request(app).get('/api/notifications').set('Cookie', owner)).body.unreadCount).toBe(0);
+    expect(
+      (
+        await request(app)
+          .post('/api/notifications/read')
+          .set('Cookie', owner)
+          .send({ ids: ['nope'] })
+      ).status,
+    ).toBe(400);
+    expect(
+      (await request(app).post('/api/notifications/read').set('Cookie', owner).send({})).status,
+    ).toBe(204);
+    expect(
+      (await request(app).get('/api/notifications').set('Cookie', owner)).body.unreadCount,
+    ).toBe(0);
     expect((await request(app).get('/api/notifications')).status).toBe(401);
   });
 });

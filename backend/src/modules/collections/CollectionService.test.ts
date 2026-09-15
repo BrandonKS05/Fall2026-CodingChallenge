@@ -13,9 +13,17 @@ describe('CollectionService', () => {
 
   beforeEach(async () => {
     repos = createFakeRepositories();
-    service = new CollectionService({ ...repos, events: new RecordingEventBus(), logger: silentLogger });
-    ownerId = (await repos.users.create({ email: 'o@x.com', displayName: 'Owner', passwordHash: 'h' })).id;
-    otherId = (await repos.users.create({ email: 'e@x.com', displayName: 'Else', passwordHash: 'h' })).id;
+    service = new CollectionService({
+      ...repos,
+      events: new RecordingEventBus(),
+      logger: silentLogger,
+    });
+    ownerId = (
+      await repos.users.create({ email: 'o@x.com', displayName: 'Owner', passwordHash: 'h' })
+    ).id;
+    otherId = (
+      await repos.users.create({ email: 'e@x.com', displayName: 'Else', passwordHash: 'h' })
+    ).id;
   });
 
   const draft = { title: 'Kitchens', description: '', visibility: 'private' as const };
@@ -41,7 +49,9 @@ describe('CollectionService', () => {
     const board = await service.create(ownerId, draft);
     await repos.memberships.add({ collectionId: board.id, userId: otherId, role: 'editor' });
 
-    await expect(service.update(board.id, otherId, { title: 'x' })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(service.update(board.id, otherId, { title: 'x' })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
     await expect(service.delete(board.id, otherId)).rejects.toBeInstanceOf(ForbiddenError);
 
     expect((await service.update(board.id, ownerId, { title: 'Renamed' })).title).toBe('Renamed');
@@ -78,9 +88,15 @@ describe('CollectionService', () => {
     const board = await service.create(ownerId, draft);
     await repos.memberships.add({ collectionId: board.id, userId: otherId, role: 'editor' });
 
-    await expect(service.authorize(board.id, otherId, 'edit')).resolves.toMatchObject({ role: 'editor' });
-    await expect(service.authorize(board.id, otherId, 'manage')).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(service.authorize(board.id, otherId, 'edit')).resolves.toMatchObject({
+      role: 'editor',
+    });
+    await expect(service.authorize(board.id, otherId, 'manage')).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
     await expect(service.authorize(board.id, null, 'view')).rejects.toBeInstanceOf(ForbiddenError);
-    await expect(service.authorize('00000000-0000-0000-0000-000000000000', ownerId, 'view')).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      service.authorize('00000000-0000-0000-0000-000000000000', ownerId, 'view'),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

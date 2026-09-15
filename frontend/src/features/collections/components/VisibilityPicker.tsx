@@ -1,6 +1,6 @@
 import { collectionVisibilitySchema, type CollectionVisibility } from '@trove/shared';
 import { cn } from '@/lib/utils';
-import { VISIBILITY } from './VisibilityBadge';
+import { VISIBILITY } from '../visibility';
 
 interface VisibilityPickerProps {
   value: CollectionVisibility;

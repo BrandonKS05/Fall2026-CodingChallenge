@@ -9,7 +9,11 @@ describe('AppShell', () => {
 
   it('offers login and signup to visitors', async () => {
     vi.stubGlobal('fetch', stubApi({ 'GET /api/auth/me': { body: { user: null } } }).fetchMock);
-    renderWithProviders(<AppShell><p>content</p></AppShell>);
+    renderWithProviders(
+      <AppShell>
+        <p>content</p>
+      </AppShell>,
+    );
 
     expect(await screen.findByRole('link', { name: 'Log in' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Sign up' })).toBeInTheDocument();
@@ -17,9 +21,18 @@ describe('AppShell', () => {
   });
 
   it('shows the account menu to signed-in users', async () => {
-    const user = { id: '1', email: 'ada@example.com', displayName: 'Ada Lovelace', createdAt: new Date().toISOString() };
+    const user = {
+      id: '1',
+      email: 'ada@example.com',
+      displayName: 'Ada Lovelace',
+      createdAt: new Date().toISOString(),
+    };
     vi.stubGlobal('fetch', stubApi({ 'GET /api/auth/me': { body: { user } } }).fetchMock);
-    renderWithProviders(<AppShell><p>content</p></AppShell>);
+    renderWithProviders(
+      <AppShell>
+        <p>content</p>
+      </AppShell>,
+    );
 
     const trigger = await screen.findByRole('button', { name: 'Account menu' });
     expect(trigger).toHaveTextContent('AL');

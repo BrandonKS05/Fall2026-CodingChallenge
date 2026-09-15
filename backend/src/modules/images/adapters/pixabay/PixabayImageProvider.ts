@@ -84,7 +84,10 @@ export class PixabayImageProvider implements ImageProvider {
       throw new UpstreamError('Image provider rate limit reached, try again in a minute', 429);
     }
     if (!response.ok) {
-      throw new UpstreamError(`Image provider request failed (${response.status})`, response.status);
+      throw new UpstreamError(
+        `Image provider request failed (${response.status})`,
+        response.status,
+      );
     }
 
     let payload: unknown;

@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { CollectionItem, ItemDetail } from '../../domain/entities/CollectionItem.js';
 import { ConflictError, NotFoundError } from '../../domain/errors/index.js';
-import type { ItemPatch, ItemRepository, NewItem } from '../../modules/items/ports/ItemRepository.js';
+import type {
+  ItemPatch,
+  ItemRepository,
+  NewItem,
+} from '../../modules/items/ports/ItemRepository.js';
 import type { InMemoryImageRepository } from './InMemoryImageRepository.js';
 import type { InMemoryUserRepository } from './InMemoryUserRepository.js';
 

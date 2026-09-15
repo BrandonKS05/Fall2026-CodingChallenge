@@ -14,8 +14,14 @@ export const images = pgTable(
     width: integer().notNull(),
     height: integer().notNull(),
     blurhash: text(),
-    palette: text().array().notNull().default(sql`'{}'::text[]`),
-    tags: text().array().notNull().default(sql`'{}'::text[]`),
+    palette: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    tags: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     creditName: text().notNull(),
     creditUrl: text(),
     sourceUrl: text().notNull(),

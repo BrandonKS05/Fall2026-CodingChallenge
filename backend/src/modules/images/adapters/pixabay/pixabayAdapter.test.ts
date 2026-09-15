@@ -36,7 +36,11 @@ describe('pixabay adapter', () => {
   });
 
   it('accepts extra fields but rejects a changed shape', () => {
-    const ok = pixabayResponseSchema.safeParse({ total: 1, totalHits: 1, hits: [{ ...sampleHit, likes: 3 }] });
+    const ok = pixabayResponseSchema.safeParse({
+      total: 1,
+      totalHits: 1,
+      hits: [{ ...sampleHit, likes: 3 }],
+    });
     expect(ok.success).toBe(true);
     const bad = pixabayResponseSchema.safeParse({ total: 1, totalHits: 1, hits: [{ id: 'nope' }] });
     expect(bad.success).toBe(false);

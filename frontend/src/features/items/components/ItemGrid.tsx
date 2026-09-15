@@ -24,7 +24,11 @@ export function ItemGrid({ items, ...handlers }: ItemGridProps) {
 export function ItemGridSkeleton() {
   const heights = ['h-40', 'h-64', 'h-52', 'h-72', 'h-44', 'h-60', 'h-48', 'h-56'];
   return (
-    <div className="columns-2 gap-4 sm:columns-3 lg:columns-4" aria-busy aria-label="Loading images">
+    <div
+      className="columns-2 gap-4 sm:columns-3 lg:columns-4"
+      aria-busy
+      aria-label="Loading images"
+    >
       {heights.map((height, index) => (
         <Skeleton key={index} className={`mb-4 w-full break-inside-avoid rounded-xl ${height}`} />
       ))}

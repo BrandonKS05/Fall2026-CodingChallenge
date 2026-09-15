@@ -17,14 +17,23 @@ import { ResultGrid, ResultGridSkeleton } from '../components/ResultGrid';
 import { SearchBar, type Orientation, type SearchFilters } from '../components/SearchBar';
 import { useImageSearch } from '../queries';
 
-const SUGGESTIONS = ['warm kitchen', 'fog over pines', 'brutalist library', 'tide pools', 'neon rain'];
+const SUGGESTIONS = [
+  'warm kitchen',
+  'fog over pines',
+  'brutalist library',
+  'tide pools',
+  'neon rain',
+];
 
 function readFilters(params: URLSearchParams): SearchFilters {
   const orientation = params.get('orientation');
   const color = searchColorSchema.safeParse(params.get('color'));
   return {
     q: params.get('q') ?? '',
-    orientation: orientation === 'horizontal' || orientation === 'vertical' ? orientation : ('all' as Orientation),
+    orientation:
+      orientation === 'horizontal' || orientation === 'vertical'
+        ? orientation
+        : ('all' as Orientation),
     ...(color.success && { color: color.data }),
   };
 }
@@ -67,7 +76,15 @@ export default function DiscoverPage() {
     if (user && targetBoard) {
       // Arrived from a board's "Add images": one click saves straight into it.
       quickSave.mutate(
-        { collectionId: targetBoard.id, body: { provider: result.provider, providerImageId: result.providerImageId, caption: '', tags: [] } },
+        {
+          collectionId: targetBoard.id,
+          body: {
+            provider: result.provider,
+            providerImageId: result.providerImageId,
+            caption: '',
+            tags: [],
+          },
+        },
         {
           onSuccess: () => markSaved(result, targetBoard),
           onError: (error) => {
@@ -92,7 +109,8 @@ export default function DiscoverPage() {
         <section className="mx-auto max-w-2xl space-y-3 pt-6 text-center">
           <h1 className="text-4xl font-semibold tracking-tight">Find it again.</h1>
           <p className="text-muted-foreground">
-            Search millions of free photos, save the ones you love to boards, and share them with people who will actually look.
+            Search millions of free photos, save the ones you love to boards, and share them with
+            people who will actually look.
           </p>
         </section>
       )}
@@ -101,14 +119,21 @@ export default function DiscoverPage() {
         {targetBoard && (
           <p className="rounded-lg border bg-accent/50 px-3 py-2 text-sm">
             Saving straight into <strong>{targetBoard.title}</strong>.{' '}
-            <Link to={`/boards/${targetBoard.id}`} className="underline underline-offset-4">Back to the board</Link>
+            <Link to={`/boards/${targetBoard.id}`} className="underline underline-offset-4">
+              Back to the board
+            </Link>
           </p>
         )}
         <SearchBar filters={filters} onChange={writeFilters} autoFocus={!searching} />
         {!searching && (
           <div className="flex flex-wrap justify-center gap-2">
             {SUGGESTIONS.map((suggestion) => (
-              <Button key={suggestion} variant="outline" size="sm" onClick={() => writeFilters({ ...filters, q: suggestion })}>
+              <Button
+                key={suggestion}
+                variant="outline"
+                size="sm"
+                onClick={() => writeFilters({ ...filters, q: suggestion })}
+              >
                 {suggestion}
               </Button>
             ))}
@@ -123,12 +148,20 @@ export default function DiscoverPage() {
           icon={<ImageOffIcon />}
           title="Search is unavailable right now"
           description={search.error.message}
-          action={<Button variant="outline" onClick={() => search.refetch()}>Try again</Button>}
+          action={
+            <Button variant="outline" onClick={() => search.refetch()}>
+              Try again
+            </Button>
+          }
         />
       )}
 
       {searching && search.data && results.length === 0 && (
-        <EmptyState icon={<SearchIcon />} title={`Nothing for “${filters.q}”`} description="Try fewer words, or a different color or shape." />
+        <EmptyState
+          icon={<SearchIcon />}
+          title={`Nothing for “${filters.q}”`}
+          description="Try fewer words, or a different color or shape."
+        />
       )}
 
       {results.length > 0 && (
@@ -150,7 +183,12 @@ export default function DiscoverPage() {
       {searching && (
         <p className="text-center text-xs text-muted-foreground">
           Photos from{' '}
-          <a href="https://pixabay.com/" target="_blank" rel="noreferrer" className="underline underline-offset-4">
+          <a
+            href="https://pixabay.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-4"
+          >
             Pixabay
           </a>
         </p>
@@ -165,7 +203,9 @@ export default function DiscoverPage() {
           if (picking) markSaved(picking, board);
           setPicking(null);
         }}
-        onCreateBoard={(title) => createBoard.mutateAsync({ title, description: '', visibility: 'private' })}
+        onCreateBoard={(title) =>
+          createBoard.mutateAsync({ title, description: '', visibility: 'private' })
+        }
       />
     </div>
   );

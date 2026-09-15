@@ -1,9 +1,6 @@
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { NotificationDetail } from '../../../domain/entities/Notification.js';
-import type {
-  NewNotification,
-  NotificationRepository,
-} from '../ports/NotificationRepository.js';
+import type { NewNotification, NotificationRepository } from '../ports/NotificationRepository.js';
 import type { Db } from '../../../infrastructure/db/client.js';
 import { collections, notifications, users } from '../../../infrastructure/db/schema/index.js';
 

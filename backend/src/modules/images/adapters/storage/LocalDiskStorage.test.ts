@@ -32,7 +32,9 @@ describe('LocalDiskStorage', () => {
     expect(await readAll(object!.stream)).toEqual(Buffer.from(bytes));
 
     expect((await stat(path.join(root, 'images', 'abc.jpg'))).isFile()).toBe(true);
-    expect((await readdir(path.join(root, 'images'))).filter((f) => f.endsWith('.tmp'))).toEqual([]);
+    expect((await readdir(path.join(root, 'images'))).filter((f) => f.endsWith('.tmp'))).toEqual(
+      [],
+    );
   });
 
   it('returns null for missing keys and deletes idempotently', async () => {
@@ -44,7 +46,9 @@ describe('LocalDiskStorage', () => {
   });
 
   it('refuses keys that could escape the root', async () => {
-    await expect(storage.put('../escape.jpg', new Uint8Array(), 'image/jpeg')).rejects.toThrow(/Unsafe/);
+    await expect(storage.put('../escape.jpg', new Uint8Array(), 'image/jpeg')).rejects.toThrow(
+      /Unsafe/,
+    );
     await expect(storage.get('/etc/passwd')).rejects.toThrow(/Unsafe/);
   });
 });

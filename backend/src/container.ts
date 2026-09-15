@@ -26,7 +26,7 @@ import {
 } from './infrastructure/logging/pinoLogger.js';
 import { createStorage } from './modules/images/adapters/storage/storageFactory.js';
 import type { EventBus } from './infrastructure/events/EventBus.js';
-import type { HealthIndicator } from './modules/health/HealthIndicator.js';
+import type { HealthIndicator } from './modules/health/ports/HealthIndicator.js';
 import type { FetchFn } from './infrastructure/http/fetch.js';
 import type { ImageProvider } from './modules/images/ports/ImageProvider.js';
 import type { Logger } from './infrastructure/logging/Logger.js';
@@ -105,7 +105,13 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
   const oauth: OAuthProviders =
     overrides.oauth ??
     (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
-      ? { google: new GoogleOAuthProvider({ clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET, fetchFn }) }
+      ? {
+          google: new GoogleOAuthProvider({
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+            fetchFn,
+          }),
+        }
       : {});
   const storage = overrides.storage ?? createStorage(env, BACKEND_ROOT);
   // Decorator: every provider call goes through the 24-hour cache Pixabay's terms require.

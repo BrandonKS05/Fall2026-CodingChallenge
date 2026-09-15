@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { HealthCheckResult, HealthIndicator } from './HealthIndicator.js';
+import type { HealthCheckResult, HealthIndicator } from './ports/HealthIndicator.js';
 
 interface HealthDeps {
   version: string;

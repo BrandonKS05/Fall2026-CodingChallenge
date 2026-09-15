@@ -27,14 +27,22 @@ export function createSharingRouter(container: Container): Router {
     validate({ params: memberParams, body: updateMemberRequestSchema }),
     controller.updateRole,
   );
-  router.delete('/members/:userId', signedIn, validate({ params: memberParams }), controller.removeMember);
+  router.delete(
+    '/members/:userId',
+    signedIn,
+    validate({ params: memberParams }),
+    controller.removeMember,
+  );
   return router;
 }
 
 /** The public side of a share link. Mounted at /shared. */
 export function createSharedRouter(container: Container): Router {
   const controller = createShareController(container.services.share);
-  const maybeSignedIn = optionalAuth({ tokens: container.tokens, users: container.repositories.users });
+  const maybeSignedIn = optionalAuth({
+    tokens: container.tokens,
+    users: container.repositories.users,
+  });
 
   const router = Router();
   router.get('/:slug', maybeSignedIn, validate({ params: slugParams }), controller.openLink);

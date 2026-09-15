@@ -39,13 +39,18 @@ export function ResultCard({ result, savedTo, onSave }: ResultCardProps) {
         loading="lazy"
         decoding="async"
         onLoad={() => setLoaded(true)}
-        className={cn('relative h-full w-full object-cover transition-opacity duration-500', loaded ? 'opacity-100' : 'opacity-0')}
+        className={cn(
+          'relative h-full w-full object-cover transition-opacity duration-500',
+          loaded ? 'opacity-100' : 'opacity-0',
+        )}
       />
 
       <div
         className={cn(
           'absolute inset-x-0 top-0 flex justify-end p-2 transition-opacity',
-          savedTo ? 'opacity-100' : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100',
+          savedTo
+            ? 'opacity-100'
+            : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100',
         )}
       >
         {savedTo ? (

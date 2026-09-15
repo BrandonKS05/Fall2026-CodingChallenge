@@ -18,7 +18,12 @@ function CoverMosaic({ imageIds, title }: { imageIds: string[]; title: string })
   }
   const [first, ...rest] = imageIds;
   return (
-    <div className={cn('grid aspect-[4/3] gap-1 overflow-hidden rounded-lg', rest.length > 0 ? 'grid-cols-3' : 'grid-cols-1')}>
+    <div
+      className={cn(
+        'grid aspect-[4/3] gap-1 overflow-hidden rounded-lg',
+        rest.length > 0 ? 'grid-cols-3' : 'grid-cols-1',
+      )}
+    >
       <img
         src={http.url(`/images/${first}`)}
         alt=""
@@ -26,7 +31,13 @@ function CoverMosaic({ imageIds, title }: { imageIds: string[]; title: string })
         className={cn('h-full w-full object-cover', rest.length > 0 && 'col-span-2 row-span-2')}
       />
       {rest.slice(0, 2).map((id) => (
-        <img key={id} src={http.url(`/images/${id}`)} alt="" loading="lazy" className="h-full w-full object-cover" />
+        <img
+          key={id}
+          src={http.url(`/images/${id}`)}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover"
+        />
       ))}
       <span className="sr-only">Preview of {title}</span>
     </div>

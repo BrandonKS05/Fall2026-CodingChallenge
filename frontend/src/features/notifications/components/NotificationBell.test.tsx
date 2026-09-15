@@ -4,7 +4,13 @@ import { Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { userFixture } from '@/testing/fixtures';
 import { renderWithProviders, stubApi, type StubRoute } from '@/testing/render';
+import { useSession } from '@/features/auth/queries';
 import { NotificationBell } from './NotificationBell';
+
+function BellHarness() {
+  const { user } = useSession();
+  return <NotificationBell user={user} />;
+}
 
 const notification = (id: string, readAt: string | null) => ({
   id,
@@ -21,7 +27,7 @@ function renderBell(routes: Record<string, StubRoute>) {
   vi.stubGlobal('fetch', api.fetchMock);
   renderWithProviders(
     <Routes>
-      <Route path="/" element={<NotificationBell />} />
+      <Route path="/" element={<BellHarness />} />
       <Route path="/boards/:id" element={<h1>Board page</h1>} />
     </Routes>,
   );
@@ -32,11 +38,21 @@ describe('NotificationBell', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('shows the unread count, lists activity, and clears the badge', async () => {
-    let inbox = { notifications: [notification('n1', null), notification('n2', new Date().toISOString())], unreadCount: 1 };
+    let inbox = {
+      notifications: [notification('n1', null), notification('n2', new Date().toISOString())],
+      unreadCount: 1,
+    };
     const api = renderBell({
       'GET /api/notifications': () => ({ body: inbox }),
       'POST /api/notifications/read': () => {
-        inbox = { ...inbox, notifications: inbox.notifications.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })), unreadCount: 0 };
+        inbox = {
+          ...inbox,
+          notifications: inbox.notifications.map((n) => ({
+            ...n,
+            readAt: n.readAt ?? new Date().toISOString(),
+          })),
+          unreadCount: 0,
+        };
         return { status: 204 };
       },
     });
@@ -48,24 +64,32 @@ describe('NotificationBell', () => {
     expect(within(list).getAllByText('Grace added an image to Kitchens')).toHaveLength(2);
 
     await userEvent.click(screen.getByRole('button', { name: 'Mark all read' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument(),
+    );
     expect(api.calls.find((call) => call.method === 'POST')?.body).toEqual({});
   });
 
   it('opens the board behind a notification and marks it read', async () => {
     const api = renderBell({
-      'GET /api/notifications': { body: { notifications: [notification('n1', null)], unreadCount: 1 } },
+      'GET /api/notifications': {
+        body: { notifications: [notification('n1', null)], unreadCount: 1 },
+      },
       'POST /api/notifications/read': { status: 204 },
     });
     await userEvent.click(await screen.findByRole('button', { name: 'Notifications, 1 unread' }));
     await userEvent.click(await screen.findByText('Grace added an image to Kitchens'));
 
     expect(await screen.findByText('Board page')).toBeInTheDocument();
-    await waitFor(() => expect(api.calls.find((call) => call.method === 'POST')?.body).toEqual({ ids: ['n1'] }));
+    await waitFor(() =>
+      expect(api.calls.find((call) => call.method === 'POST')?.body).toEqual({ ids: ['n1'] }),
+    );
   });
 
   it('renders nothing for visitors', async () => {
     renderBell({ 'GET /api/auth/me': { body: { user: null } } });
-    await waitFor(() => expect(screen.queryByRole('button', { name: /notifications/i })).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /notifications/i })).not.toBeInTheDocument(),
+    );
   });
 });

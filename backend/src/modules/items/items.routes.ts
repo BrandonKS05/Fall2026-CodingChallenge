@@ -12,13 +12,23 @@ export function createItemsRouter(container: Container): Router {
   const signedIn = requireAuth({ tokens: container.tokens, users: container.repositories.users });
 
   const router = Router({ mergeParams: true });
-  router.post('/', signedIn, validate({ params: idParams, body: createItemRequestSchema }), controller.add);
+  router.post(
+    '/',
+    signedIn,
+    validate({ params: idParams, body: createItemRequestSchema }),
+    controller.add,
+  );
   router.patch(
     '/:itemId',
     signedIn,
     validate({ params: collectionItemParams, body: updateItemRequestSchema }),
     controller.update,
   );
-  router.delete('/:itemId', signedIn, validate({ params: collectionItemParams }), controller.remove);
+  router.delete(
+    '/:itemId',
+    signedIn,
+    validate({ params: collectionItemParams }),
+    controller.remove,
+  );
   return router;
 }

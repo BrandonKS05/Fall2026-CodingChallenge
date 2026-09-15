@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { AuthenticationError, ConflictError } from '../../domain/errors/index.js';
 import { AuthService } from './AuthService.js';
-import { FakePasswordHasher, FakeTokenService, silentLogger } from '../../testing/fakes/fakeAuth.js';
+import {
+  FakePasswordHasher,
+  FakeTokenService,
+  silentLogger,
+} from '../../testing/fakes/fakeAuth.js';
 import { InMemoryUserRepository } from '../../testing/fakes/InMemoryUserRepository.js';
 
 describe('AuthService', () => {
@@ -64,7 +68,12 @@ describe('AuthService', () => {
 describe('AuthService with Google', () => {
   let users: InMemoryUserRepository;
   let service: AuthService;
-  const profile = { providerId: 'g-1', email: 'ada@example.com', emailVerified: true, displayName: 'Ada' };
+  const profile = {
+    providerId: 'g-1',
+    email: 'ada@example.com',
+    emailVerified: true,
+    displayName: 'Ada',
+  };
 
   beforeEach(() => {
     users = new InMemoryUserRepository();
@@ -86,18 +95,30 @@ describe('AuthService with Google', () => {
   });
 
   it('links Google to an existing password account with the same verified email', async () => {
-    const registered = await service.register({ email: 'ada@example.com', password: 'correct horse', displayName: 'Ada' });
+    const registered = await service.register({
+      email: 'ada@example.com',
+      password: 'correct horse',
+      displayName: 'Ada',
+    });
     const viaGoogle = await service.loginWithOAuth(profile);
     expect(viaGoogle.user.id).toBe(registered.user.id);
     expect((await users.findById(registered.user.id))?.googleId).toBe('g-1');
     // The password still works after linking.
-    await expect(service.login({ email: 'ada@example.com', password: 'correct horse' })).resolves.toBeDefined();
+    await expect(
+      service.login({ email: 'ada@example.com', password: 'correct horse' }),
+    ).resolves.toBeDefined();
   });
 
   it('refuses unverified emails and password logins to Google-only accounts', async () => {
-    await expect(service.loginWithOAuth({ ...profile, emailVerified: false })).rejects.toBeInstanceOf(AuthenticationError);
+    await expect(
+      service.loginWithOAuth({ ...profile, emailVerified: false }),
+    ).rejects.toBeInstanceOf(AuthenticationError);
     await service.loginWithOAuth(profile);
-    await expect(service.login({ email: 'ada@example.com', password: 'anything' })).rejects.toThrow(/signs in with Google/);
-    await expect(service.register({ email: 'ada@example.com', password: 'password-123', displayName: 'Dup' })).rejects.toBeInstanceOf(ConflictError);
+    await expect(service.login({ email: 'ada@example.com', password: 'anything' })).rejects.toThrow(
+      /signs in with Google/,
+    );
+    await expect(
+      service.register({ email: 'ada@example.com', password: 'password-123', displayName: 'Dup' }),
+    ).rejects.toBeInstanceOf(ConflictError);
   });
 });

@@ -18,8 +18,13 @@ describe('GET /api/search', () => {
     expect(res.status).toBe(200);
     expect(searchResponseSchema.safeParse(res.body).success).toBe(true);
     expect(res.body).toMatchObject({ page: 2, perPage: 1, total: 2 });
-    expect(res.body.results.map((r: { providerImageId: string }) => r.providerImageId)).toEqual(['2']);
-    expect(res.body.results[0].credit).toEqual({ name: 'photographer', profileUrl: 'https://fake.test/users/photographer' });
+    expect(res.body.results.map((r: { providerImageId: string }) => r.providerImageId)).toEqual([
+      '2',
+    ]);
+    expect(res.body.results[0].credit).toEqual({
+      name: 'photographer',
+      profileUrl: 'https://fake.test/users/photographer',
+    });
   });
 
   it('validates the query', async () => {

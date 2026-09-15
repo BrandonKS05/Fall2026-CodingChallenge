@@ -14,7 +14,11 @@ describe('S3Storage', () => {
 
     const command = send.mock.calls[0]?.[0] as PutObjectCommand;
     expect(command).toBeInstanceOf(PutObjectCommand);
-    expect(command.input).toMatchObject({ Bucket: 'trove-bucket', Key: 'images/a.webp', ContentType: 'image/webp' });
+    expect(command.input).toMatchObject({
+      Bucket: 'trove-bucket',
+      Key: 'images/a.webp',
+      ContentType: 'image/webp',
+    });
   });
 
   it('wraps a downloaded object and maps NoSuchKey to null', async () => {
@@ -27,7 +31,9 @@ describe('S3Storage', () => {
     expect(object).toMatchObject({ contentType: 'image/png', size: 1 });
     expect(send.mock.calls[0]?.[0]).toBeInstanceOf(GetObjectCommand);
 
-    const missing = vi.fn().mockRejectedValue(Object.assign(new Error('missing'), { name: 'NoSuchKey' }));
+    const missing = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error('missing'), { name: 'NoSuchKey' }));
     expect(await storageWith(missing).get('images/b.png')).toBeNull();
   });
 

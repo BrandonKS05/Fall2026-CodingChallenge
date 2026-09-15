@@ -10,7 +10,9 @@ export interface NotificationsController {
   markRead: RequestHandler;
 }
 
-export function createNotificationsController(service: NotificationService): NotificationsController {
+export function createNotificationsController(
+  service: NotificationService,
+): NotificationsController {
   return {
     inbox: async (_req, res) => {
       res.json(presentInbox(await service.inbox(currentUser(res).id)));

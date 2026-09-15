@@ -60,7 +60,12 @@ const envSchema = z
       });
     }
     if (env.STORAGE_DRIVER !== 's3') return;
-    const required = ['S3_BUCKET', 'S3_REGION', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const;
+    const required = [
+      'S3_BUCKET',
+      'S3_REGION',
+      'S3_ACCESS_KEY_ID',
+      'S3_SECRET_ACCESS_KEY',
+    ] as const;
     for (const key of required) {
       if (!env[key]) {
         ctx.addIssue({

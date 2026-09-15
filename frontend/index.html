@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Trove: save the things you find online and find them again." />
+    <meta
+      name="description"
+      content="Trove: save the things you find online and find them again."
+    />
     <title>Trove</title>
     <link
       rel="icon"
@@ -16,12 +19,12 @@
       // Apply the saved or system theme before React renders, so reloads never flash.
       (function () {
         try {
-          var stored = localStorage.getItem("trove-theme");
+          var stored = localStorage.getItem('trove-theme');
           var dark =
-            stored === "dark" ||
-            (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          document.documentElement.classList.toggle("dark", dark);
-          document.documentElement.style.colorScheme = dark ? "dark" : "light";
+            stored === 'dark' ||
+            (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
         } catch (error) {}
       })();
     </script>

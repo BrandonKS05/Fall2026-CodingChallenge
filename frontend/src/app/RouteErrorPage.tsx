@@ -1,4 +1,4 @@
-import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
+import { isRouteErrorResponse, useRouteError } from 'react-router';
 import { EmptyState } from '@/components/common/EmptyState';
 import { buttonVariants } from '@/components/ui/button';
 

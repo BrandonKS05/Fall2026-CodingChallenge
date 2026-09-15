@@ -33,21 +33,36 @@ describe('DiscoverPage', () => {
     const searchCall = api.calls.find((call) => call.path === '/api/search');
     expect(searchCall?.url).toContain('q=kitchen');
     expect(searchCall?.url).toContain('perPage=30');
-    expect(screen.getByRole('link', { name: 'Pixabay' })).toHaveAttribute('href', 'https://pixabay.com/');
+    expect(screen.getByRole('link', { name: 'Pixabay' })).toHaveAttribute(
+      'href',
+      'https://pixabay.com/',
+    );
     expect(screen.queryByRole('heading', { name: 'Find it again.' })).not.toBeInTheDocument();
   });
 
   it('saves through the board picker and marks the card', async () => {
-    const api = renderDiscover({ [`POST /api/collections/${board.id}/items`]: { status: 201, body: {} } }, '/?q=kitchen');
+    const api = renderDiscover(
+      { [`POST /api/collections/${board.id}/items`]: { status: 201, body: {} } },
+      '/?q=kitchen',
+    );
 
     const cards = await screen.findAllByRole('figure');
     await userEvent.click(within(cards[0]!).getByRole('button', { name: /^Save/ }));
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: /kitchen ideas/i }));
 
-    await waitFor(() => expect(within(cards[0]!).getByRole('button', { name: 'Saved to Kitchen ideas' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        within(cards[0]!).getByRole('button', { name: 'Saved to Kitchen ideas' }),
+      ).toBeInTheDocument(),
+    );
     const post = api.calls.find((call) => call.method === 'POST');
-    expect(post?.body).toEqual({ provider: 'pixabay', providerImageId: '1', caption: '', tags: [] });
+    expect(post?.body).toEqual({
+      provider: 'pixabay',
+      providerImageId: '1',
+      caption: '',
+      tags: [],
+    });
   });
 
   it('creates a board from the picker when the user has none', async () => {
@@ -65,20 +80,33 @@ describe('DiscoverPage', () => {
     await userEvent.type(await screen.findByLabelText('New board title'), 'Fresh');
     await userEvent.click(screen.getByRole('button', { name: 'Create' }));
 
-    await waitFor(() => expect(within(cards[1]!).getByRole('button', { name: 'Saved to Fresh' })).toBeInTheDocument());
-    expect(api.calls.map((call) => `${call.method} ${call.path}`)).toContain('POST /api/collections');
+    await waitFor(() =>
+      expect(within(cards[1]!).getByRole('button', { name: 'Saved to Fresh' })).toBeInTheDocument(),
+    );
+    expect(api.calls.map((call) => `${call.method} ${call.path}`)).toContain(
+      'POST /api/collections',
+    );
   });
 
   it('saves with one click when arriving from a board, and treats duplicates as saved', async () => {
     const api = renderDiscover(
-      { [`POST /api/collections/${board.id}/items`]: { status: 409, body: { error: { code: 'CONFLICT', message: 'already there' } } } },
+      {
+        [`POST /api/collections/${board.id}/items`]: {
+          status: 409,
+          body: { error: { code: 'CONFLICT', message: 'already there' } },
+        },
+      },
       `/?q=kitchen&board=${board.id}`,
     );
     expect(await screen.findByText(/saving straight into/i)).toHaveTextContent('Kitchen ideas');
     const cards = await screen.findAllByRole('figure');
     await userEvent.click(within(cards[2]!).getByRole('button', { name: /^Save/ }));
 
-    await waitFor(() => expect(within(cards[2]!).getByRole('button', { name: 'Saved to Kitchen ideas' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        within(cards[2]!).getByRole('button', { name: 'Saved to Kitchen ideas' }),
+      ).toBeInTheDocument(),
+    );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(api.calls.some((call) => call.method === 'POST')).toBe(true);
   });

@@ -47,17 +47,19 @@ interface SearchBarProps {
 export function SearchBar({ filters, onChange, autoFocus }: SearchBarProps) {
   const [text, setText] = useState(filters.q);
   const debounced = useDebouncedValue(text, 300);
+  // Back/forward navigation or a suggestion chip changes the URL; mirror it into the box.
+  // Adjusting state while rendering (not in an effect) is React's documented way to reset on a prop change.
+  const [mirroredQuery, setMirroredQuery] = useState(filters.q);
+  if (filters.q !== mirroredQuery) {
+    setMirroredQuery(filters.q);
+    setText(filters.q);
+  }
 
   // Typing updates the URL after a pause; the URL is the source of truth for the query.
   useEffect(() => {
     if (debounced !== filters.q) onChange({ ...filters, q: debounced });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced]);
-
-  // Back/forward navigation or a suggestion chip changes the URL; mirror it into the box.
-  useEffect(() => {
-    setText(filters.q);
-  }, [filters.q]);
 
   return (
     <div className="space-y-3">
@@ -127,13 +129,17 @@ export function SearchBar({ filters, onChange, autoFocus }: SearchBarProps) {
             onClick={() => onChange({ ...filters, color: undefined })}
             className={cn(
               'rounded-full px-2 py-0.5 text-xs',
-              filters.color === undefined ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
+              filters.color === undefined
+                ? 'bg-foreground text-background'
+                : 'text-muted-foreground hover:text-foreground',
             )}
           >
             Any color
           </button>
           {searchColorSchema.options
-            .filter((color): color is Exclude<SearchColor, 'transparent'> => color !== 'transparent')
+            .filter(
+              (color): color is Exclude<SearchColor, 'transparent'> => color !== 'transparent',
+            )
             .map((color) => (
               <button
                 key={color}
@@ -146,7 +152,8 @@ export function SearchBar({ filters, onChange, autoFocus }: SearchBarProps) {
                 style={{ background: SWATCHES[color] }}
                 className={cn(
                   'size-5 rounded-full border border-black/10 transition-transform hover:scale-110 dark:border-white/20',
-                  filters.color === color && 'ring-2 ring-foreground ring-offset-2 ring-offset-background',
+                  filters.color === color &&
+                    'ring-2 ring-foreground ring-offset-2 ring-offset-background',
                 )}
               />
             ))}

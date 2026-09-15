@@ -18,7 +18,11 @@ export class ApiError extends Error {
       const { code, message, details } = parsed.data.error;
       return new ApiError(status, code, message, details);
     }
-    return new ApiError(status, status === 404 ? 'NOT_FOUND' : 'INTERNAL_ERROR', `Request failed (${status})`);
+    return new ApiError(
+      status,
+      status === 404 ? 'NOT_FOUND' : 'INTERNAL_ERROR',
+      `Request failed (${status})`,
+    );
   }
 
   static is(error: unknown, code?: ApiErrorCode): error is ApiError {

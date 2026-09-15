@@ -21,9 +21,17 @@ export default function SharedBoardPage() {
   if (shared.isPending) return <PageSkeleton />;
   if (shared.error) {
     return ApiError.is(shared.error, 'FORBIDDEN') ? (
-      <EmptyState icon={<LockIcon />} title="This board is private now" description="The owner has closed it to the public." />
+      <EmptyState
+        icon={<LockIcon />}
+        title="This board is private now"
+        description="The owner has closed it to the public."
+      />
     ) : (
-      <EmptyState icon={<SearchXIcon />} title="This link is no longer valid" description="It may have been revoked, or the board deleted." />
+      <EmptyState
+        icon={<SearchXIcon />}
+        title="This link is no longer valid"
+        description="It may have been revoked, or the board deleted."
+      />
     );
   }
 
@@ -40,7 +48,9 @@ export default function SharedBoardPage() {
               <LinkIcon className="size-3" /> Shared board
             </Badge>
           </div>
-          {collection.description && <p className="max-w-2xl text-sm text-muted-foreground">{collection.description}</p>}
+          {collection.description && (
+            <p className="max-w-2xl text-sm text-muted-foreground">{collection.description}</p>
+          )}
           <p className="text-xs text-muted-foreground">
             {pluralize(collection.itemCount, 'image')} · by {collection.owner.displayName}
           </p>
@@ -53,7 +63,10 @@ export default function SharedBoardPage() {
       </div>
 
       {items.length === 0 ? (
-        <EmptyState title="Nothing here yet" description="The owner has not saved anything to this board." />
+        <EmptyState
+          title="Nothing here yet"
+          description="The owner has not saved anything to this board."
+        />
       ) : (
         <ItemGrid items={items} canEdit={false} onOpen={setOpened} onEdit={noop} onRemove={noop} />
       )}

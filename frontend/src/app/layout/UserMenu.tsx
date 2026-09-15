@@ -46,7 +46,9 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu" />}
+        render={
+          <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu" />
+        }
       >
         <Avatar>
           <AvatarFallback>{initials(user.displayName)}</AvatarFallback>

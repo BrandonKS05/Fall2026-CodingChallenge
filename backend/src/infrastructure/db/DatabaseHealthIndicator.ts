@@ -1,5 +1,8 @@
 import { sql } from 'drizzle-orm';
-import type { HealthCheckResult, HealthIndicator } from '../../modules/health/HealthIndicator.js';
+import type {
+  HealthCheckResult,
+  HealthIndicator,
+} from '../../modules/health/ports/HealthIndicator.js';
 import type { Db } from './client.js';
 
 /** Round-trips a trivial query, bounded by a timeout so a hung pool cannot stall health. */

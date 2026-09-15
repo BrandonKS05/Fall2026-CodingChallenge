@@ -38,18 +38,33 @@ export default function BoardPage() {
         <EmptyState
           icon={<LockIcon />}
           title="This board is private"
-          description={user ? 'Ask the owner to add you as a member.' : 'Log in if you have been added to it.'}
-          action={!user && <Link to="/login" state={{ from: `/boards/${id}` }} className={buttonVariants()}>Log in</Link>}
+          description={
+            user ? 'Ask the owner to add you as a member.' : 'Log in if you have been added to it.'
+          }
+          action={
+            !user && (
+              <Link to="/login" state={{ from: `/boards/${id}` }} className={buttonVariants()}>
+                Log in
+              </Link>
+            )
+          }
         />
       );
     }
-    return <EmptyState icon={<SearchXIcon />} title="Board not found" description="It may have been deleted." />;
+    return (
+      <EmptyState
+        icon={<SearchXIcon />}
+        title="Board not found"
+        description="It may have been deleted."
+      />
+    );
   }
 
   const { collection, items } = board.data;
   const canEdit = collection.role === 'owner' || collection.role === 'editor';
   const destinations = (myBoards.data ?? []).filter(
-    (candidate) => candidate.id !== collection.id && (candidate.role === 'owner' || candidate.role === 'editor'),
+    (candidate) =>
+      candidate.id !== collection.id && (candidate.role === 'owner' || candidate.role === 'editor'),
   );
 
   function remove(item: Item) {
@@ -75,19 +90,26 @@ export default function BoardPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">{collection.title}</h1>
-          {collection.description && <p className="max-w-2xl text-sm text-muted-foreground">{collection.description}</p>}
+          {collection.description && (
+            <p className="max-w-2xl text-sm text-muted-foreground">{collection.description}</p>
+          )}
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>{pluralize(collection.itemCount, 'image')}</span>
             <VisibilityBadge visibility={collection.visibility} />
             <span>by {collection.owner.displayName}</span>
             {collection.role && collection.role !== 'owner' && (
-              <Badge variant="secondary" className="font-normal capitalize">{collection.role}</Badge>
+              <Badge variant="secondary" className="font-normal capitalize">
+                {collection.role}
+              </Badge>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2">
           {canEdit && (
-            <Link to={`/?board=${collection.id}`} className={buttonVariants({ variant: 'outline' })}>
+            <Link
+              to={`/discover?board=${collection.id}`}
+              className={buttonVariants({ variant: 'outline' })}
+            >
               <ImagePlusIcon /> Add images
             </Link>
           )}
@@ -102,15 +124,36 @@ export default function BoardPage() {
         <EmptyState
           icon={<ImagePlusIcon />}
           title="Nothing saved here yet"
-          description={canEdit ? 'Search for images and save them to this board.' : 'The board is empty for now.'}
-          action={canEdit && <Link to={`/?board=${collection.id}`} className={buttonVariants()}>Find images</Link>}
+          description={
+            canEdit
+              ? 'Search for images and save them to this board.'
+              : 'The board is empty for now.'
+          }
+          action={
+            canEdit && (
+              <Link to={`/discover?board=${collection.id}`} className={buttonVariants()}>
+                Find images
+              </Link>
+            )
+          }
         />
       ) : (
-        <ItemGrid items={items} canEdit={canEdit} onOpen={setOpened} onEdit={setEditing} onRemove={remove} />
+        <ItemGrid
+          items={items}
+          canEdit={canEdit}
+          onOpen={setOpened}
+          onEdit={setEditing}
+          onRemove={remove}
+        />
       )}
 
       <ImageLightbox item={opened} onClose={() => setOpened(null)} />
-      <EditItemDialog collectionId={collection.id} item={editing} destinations={destinations} onClose={() => setEditing(null)} />
+      <EditItemDialog
+        collectionId={collection.id}
+        item={editing}
+        destinations={destinations}
+        onClose={() => setEditing(null)}
+      />
     </>
   );
 }

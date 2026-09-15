@@ -5,12 +5,12 @@ Updated as each piece is implemented.
 
 ## Layout
 
-| Folder      | Role                                                        |
-| ----------- | ----------------------------------------------------------- |
-| `frontend/` | Vite + React + TypeScript single-page app                   |
-| `backend/`  | Express + TypeScript REST API                               |
+| Folder      | Role                                                         |
+| ----------- | ------------------------------------------------------------ |
+| `frontend/` | Vite + React + TypeScript single-page app                    |
+| `backend/`  | Express + TypeScript REST API                                |
 | `shared/`   | zod schemas that define the API contract, used by both sides |
-| `docs/`     | This file and the endpoint reference                        |
+| `docs/`     | This file and the endpoint reference                         |
 
 ## Backend layout: feature modules
 
@@ -29,11 +29,11 @@ modules/<feature>/
 Modules: `health`, `auth`, `collections`, `items`, `images` (search, storage, ingestion), `sharing`,
 `notifications`. Around them sit three shared layers:
 
-| Folder | Role |
-| --- | --- |
-| `domain/` | Shared kernel: entities, events, errors, access policies. Framework-free, used by every module. |
-| `infrastructure/` | Cross-cutting adapters: database client, schema, and migrations; event bus; logging; outbound fetch type. Ports for these sit next to their adapters. |
-| `http/` | Express plumbing every module reuses: `ApiError`, validation, auth, rate limit, and error middleware, cookie helpers, and `router.ts`, which mounts each module. |
+| Folder            | Role                                                                                                                                                             |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain/`         | Shared kernel: entities, events, errors, access policies. Framework-free, used by every module.                                                                  |
+| `infrastructure/` | Cross-cutting adapters: database client, schema, and migrations; event bus; logging; outbound fetch type. Ports for these sit next to their adapters.            |
+| `http/`           | Express plumbing every module reuses: `ApiError`, validation, auth, rate limit, and error middleware, cookie helpers, and `router.ts`, which mounts each module. |
 
 ### Dependency rule
 
@@ -57,20 +57,20 @@ queue, the images module becomes a worker, and nothing above the boundary change
 
 ## Pattern catalog
 
-| Pattern | Where | What it lets us swap |
-| ------- | ----- | -------------------- |
-| Adapter | `backend/src/infrastructure/logging/pinoLogger.ts` | pino sits behind the `Logger` port; services never import pino |
-| Chain of Responsibility | `backend/src/app.ts` middleware order | add or remove cross-cutting steps (auth, rate limits) without touching routes |
-| Composition root (dependency injection) | `backend/src/container.ts` | swap any infrastructure implementation in one place |
-| Strategy | `modules/health/HealthIndicator.ts`, `infrastructure/db/DatabaseHealthIndicator.ts` | one indicator per dependency; the health route aggregates whatever the container registers |
-| Repository | `modules/*/ports/*Repository.ts` (interfaces), `modules/*/adapters/Drizzle*Repository.ts` | Postgres for any store; services never see SQL |
-| Strategy | `modules/auth/ports/PasswordHasher.ts`, `modules/auth/ports/TokenService.ts` | argon2 and jose sit behind these as adapters; AuthService never imports either |
-| Strategy | `modules/images/ports/ImageProvider.ts`, `modules/images/ports/StorageBackend.ts` | Pixabay for Unsplash; local disk for S3, R2, or Supabase; the services only see the ports |
-| Strategy | `modules/auth/ports/OAuthProvider.ts`, `modules/auth/adapters/GoogleOAuthProvider.ts` | Google today, any OpenID Connect provider tomorrow; AuthService only ever sees a verified profile |
-| Decorator | `modules/images/adapters/CachedImageProvider.ts` | wraps any ImageProvider with the 24-hour cache Pixabay requires and coalesces identical concurrent searches |
-| Adapter | `modules/images/adapters/pixabay/pixabayAdapter.ts` | translates Pixabay's response into the domain's ProviderImage, validated with zod at the boundary |
-| Factory | `modules/images/adapters/storage/storageFactory.ts` | selects the storage strategy from STORAGE_DRIVER; nothing else knows which one is running |
-| Observer | `infrastructure/events/EventBus.ts`, `infrastructure/events/InMemoryEventBus.ts`, `modules/notifications/NotificationService.ts` | board changes are published as domain events; notifications subscribe, and publishers never know who listens |
+| Pattern                                 | Where                                                                                                                            | What it lets us swap                                                                                         |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Adapter                                 | `backend/src/infrastructure/logging/pinoLogger.ts`                                                                               | pino sits behind the `Logger` port; services never import pino                                               |
+| Chain of Responsibility                 | `backend/src/app.ts` middleware order                                                                                            | add or remove cross-cutting steps (auth, rate limits) without touching routes                                |
+| Composition root (dependency injection) | `backend/src/container.ts`                                                                                                       | swap any infrastructure implementation in one place                                                          |
+| Strategy                                | `modules/health/HealthIndicator.ts`, `infrastructure/db/DatabaseHealthIndicator.ts`                                              | one indicator per dependency; the health route aggregates whatever the container registers                   |
+| Repository                              | `modules/*/ports/*Repository.ts` (interfaces), `modules/*/adapters/Drizzle*Repository.ts`                                        | Postgres for any store; services never see SQL                                                               |
+| Strategy                                | `modules/auth/ports/PasswordHasher.ts`, `modules/auth/ports/TokenService.ts`                                                     | argon2 and jose sit behind these as adapters; AuthService never imports either                               |
+| Strategy                                | `modules/images/ports/ImageProvider.ts`, `modules/images/ports/StorageBackend.ts`                                                | Pixabay for Unsplash; local disk for S3, R2, or Supabase; the services only see the ports                    |
+| Strategy                                | `modules/auth/ports/OAuthProvider.ts`, `modules/auth/adapters/GoogleOAuthProvider.ts`                                            | Google today, any OpenID Connect provider tomorrow; AuthService only ever sees a verified profile            |
+| Decorator                               | `modules/images/adapters/CachedImageProvider.ts`                                                                                 | wraps any ImageProvider with the 24-hour cache Pixabay requires and coalesces identical concurrent searches  |
+| Adapter                                 | `modules/images/adapters/pixabay/pixabayAdapter.ts`                                                                              | translates Pixabay's response into the domain's ProviderImage, validated with zod at the boundary            |
+| Factory                                 | `modules/images/adapters/storage/storageFactory.ts`                                                                              | selects the storage strategy from STORAGE_DRIVER; nothing else knows which one is running                    |
+| Observer                                | `infrastructure/events/EventBus.ts`, `infrastructure/events/InMemoryEventBus.ts`, `modules/notifications/NotificationService.ts` | board changes are published as domain events; notifications subscribe, and publishers never know who listens |
 
 ## Error flow
 
@@ -85,14 +85,14 @@ Schema lives in `backend/src/infrastructure/db/schema`, one table per file, with
 generated by drizzle-kit into `backend/drizzle`. Enums are defined from the domain constants and a
 test asserts they match the API contract.
 
-| Table | Purpose | Notable decisions |
-| --- | --- | --- |
-| `users` | Accounts | Email stored lowercased and unique |
-| `collections` | Boards | `visibility` enum; nullable unique `share_slug`; partial index on public boards for Explore |
-| `images` | Downloaded files | Unique per `(provider, provider_image_id)` so a photo is downloaded once and shared by many items; `blurhash` and `palette` filled in after download |
-| `collection_items` | An image inside a board | Unique per `(collection_id, image_id)`; `position` for ordering; `added_by` kept on user deletion via `restrict` |
-| `collection_members` | Roles | The owner also has an `owner` row, so authorization is one lookup for every role |
-| `notifications` | Inbox | Composite index on `(recipient_id, read_at, created_at)` serves both the unread badge and the list |
+| Table                | Purpose                 | Notable decisions                                                                                                                                    |
+| -------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`              | Accounts                | Email stored lowercased and unique                                                                                                                   |
+| `collections`        | Boards                  | `visibility` enum; nullable unique `share_slug`; partial index on public boards for Explore                                                          |
+| `images`             | Downloaded files        | Unique per `(provider, provider_image_id)` so a photo is downloaded once and shared by many items; `blurhash` and `palette` filled in after download |
+| `collection_items`   | An image inside a board | Unique per `(collection_id, image_id)`; `position` for ordering; `added_by` kept on user deletion via `restrict`                                     |
+| `collection_members` | Roles                   | The owner also has an `owner` row, so authorization is one lookup for every role                                                                     |
+| `notifications`      | Inbox                   | Composite index on `(recipient_id, read_at, created_at)` serves both the unread badge and the list                                                   |
 
 ## Anatomy of a request
 
@@ -162,13 +162,13 @@ boards are ordered by activity, so the database must own the clock.
 primitives), TanStack Query for server state, React Router for navigation, react-hook-form with the
 zod schemas from `@trove/shared` for forms.
 
-| Folder | Role |
-| --- | --- |
-| `src/app/` | Composition root: `providers.tsx` (query client, theme, tooltips, toasts), `router.tsx` (lazy routes), `layout/` (shell, nav, user menu) |
-| `src/lib/api/` | The one HTTP gateway (`HttpClient` facade over fetch), `ApiError`, and the query-key factory. Features never call fetch. |
+| Folder                 | Role                                                                                                                                                                                                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/`             | Composition root: `providers.tsx` (query client, theme, tooltips, toasts), `router.tsx` (lazy routes), `layout/` (shell, nav, user menu)                                                                                                                                                              |
+| `src/lib/api/`         | The one HTTP gateway (`HttpClient` facade over fetch), `ApiError`, and the query-key factory. Features never call fetch.                                                                                                                                                                              |
 | `src/features/<name>/` | One slice per feature: `api.ts` (typed calls), `queries.ts` (TanStack hooks), `components/`, `pages/`. Components and hooks never import another feature; pages may, because pages are where features are composed (Discover uses search results, the items save mutation, and the collections list). |
-| `src/components/ui/` | Generated shadcn primitives. `src/components/common/` holds app-level composites (EmptyState, PageHeader, PageSkeleton). |
-| `src/testing/` | `render.tsx` renders with the real providers and a memory router; `stubApi` answers fetch by method and path. |
+| `src/components/ui/`   | Generated shadcn primitives. `src/components/common/` holds app-level composites (EmptyState, PageHeader, PageSkeleton).                                                                                                                                                                              |
+| `src/testing/`         | `render.tsx` renders with the real providers and a memory router; `stubApi` answers fetch by method and path.                                                                                                                                                                                         |
 
 Rules: all HTTP goes through `lib/api`; error toasts are global unless a query or mutation sets
 `meta.silentError` (forms show errors inline); the session is a query (`useSession`) where a 401 is a
@@ -209,3 +209,30 @@ Notifications poll the inbox every 15 seconds while signed in (`features/notific
 which is enough for "someone added to your board" and needs no socket. Marking read is optimistic so the
 badge clears at once. `text.ts` turns each notification type into one sentence from the reader's point
 of view ("Grace added you to Kitchens").
+
+## Enforcement
+
+The rules above are checked by ESLint (`eslint.config.mjs`, `pnpm lint`) with eslint-plugin-boundaries,
+using the TypeScript resolver so `.js` specifiers and the `@/` alias resolve to real files:
+
+- Backend: `domain` imports only `domain`; `http` and `infrastructure` may use module ports but never
+  module code; services, routes, controllers, and presenters may use other modules' services and ports
+  but no adapters, not even their own; adapters may use ports, domain, infrastructure, and other
+  adapters; only the composition files (`container.ts`, `app.ts`, `server.ts`, `http/router.ts`, the
+  repository factory, seed, and migrate) may import anything.
+- Frontend: features import only themselves and shared code; pages may import other features; the
+  `app/` folder may import anything; shared code imports only shared code.
+
+CI (`.github/workflows/ci.yml`) runs typecheck, lint, Prettier, the unit suites, the Postgres-backed
+repository tests against a service container, and the production build on every push and pull request.
+
+### Landing hero
+
+`/` is `ExploreCanvas` (`frontend/src/components/explore/`), a full-viewport stage outside the app
+shell. Public boards from `GET /api/explore` are placed at twelve fixed slots on a stage 40% larger
+than the viewport; each slot has a depth from 0.3 to 1 and the images translate against the cursor
+by `travel * depth`, spring-smoothed with `motion`. A pale dot replaces the native cursor and grows
+over images. Reduced-motion and touch users get the same scatter with no tracking and the native
+cursor. The two stage colors are tokens (`--stage`, `--stage-ink`) in `src/index.css`. The feel is
+tuned in `useParallax.ts` (`DEFAULT_TUNING`): travel, stiffness, damping, cursor stiffness; the dot
+size and hover scale are constants at the top of `ExploreCanvas.tsx`. Search lives at `/discover`.

@@ -50,10 +50,16 @@ export type StubRoute = StubResponse | ((call: StubCall) => StubResponse);
 export function stubApi(routes: Record<string, StubRoute>) {
   const calls: StubCall[] = [];
   const fetchMock = async (input: string | URL | Request, init?: RequestInit) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const url =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     const path = url.replace(/^https?:\/\/[^/]+/, '').replace(/\?.*$/, '');
     const method = init?.method ?? 'GET';
-    const call: StubCall = { method, path, url, body: init?.body ? JSON.parse(String(init.body)) : undefined };
+    const call: StubCall = {
+      method,
+      path,
+      url,
+      body: init?.body ? JSON.parse(String(init.body)) : undefined,
+    };
     calls.push(call);
 
     const route = routes[`${method} ${path}`];

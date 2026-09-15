@@ -15,7 +15,10 @@ export function useIntersectionObserver<T extends HTMLElement>(
 ) {
   const ref = useRef<T>(null);
   const callback = useRef(onIntersect);
-  callback.current = onIntersect;
+  // Keep the latest callback without re-subscribing; updated after render, never during it.
+  useEffect(() => {
+    callback.current = onIntersect;
+  });
 
   useEffect(() => {
     const element = ref.current;

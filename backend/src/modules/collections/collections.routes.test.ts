@@ -72,7 +72,9 @@ describe('collections routes', () => {
       .send({ title: 'Private board' });
 
     expect((await request(app).get(`/api/collections/${board.id}`)).status).toBe(403);
-    expect((await request(app).get(`/api/collections/${board.id}`).set('Cookie', stranger)).status).toBe(403);
+    expect(
+      (await request(app).get(`/api/collections/${board.id}`).set('Cookie', stranger)).status,
+    ).toBe(403);
 
     const patchByStranger = await request(app)
       .patch(`/api/collections/${board.id}`)
@@ -89,20 +91,37 @@ describe('collections routes', () => {
 
     const anonymous = await request(app).get(`/api/collections/${board.id}`);
     expect(anonymous.status).toBe(200);
-    expect(anonymous.body).toEqual({ collection: expect.objectContaining({ id: board.id, role: null }), items: [] });
+    expect(anonymous.body).toEqual({
+      collection: expect.objectContaining({ id: board.id, role: null }),
+      items: [],
+    });
 
     const explore = await request(app).get('/api/explore?perPage=10');
     expect(explore.body.collections.map((c: { id: string }) => c.id)).toEqual([board.id]);
 
-    expect((await request(app).delete(`/api/collections/${board.id}`).set('Cookie', stranger)).status).toBe(403);
-    expect((await request(app).delete(`/api/collections/${board.id}`).set('Cookie', owner)).status).toBe(204);
-    expect((await request(app).get(`/api/collections/${board.id}`).set('Cookie', owner)).status).toBe(404);
+    expect(
+      (await request(app).delete(`/api/collections/${board.id}`).set('Cookie', stranger)).status,
+    ).toBe(403);
+    expect(
+      (await request(app).delete(`/api/collections/${board.id}`).set('Cookie', owner)).status,
+    ).toBe(204);
+    expect(
+      (await request(app).get(`/api/collections/${board.id}`).set('Cookie', owner)).status,
+    ).toBe(404);
   });
 
   it('rejects malformed ids and empty patches', async () => {
-    expect((await request(app).get('/api/collections/not-a-uuid').set('Cookie', owner)).status).toBe(400);
-    const { body: board } = await request(app).post('/api/collections').set('Cookie', owner).send({ title: 'x' });
-    const empty = await request(app).patch(`/api/collections/${board.id}`).set('Cookie', owner).send({});
+    expect(
+      (await request(app).get('/api/collections/not-a-uuid').set('Cookie', owner)).status,
+    ).toBe(400);
+    const { body: board } = await request(app)
+      .post('/api/collections')
+      .set('Cookie', owner)
+      .send({ title: 'x' });
+    const empty = await request(app)
+      .patch(`/api/collections/${board.id}`)
+      .set('Cookie', owner)
+      .send({});
     expect(empty.status).toBe(400);
   });
 });

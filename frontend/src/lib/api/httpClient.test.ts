@@ -3,10 +3,14 @@ import { ApiError } from './ApiError';
 import { HttpClient } from './httpClient';
 
 function stubFetch(status: number, body: unknown = null) {
-  const fetchMock = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>(async () =>
-    body === null
-      ? new Response(null, { status })
-      : new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }),
+  const fetchMock = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>(
+    async () =>
+      body === null
+        ? new Response(null, { status })
+        : new Response(JSON.stringify(body), {
+            status,
+            headers: { 'content-type': 'application/json' },
+          }),
   );
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
@@ -17,9 +21,9 @@ describe('HttpClient', () => {
 
   it('builds urls with the base path and skips empty query values', () => {
     const client = new HttpClient('/api');
-    expect(client.url('/search', { q: 'red cats', page: 2, color: undefined, orientation: '' })).toBe(
-      '/api/search?q=red+cats&page=2',
-    );
+    expect(
+      client.url('/search', { q: 'red cats', page: 2, color: undefined, orientation: '' }),
+    ).toBe('/api/search?q=red+cats&page=2');
   });
 
   it('sends json with credentials and returns the parsed body', async () => {

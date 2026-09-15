@@ -13,16 +13,16 @@ import { COLLECTION_VISIBILITIES } from '../../../domain/entities/Collection.js'
 import { IMAGE_PROVIDERS } from '../../../domain/entities/Image.js';
 import { COLLECTION_ROLES } from '../../../domain/entities/Membership.js';
 import { NOTIFICATION_TYPES } from '../../../domain/entities/Notification.js';
-import {
-  collectionRole,
-  collectionVisibility,
-  imageProvider,
-  notificationType,
-} from './index.js';
+import { collectionRole, collectionVisibility, imageProvider, notificationType } from './index.js';
 
 describe('enum consistency across domain, database, and contract', () => {
   it.each([
-    ['collection visibility', COLLECTION_VISIBILITIES, collectionVisibility, collectionVisibilitySchema],
+    [
+      'collection visibility',
+      COLLECTION_VISIBILITIES,
+      collectionVisibility,
+      collectionVisibilitySchema,
+    ],
     ['collection role', COLLECTION_ROLES, collectionRole, collectionRoleSchema],
     ['image provider', IMAGE_PROVIDERS, imageProvider, imageProviderSchema],
     ['notification type', NOTIFICATION_TYPES, notificationType, notificationTypeSchema],

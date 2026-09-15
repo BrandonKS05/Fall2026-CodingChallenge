@@ -20,7 +20,10 @@ export const collectionItems = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     caption: text().notNull().default(''),
-    tags: text().array().notNull().default(sql`'{}'::text[]`),
+    tags: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     position: integer().notNull().default(0),
     ...timestamps,
   },

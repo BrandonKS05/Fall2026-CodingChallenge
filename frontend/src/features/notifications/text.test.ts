@@ -18,8 +18,14 @@ describe('describeNotification', () => {
     [{ type: 'item_removed' }, 'Grace removed an image from Kitchens'],
     [{ type: 'item_updated', payload: { moved: true } }, 'Grace moved an image out of Kitchens'],
     [{ type: 'item_updated', payload: { moved: false } }, 'Grace edited an image on Kitchens'],
-    [{ type: 'collection_updated', payload: { changes: ['title'] } }, 'Grace renamed a board to Kitchens'],
-    [{ type: 'collection_updated', payload: { changes: ['visibility'] } }, 'Grace changed who can see Kitchens'],
+    [
+      { type: 'collection_updated', payload: { changes: ['title'] } },
+      'Grace renamed a board to Kitchens',
+    ],
+    [
+      { type: 'collection_updated', payload: { changes: ['visibility'] } },
+      'Grace changed who can see Kitchens',
+    ],
     [{ type: 'member_added', payload: { userId: 'me' } }, 'Grace added you to Kitchens'],
     [{ type: 'member_added', payload: { userId: 'other' } }, 'Grace added someone to Kitchens'],
   ] satisfies [Partial<Notification>, string][])('%o', (overrides, expected) => {

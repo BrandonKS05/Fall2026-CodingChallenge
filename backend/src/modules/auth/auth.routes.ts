@@ -17,8 +17,18 @@ export function createAuthRouter(container: Container): Router {
   });
 
   const router = Router();
-  router.post('/register', credentialLimiter, validate({ body: registerRequestSchema }), controller.register);
-  router.post('/login', credentialLimiter, validate({ body: loginRequestSchema }), controller.login);
+  router.post(
+    '/register',
+    credentialLimiter,
+    validate({ body: registerRequestSchema }),
+    controller.register,
+  );
+  router.post(
+    '/login',
+    credentialLimiter,
+    validate({ body: loginRequestSchema }),
+    controller.login,
+  );
   router.post('/logout', controller.logout);
   // Visitors get { user: null } rather than a 401, so the client can probe the session quietly.
   router.get('/me', optionalAuth({ tokens, users: repositories.users }), controller.me);

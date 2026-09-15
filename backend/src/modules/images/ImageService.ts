@@ -6,7 +6,12 @@
 import { randomUUID } from 'node:crypto';
 import type { Image, ImageProviderName } from '../../domain/entities/Image.js';
 import { extensionForContentType } from '../../domain/entities/ImageFile.js';
-import { ConflictError, InvalidOperationError, NotFoundError, UpstreamError } from '../../domain/errors/index.js';
+import {
+  ConflictError,
+  InvalidOperationError,
+  NotFoundError,
+  UpstreamError,
+} from '../../domain/errors/index.js';
 import type { FetchFn } from '../../infrastructure/http/fetch.js';
 import type { ImageProvider, ImageSearchQuery, ImageSearchResult } from './ports/ImageProvider.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';

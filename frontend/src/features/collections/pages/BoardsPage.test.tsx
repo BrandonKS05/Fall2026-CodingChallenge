@@ -12,22 +12,37 @@ describe('BoardsPage', () => {
   it('lists boards with counts, visibility, and shared-with-me badges', async () => {
     const boards = [
       boardFixture({ title: 'Kitchen ideas', itemCount: 3, visibility: 'public' }),
-      boardFixture({ id: '22222222-2222-4222-8222-222222222222', title: 'Fall outfits', role: 'editor', owner: { id: 'u2', displayName: 'Grace' } }),
+      boardFixture({
+        id: '22222222-2222-4222-8222-222222222222',
+        title: 'Fall outfits',
+        role: 'editor',
+        owner: { id: 'u2', displayName: 'Grace' },
+      }),
     ];
-    vi.stubGlobal('fetch', stubApi({ 'GET /api/collections': { body: { collections: boards } } }).fetchMock);
+    vi.stubGlobal(
+      'fetch',
+      stubApi({ 'GET /api/collections': { body: { collections: boards } } }).fetchMock,
+    );
     renderWithProviders(<BoardsPage />);
 
-    expect(await screen.findByRole('link', { name: /kitchen ideas/i })).toHaveTextContent('3 images');
+    expect(await screen.findByRole('link', { name: /kitchen ideas/i })).toHaveTextContent(
+      '3 images',
+    );
     expect(screen.getByRole('link', { name: /kitchen ideas/i })).toHaveTextContent('Public');
     expect(screen.getByRole('link', { name: /fall outfits/i })).toHaveTextContent('Editor · Grace');
   });
 
   it('creates a board from the dialog and moves to it', async () => {
-    const created = boardFixture({ id: '33333333-3333-4333-8333-333333333333', title: 'Brutalism' });
+    const created = boardFixture({
+      id: '33333333-3333-4333-8333-333333333333',
+      title: 'Brutalism',
+    });
     const api = stubApi({
       'GET /api/collections': { body: { collections: [] } },
       'POST /api/collections': { status: 201, body: created },
-      'GET /api/collections/33333333-3333-4333-8333-333333333333': { body: { collection: created, items: [] } },
+      'GET /api/collections/33333333-3333-4333-8333-333333333333': {
+        body: { collection: created, items: [] },
+      },
     });
     vi.stubGlobal('fetch', api.fetchMock);
     renderWithProviders(
@@ -46,6 +61,10 @@ describe('BoardsPage', () => {
     expect(await screen.findByText('Board page')).toBeInTheDocument();
     const post = api.calls.find((call) => call.method === 'POST');
     expect(post?.body).toEqual({ title: 'Brutalism', description: '', visibility: 'public' });
-    await waitFor(() => expect(api.calls.filter((c) => c.path === '/api/collections').length).toBeGreaterThanOrEqual(2));
+    await waitFor(() =>
+      expect(api.calls.filter((c) => c.path === '/api/collections').length).toBeGreaterThanOrEqual(
+        2,
+      ),
+    );
   });
 });

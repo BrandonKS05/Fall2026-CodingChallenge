@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import type { Container } from '../container.js';
 import { createAuthRouter } from '../modules/auth/auth.routes.js';
-import { createCollectionsRouter, createExploreRouter } from '../modules/collections/collections.routes.js';
+import {
+  createCollectionsRouter,
+  createExploreRouter,
+} from '../modules/collections/collections.routes.js';
 import { createHealthRouter } from '../modules/health/health.routes.js';
 import { createImagesRouter } from '../modules/images/images.routes.js';
 import { createNotificationsRouter } from '../modules/notifications/notifications.routes.js';

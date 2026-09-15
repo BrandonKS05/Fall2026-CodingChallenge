@@ -57,7 +57,9 @@ export function useUpdateItem(collectionId: string) {
       void queryClient.invalidateQueries({ queryKey: detailKey });
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.list() });
       if (patch.collectionId) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.collections.detail(patch.collectionId) });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.collections.detail(patch.collectionId),
+        });
       }
     },
   });
@@ -75,7 +77,10 @@ export function useRemoveItem(collectionId: string) {
       if (previous) {
         queryClient.setQueryData<Detail>(detailKey, {
           ...previous,
-          collection: { ...previous.collection, itemCount: Math.max(0, previous.collection.itemCount - 1) },
+          collection: {
+            ...previous.collection,
+            itemCount: Math.max(0, previous.collection.itemCount - 1),
+          },
           items: previous.items.filter((item) => item.id !== itemId),
         });
       }

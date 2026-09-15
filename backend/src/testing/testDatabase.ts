@@ -38,7 +38,9 @@ async function ensureDatabaseExists(url: string): Promise<void> {
 
   const pool = new Pool({ connectionString: admin.toString() });
   try {
-    const existing = await pool.query('select 1 from pg_database where datname = $1', [databaseName]);
+    const existing = await pool.query('select 1 from pg_database where datname = $1', [
+      databaseName,
+    ]);
     if (existing.rowCount === 0) {
       await pool.query(`create database "${databaseName}"`);
     }

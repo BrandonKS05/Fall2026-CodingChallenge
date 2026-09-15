@@ -11,6 +11,11 @@ export function createNotificationsRouter(container: Container): Router {
 
   const router = Router();
   router.get('/', signedIn, controller.inbox);
-  router.post('/read', signedIn, validate({ body: markNotificationsReadRequestSchema }), controller.markRead);
+  router.post(
+    '/read',
+    signedIn,
+    validate({ body: markNotificationsReadRequestSchema }),
+    controller.markRead,
+  );
   return router;
 }

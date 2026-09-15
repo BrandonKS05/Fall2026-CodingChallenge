@@ -30,7 +30,9 @@ describe('ItemService', () => {
     collections = new CollectionService({ ...repos, events, logger: silentLogger });
     const imageService = new ImageService({
       images: repos.images,
-      providers: { pixabay: new FakeImageProvider(['1', '2', '3'].map((id) => fakeProviderImage(id))) },
+      providers: {
+        pixabay: new FakeImageProvider(['1', '2', '3'].map((id) => fakeProviderImage(id))),
+      },
       storage: new InMemoryStorage(),
       fetchFn: createFakeFetch({
         'https://fake.test/download/1.jpg': { contentType: 'image/jpeg', body: FAKE_JPEG },
@@ -48,12 +50,15 @@ describe('ItemService', () => {
       logger: silentLogger,
     });
 
-    const user = (email: string) => repos.users.create({ email, displayName: email.split('@')[0] ?? '', passwordHash: 'h' });
+    const user = (email: string) =>
+      repos.users.create({ email, displayName: email.split('@')[0] ?? '', passwordHash: 'h' });
     owner = (await user('owner@x.com')).id;
     editor = (await user('editor@x.com')).id;
     viewer = (await user('viewer@x.com')).id;
     stranger = (await user('stranger@x.com')).id;
-    boardId = (await collections.create(owner, { title: 'Board', description: '', visibility: 'private' })).id;
+    boardId = (
+      await collections.create(owner, { title: 'Board', description: '', visibility: 'private' })
+    ).id;
     await repos.memberships.add({ collectionId: boardId, userId: editor, role: 'editor' });
     await repos.memberships.add({ collectionId: boardId, userId: viewer, role: 'viewer' });
   });
@@ -80,26 +85,39 @@ describe('ItemService', () => {
 
   it('updates captions and tags, and moves items to boards the actor can edit', async () => {
     const item = await save('1', editor);
-    const updated = await service.update(boardId, item.id, editor, { caption: 'Warm wood', tags: ['wood'] });
+    const updated = await service.update(boardId, item.id, editor, {
+      caption: 'Warm wood',
+      tags: ['wood'],
+    });
     expect(updated).toMatchObject({ caption: 'Warm wood', tags: ['wood'], position: 0 });
 
-    const ownersOther = (await collections.create(owner, { title: 'Other', description: '', visibility: 'private' })).id;
-    await expect(service.update(boardId, item.id, editor, { collectionId: ownersOther })).rejects.toBeInstanceOf(ForbiddenError);
+    const ownersOther = (
+      await collections.create(owner, { title: 'Other', description: '', visibility: 'private' })
+    ).id;
+    await expect(
+      service.update(boardId, item.id, editor, { collectionId: ownersOther }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
 
     await save('2', owner, ownersOther);
     const moved = await service.update(boardId, item.id, owner, { collectionId: ownersOther });
     expect(moved).toMatchObject({ collectionId: ownersOther, position: 1 });
-    await expect(service.update(ownersOther, moved.id, owner, { collectionId: boardId })).resolves.toMatchObject({ collectionId: boardId });
+    await expect(
+      service.update(ownersOther, moved.id, owner, { collectionId: boardId }),
+    ).resolves.toMatchObject({ collectionId: boardId });
 
     await save('1', owner, ownersOther);
-    await expect(service.update(boardId, moved.id, owner, { collectionId: ownersOther })).rejects.toBeInstanceOf(ConflictError);
+    await expect(
+      service.update(boardId, moved.id, owner, { collectionId: ownersOther }),
+    ).rejects.toBeInstanceOf(ConflictError);
   });
 
   it('removes items and treats items from another board as missing', async () => {
     const item = await save('1', editor);
     await expect(service.remove(boardId, item.id, viewer)).rejects.toBeInstanceOf(ForbiddenError);
 
-    const otherBoard = (await collections.create(owner, { title: 'Other', description: '', visibility: 'private' })).id;
+    const otherBoard = (
+      await collections.create(owner, { title: 'Other', description: '', visibility: 'private' })
+    ).id;
     await expect(service.remove(otherBoard, item.id, owner)).rejects.toBeInstanceOf(NotFoundError);
 
     await service.remove(boardId, item.id, editor);

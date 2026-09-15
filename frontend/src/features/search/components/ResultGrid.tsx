@@ -13,11 +13,21 @@ interface ResultGridProps {
   onLoadMore: () => void;
 }
 
-export function ResultGrid({ results, savedTo, onSave, hasMore, loadingMore, onLoadMore }: ResultGridProps) {
+export function ResultGrid({
+  results,
+  savedTo,
+  onSave,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+}: ResultGridProps) {
   // Auto-load as the sentinel nears the viewport; the button is the keyboard and no-observer fallback.
-  const sentinel = useIntersectionObserver<HTMLDivElement>(() => {
-    if (hasMore && !loadingMore) onLoadMore();
-  }, { enabled: hasMore });
+  const sentinel = useIntersectionObserver<HTMLDivElement>(
+    () => {
+      if (hasMore && !loadingMore) onLoadMore();
+    },
+    { enabled: hasMore },
+  );
 
   return (
     <div className="space-y-6">

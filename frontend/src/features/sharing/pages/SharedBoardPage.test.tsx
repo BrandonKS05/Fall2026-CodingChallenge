@@ -19,8 +19,15 @@ describe('SharedBoardPage', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('renders a shared board read-only for visitors', async () => {
-    const board = boardFixture({ visibility: 'unlisted', shareSlug: 'abc', role: null, itemCount: 1 });
-    renderShared({ 'GET /api/shared/abc': { body: { collection: board, items: [itemFixture()] } } });
+    const board = boardFixture({
+      visibility: 'unlisted',
+      shareSlug: 'abc',
+      role: null,
+      itemCount: 1,
+    });
+    renderShared({
+      'GET /api/shared/abc': { body: { collection: board, items: [itemFixture()] } },
+    });
 
     expect(await screen.findByRole('heading', { name: 'Kitchen ideas' })).toBeInTheDocument();
     expect(screen.getByText('Shared board')).toBeInTheDocument();
@@ -32,10 +39,20 @@ describe('SharedBoardPage', () => {
   it('offers members the full board and explains dead links', async () => {
     const board = boardFixture({ visibility: 'unlisted', shareSlug: 'abc', role: 'editor' });
     renderShared({ 'GET /api/shared/abc': { body: { collection: board, items: [] } } });
-    expect(await screen.findByRole('link', { name: 'Open in your boards' })).toHaveAttribute('href', `/boards/${board.id}`);
+    expect(await screen.findByRole('link', { name: 'Open in your boards' })).toHaveAttribute(
+      'href',
+      `/boards/${board.id}`,
+    );
     vi.unstubAllGlobals();
 
-    renderShared({ 'GET /api/shared/abc': { status: 404, body: { error: { code: 'NOT_FOUND', message: 'Shared board not found' } } } });
-    expect(await screen.findByRole('heading', { name: 'This link is no longer valid' })).toBeInTheDocument();
+    renderShared({
+      'GET /api/shared/abc': {
+        status: 404,
+        body: { error: { code: 'NOT_FOUND', message: 'Shared board not found' } },
+      },
+    });
+    expect(
+      await screen.findByRole('heading', { name: 'This link is no longer valid' }),
+    ).toBeInTheDocument();
   });
 });

@@ -3,7 +3,7 @@ import type { Express } from 'express';
 import { createApp } from '../app.js';
 import { loadEnv, type Env } from '../config/env.js';
 import { createContainer, type ContainerOverrides } from '../container.js';
-import type { HealthIndicator } from '../modules/health/HealthIndicator.js';
+import type { HealthIndicator } from '../modules/health/ports/HealthIndicator.js';
 import { createFakeFetch } from './fakes/fakeFetch.js';
 import { FakeImageProvider } from './fakes/FakeImageProvider.js';
 import { InMemoryStorage } from './fakes/InMemoryStorage.js';

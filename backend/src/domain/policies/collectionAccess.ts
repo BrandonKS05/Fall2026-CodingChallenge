@@ -13,7 +13,10 @@ export function roleAtLeast(role: CollectionRole, required: CollectionRole): boo
 }
 
 /** Members can always view. Non-members can view anything that is not private. */
-export function canView(collection: Pick<Collection, 'visibility'>, role: CollectionRole | null): boolean {
+export function canView(
+  collection: Pick<Collection, 'visibility'>,
+  role: CollectionRole | null,
+): boolean {
   return role !== null || collection.visibility !== 'private';
 }
 

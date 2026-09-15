@@ -5,10 +5,7 @@ import type {
   Membership,
 } from '../../../domain/entities/Membership.js';
 import { ConflictError, NotFoundError } from '../../../domain/errors/index.js';
-import type {
-  MembershipRepository,
-  NewMembership,
-} from '../ports/MembershipRepository.js';
+import type { MembershipRepository, NewMembership } from '../ports/MembershipRepository.js';
 import type { Db } from '../../../infrastructure/db/client.js';
 import { isUniqueViolation } from '../../../infrastructure/db/errors.js';
 import { collectionMembers, users } from '../../../infrastructure/db/schema/index.js';
@@ -76,7 +73,11 @@ export class DrizzleMembershipRepository implements MembershipRepository {
     }
   }
 
-  async updateRole(collectionId: string, userId: string, role: CollectionRole): Promise<Membership> {
+  async updateRole(
+    collectionId: string,
+    userId: string,
+    role: CollectionRole,
+  ): Promise<Membership> {
     const [row] = await this.db
       .update(collectionMembers)
       .set({ role })

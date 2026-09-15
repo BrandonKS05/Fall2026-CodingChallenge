@@ -26,7 +26,12 @@ describe('NotificationService', () => {
     editor = (await user('editor@x.com')).id;
     viewer = (await user('viewer@x.com')).id;
     boardId = (
-      await repos.collections.create({ ownerId: owner, title: 'Kitchens', description: '', visibility: 'private' })
+      await repos.collections.create({
+        ownerId: owner,
+        title: 'Kitchens',
+        description: '',
+        visibility: 'private',
+      })
     ).id;
     await repos.memberships.add({ collectionId: boardId, userId: editor, role: 'editor' });
     await repos.memberships.add({ collectionId: boardId, userId: viewer, role: 'viewer' });
@@ -34,7 +39,12 @@ describe('NotificationService', () => {
 
   it('notifies every member except the actor, with the event details', async () => {
     await service.handle(
-      createEvent('item.added', { collectionId: boardId, actorId: editor, itemId: 'i1', imageId: 'img1' }),
+      createEvent('item.added', {
+        collectionId: boardId,
+        actorId: editor,
+        itemId: 'i1',
+        imageId: 'img1',
+      }),
     );
 
     const ownerInbox = await service.inbox(owner);
@@ -71,10 +81,18 @@ describe('NotificationService', () => {
     const bus = new RecordingEventBus();
     service.register(bus);
     await bus.publish(
-      createEvent('member.added', { collectionId: boardId, actorId: owner, userId: viewer, role: 'viewer' }),
+      createEvent('member.added', {
+        collectionId: boardId,
+        actorId: owner,
+        userId: viewer,
+        role: 'viewer',
+      }),
     );
     const viewerInbox = await service.inbox(viewer);
-    expect(viewerInbox.notifications[0]).toMatchObject({ type: 'member_added', payload: { userId: viewer, role: 'viewer' } });
+    expect(viewerInbox.notifications[0]).toMatchObject({
+      type: 'member_added',
+      payload: { userId: viewer, role: 'viewer' },
+    });
     expect((await service.inbox(owner)).unreadCount).toBe(0);
   });
 });

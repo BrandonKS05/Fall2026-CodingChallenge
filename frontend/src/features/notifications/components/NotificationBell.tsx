@@ -3,14 +3,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useSession } from '@/features/auth/queries';
 import { timeAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useInbox, useMarkRead } from '../queries';
 import { describeNotification } from '../text';
 
-export function NotificationBell() {
-  const { user } = useSession();
+import type { User } from '@trove/shared';
+
+export function NotificationBell({ user }: { user: User | null }) {
   const inbox = useInbox(Boolean(user));
   const markRead = useMarkRead();
   const navigate = useNavigate();
@@ -53,7 +53,9 @@ export function NotificationBell() {
         </div>
         <ul className="max-h-96 overflow-y-auto border-t" aria-label="Notifications">
           {notifications.length === 0 && (
-            <li className="px-3 py-6 text-center text-sm text-muted-foreground">You're all caught up.</li>
+            <li className="px-3 py-6 text-center text-sm text-muted-foreground">
+              You're all caught up.
+            </li>
           )}
           {notifications.map((notification) => {
             const isUnread = notification.readAt === null;
@@ -73,11 +75,18 @@ export function NotificationBell() {
                 >
                   <span
                     aria-hidden
-                    className={cn('mt-1.5 size-2 shrink-0 rounded-full', isUnread ? 'bg-primary' : 'bg-transparent')}
+                    className={cn(
+                      'mt-1.5 size-2 shrink-0 rounded-full',
+                      isUnread ? 'bg-primary' : 'bg-transparent',
+                    )}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block leading-snug">{describeNotification(notification, user.id)}</span>
-                    <span className="block text-xs text-muted-foreground">{timeAgo(notification.createdAt)}</span>
+                    <span className="block leading-snug">
+                      {describeNotification(notification, user.id)}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {timeAgo(notification.createdAt)}
+                    </span>
                   </span>
                 </button>
               </li>

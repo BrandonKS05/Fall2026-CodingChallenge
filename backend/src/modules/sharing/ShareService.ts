@@ -43,7 +43,11 @@ export class ShareService {
    * becomes unlisted so the link actually works; public boards are untouched.
    */
   async createLink(collectionId: string, actorId: string): Promise<string> {
-    const { collection } = await this.deps.collectionService.authorize(collectionId, actorId, 'manage');
+    const { collection } = await this.deps.collectionService.authorize(
+      collectionId,
+      actorId,
+      'manage',
+    );
     if (collection.shareSlug) return collection.shareSlug;
 
     if (collection.visibility === 'private') {
@@ -56,7 +60,11 @@ export class ShareService {
 
   /** Removes the link. An unlisted board goes back to private; a public one stays public. */
   async revokeLink(collectionId: string, actorId: string): Promise<void> {
-    const { collection } = await this.deps.collectionService.authorize(collectionId, actorId, 'manage');
+    const { collection } = await this.deps.collectionService.authorize(
+      collectionId,
+      actorId,
+      'manage',
+    );
     await this.deps.collections.setShareSlug(collectionId, null);
     if (collection.visibility === 'unlisted') {
       await this.deps.collections.update(collectionId, { visibility: 'private' });
@@ -102,8 +110,13 @@ export class ShareService {
     userId: string,
     role: Exclude<CollectionRole, 'owner'>,
   ): Promise<MemberDetail> {
-    const { collection } = await this.deps.collectionService.authorize(collectionId, actorId, 'manage');
-    if (userId === collection.ownerId) throw new InvalidOperationError('The owner\'s role cannot change');
+    const { collection } = await this.deps.collectionService.authorize(
+      collectionId,
+      actorId,
+      'manage',
+    );
+    if (userId === collection.ownerId)
+      throw new InvalidOperationError("The owner's role cannot change");
     const membership = await this.deps.memberships.updateRole(collectionId, userId, role);
     this.log.info({ collectionId, actorId, userId, role }, 'Member role changed');
     return this.detailOf(membership);
@@ -117,8 +130,10 @@ export class ShareService {
       actorId,
       leaving ? 'view' : 'manage',
     );
-    if (userId === collection.ownerId) throw new InvalidOperationError('The owner cannot be removed');
-    if (!(await this.deps.memberships.find(collectionId, userId))) throw new NotFoundError('Membership');
+    if (userId === collection.ownerId)
+      throw new InvalidOperationError('The owner cannot be removed');
+    if (!(await this.deps.memberships.find(collectionId, userId)))
+      throw new NotFoundError('Membership');
     await this.deps.memberships.remove(collectionId, userId);
     this.log.info({ collectionId, actorId, userId }, leaving ? 'Member left' : 'Member removed');
   }

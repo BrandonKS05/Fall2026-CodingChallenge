@@ -1,8 +1,5 @@
 import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
-import type {
-  Collection,
-  CollectionSummary,
-} from '../../../domain/entities/Collection.js';
+import type { Collection, CollectionSummary } from '../../../domain/entities/Collection.js';
 import type { CollectionRole } from '../../../domain/entities/Membership.js';
 import { ConflictError, NotFoundError } from '../../../domain/errors/index.js';
 import type {
@@ -13,7 +10,12 @@ import type {
 } from '../ports/CollectionRepository.js';
 import type { Db } from '../../../infrastructure/db/client.js';
 import { isUniqueViolation } from '../../../infrastructure/db/errors.js';
-import { collectionItems, collectionMembers, collections, users } from '../../../infrastructure/db/schema/index.js';
+import {
+  collectionItems,
+  collectionMembers,
+  collections,
+  users,
+} from '../../../infrastructure/db/schema/index.js';
 
 type CollectionRow = typeof collections.$inferSelect;
 
@@ -169,7 +171,10 @@ export class DrizzleCollectionRepository implements CollectionRepository {
   }
 
   async touch(id: string): Promise<void> {
-    await this.db.update(collections).set({ updatedAt: sql`now()` }).where(eq(collections.id, id));
+    await this.db
+      .update(collections)
+      .set({ updatedAt: sql`now()` })
+      .where(eq(collections.id, id));
   }
 
   async delete(id: string): Promise<void> {

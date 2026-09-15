@@ -10,7 +10,14 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ApiError } from '@/lib/api';
@@ -22,6 +29,7 @@ import {
   useRevokeShareLink,
   useUpdateMemberRole,
 } from '../queries';
+import { shareUrl } from '../shareUrl';
 import { RolePicker } from './RolePicker';
 
 interface SharePanelProps {
@@ -29,12 +37,13 @@ interface SharePanelProps {
   currentUserId: string;
 }
 
-export function shareUrl(slug: string): string {
-  return `${window.location.origin}/s/${slug}`;
-}
-
 function initials(name: string): string {
-  return name.split(/\s+/).map((part) => part[0] ?? '').join('').slice(0, 2).toUpperCase();
+  return name
+    .split(/\s+/)
+    .map((part) => part[0] ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 export function SharePanel({ board, currentUserId }: SharePanelProps) {
@@ -49,11 +58,18 @@ export function SharePanel({ board, currentUserId }: SharePanelProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Share “{board.title}”</DialogTitle>
-          <DialogDescription>A link for anyone, or people who can work on it with you.</DialogDescription>
+          <DialogDescription>
+            A link for anyone, or people who can work on it with you.
+          </DialogDescription>
         </DialogHeader>
         <LinkSection board={board} isOwner={isOwner} />
         <Separator />
-        <MembersSection board={board} isOwner={isOwner} currentUserId={currentUserId} enabled={open} />
+        <MembersSection
+          board={board}
+          isOwner={isOwner}
+          currentUserId={currentUserId}
+          enabled={open}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -80,7 +96,12 @@ function LinkSection({ board, isOwner }: { board: Collection; isOwner: boolean }
       {board.shareSlug ? (
         <>
           <div className="flex gap-2">
-            <Input readOnly value={shareUrl(board.shareSlug)} aria-label="Share link" onFocus={(event) => event.target.select()} />
+            <Input
+              readOnly
+              value={shareUrl(board.shareSlug)}
+              aria-label="Share link"
+              onFocus={(event) => event.target.select()}
+            />
             <Button variant="outline" onClick={copy} aria-label="Copy link">
               {copied ? <CheckIcon /> : <CopyIcon />}
             </Button>
@@ -90,7 +111,12 @@ function LinkSection({ board, isOwner }: { board: Collection; isOwner: boolean }
             {isOwner && (
               <>
                 {' '}
-                <button type="button" className="underline underline-offset-4" onClick={() => revoke.mutate()} disabled={revoke.isPending}>
+                <button
+                  type="button"
+                  className="underline underline-offset-4"
+                  onClick={() => revoke.mutate()}
+                  disabled={revoke.isPending}
+                >
                   Revoke link
                 </button>
               </>
@@ -104,7 +130,13 @@ function LinkSection({ board, isOwner }: { board: Collection; isOwner: boolean }
               ? 'Creating a link makes the board “link only”: visible to anyone who has it.'
               : 'Anyone who has the link will be able to view.'}
           </p>
-          <Button size="sm" onClick={() => create.mutate(undefined, { onSuccess: () => toast.success('Link created') })} disabled={create.isPending}>
+          <Button
+            size="sm"
+            onClick={() =>
+              create.mutate(undefined, { onSuccess: () => toast.success('Link created') })
+            }
+            disabled={create.isPending}
+          >
             Create link
           </Button>
         </div>
@@ -140,9 +172,12 @@ function MembersSection({ board, isOwner, currentUserId, enabled }: MembersSecti
       {
         onSuccess: (member) => {
           setEmail('');
-          toast.success(`${member.displayName} can now ${member.role === 'editor' ? 'edit' : 'view'} this board`);
+          toast.success(
+            `${member.displayName} can now ${member.role === 'editor' ? 'edit' : 'view'} this board`,
+          );
         },
-        onError: (caught) => setError(caught instanceof ApiError ? caught.message : 'Could not invite.'),
+        onError: (caught) =>
+          setError(caught instanceof ApiError ? caught.message : 'Could not invite.'),
       },
     );
   }
@@ -187,17 +222,27 @@ function MembersSection({ board, isOwner, currentUserId, enabled }: MembersSecti
                     disabled={updateRole.isPending}
                     onChange={(next) => updateRole.mutate({ userId: member.userId, role: next })}
                   />
-                  <Button variant="ghost" size="icon" aria-label={`Remove ${member.displayName}`} onClick={() => remove.mutate(member.userId)} disabled={remove.isPending}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Remove ${member.displayName}`}
+                    onClick={() => remove.mutate(member.userId)}
+                    disabled={remove.isPending}
+                  >
                     <UserMinusIcon />
                   </Button>
                 </>
               ) : (
-                <Badge variant="outline" className="capitalize">{member.role}</Badge>
+                <Badge variant="outline" className="capitalize">
+                  {member.role}
+                </Badge>
               )}
             </li>
           );
         })}
-        {members.isPending && enabled && <li className="text-xs text-muted-foreground">Loading…</li>}
+        {members.isPending && enabled && (
+          <li className="text-xs text-muted-foreground">Loading…</li>
+        )}
       </ul>
 
       {isOwner ? (
@@ -212,12 +257,23 @@ function MembersSection({ board, isOwner, currentUserId, enabled }: MembersSecti
               required
               disabled={invite.isPending}
             />
-            <RolePicker label="Role for the invitation" value={role} onChange={setRole} disabled={invite.isPending} />
-            <Button type="submit" variant="outline" disabled={invite.isPending || email.trim().length === 0}>
+            <RolePicker
+              label="Role for the invitation"
+              value={role}
+              onChange={setRole}
+              disabled={invite.isPending}
+            />
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={invite.isPending || email.trim().length === 0}
+            >
               Invite
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">They need a Trove account with that email.</p>
+          <p className="text-xs text-muted-foreground">
+            They need a Trove account with that email.
+          </p>
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}

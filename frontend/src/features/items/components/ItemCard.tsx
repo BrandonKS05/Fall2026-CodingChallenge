@@ -44,7 +44,10 @@ export function ItemCard({ item, canEdit, onOpen, onEdit, onRemove }: ItemCardPr
           loading="lazy"
           decoding="async"
           style={{ aspectRatio: `${image.width} / ${image.height}` }}
-          className={cn('w-full object-cover transition-opacity duration-500', loaded ? 'opacity-100' : 'opacity-0')}
+          className={cn(
+            'w-full object-cover transition-opacity duration-500',
+            loaded ? 'opacity-100' : 'opacity-0',
+          )}
           onLoad={() => setLoaded(true)}
         />
       </button>
@@ -53,7 +56,14 @@ export function ItemCard({ item, canEdit, onOpen, onEdit, onRemove }: ItemCardPr
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
           <Tooltip>
             <TooltipTrigger
-              render={<Button size="icon" variant="secondary" aria-label="Edit item" onClick={() => onEdit(item)} />}
+              render={
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  aria-label="Edit item"
+                  onClick={() => onEdit(item)}
+                />
+              }
             >
               <PencilIcon />
             </TooltipTrigger>
@@ -61,7 +71,14 @@ export function ItemCard({ item, canEdit, onOpen, onEdit, onRemove }: ItemCardPr
           </Tooltip>
           <Tooltip>
             <TooltipTrigger
-              render={<Button size="icon" variant="secondary" aria-label="Remove item" onClick={() => onRemove(item)} />}
+              render={
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  aria-label="Remove item"
+                  onClick={() => onRemove(item)}
+                />
+              }
             >
               <Trash2Icon />
             </TooltipTrigger>
@@ -74,7 +91,9 @@ export function ItemCard({ item, canEdit, onOpen, onEdit, onRemove }: ItemCardPr
         <figcaption className="space-y-1 px-3 py-2">
           {item.caption && <p className="text-sm leading-snug">{item.caption}</p>}
           {item.tags.length > 0 && (
-            <p className="truncate text-xs text-muted-foreground">{item.tags.map((tag) => `#${tag}`).join(' ')}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {item.tags.map((tag) => `#${tag}`).join(' ')}
+            </p>
           )}
         </figcaption>
       )}

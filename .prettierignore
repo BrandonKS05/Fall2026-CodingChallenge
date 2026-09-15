@@ -4,3 +4,5 @@ coverage
 pnpm-lock.yaml
 backend/drizzle
 backend/storage
+frontend/src/components/ui
+.github

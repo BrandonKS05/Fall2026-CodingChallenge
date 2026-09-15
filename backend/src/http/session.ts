@@ -30,7 +30,11 @@ export function clearSessionCookie(res: Response, env: Pick<Env, 'NODE_ENV'>): v
 export const OAUTH_STATE_COOKIE_NAME = 'trove_oauth_state';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
-export function setOAuthStateCookie(res: Response, state: string, env: Pick<Env, 'NODE_ENV'>): void {
+export function setOAuthStateCookie(
+  res: Response,
+  state: string,
+  env: Pick<Env, 'NODE_ENV'>,
+): void {
   res.cookie(OAUTH_STATE_COOKIE_NAME, state, {
     ...baseOptions(env),
     path: '/api/auth',

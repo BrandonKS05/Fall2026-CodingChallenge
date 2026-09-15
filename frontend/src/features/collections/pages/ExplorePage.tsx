@@ -9,7 +9,10 @@ export default function ExplorePage() {
 
   return (
     <>
-      <PageHeader title="Explore" description="Public boards from everyone on Trove, newest first." />
+      <PageHeader
+        title="Explore"
+        description="Public boards from everyone on Trove, newest first."
+      />
       {boards.isPending ? (
         <BoardGridSkeleton />
       ) : boards.data && boards.data.length > 0 ? (

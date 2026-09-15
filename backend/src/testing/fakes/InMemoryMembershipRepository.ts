@@ -49,7 +49,11 @@ export class InMemoryMembershipRepository implements MembershipRepository {
     return membership;
   }
 
-  async updateRole(collectionId: string, userId: string, role: CollectionRole): Promise<Membership> {
+  async updateRole(
+    collectionId: string,
+    userId: string,
+    role: CollectionRole,
+  ): Promise<Membership> {
     const existing = await this.find(collectionId, userId);
     if (!existing) throw new NotFoundError('Membership');
     const updated = { ...existing, role };

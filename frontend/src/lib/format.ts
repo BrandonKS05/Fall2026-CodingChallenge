@@ -15,10 +15,21 @@ export function timeAgo(iso: string, now = Date.now()): string {
   const days = Math.round(hours / 24);
   if (days === 1) return 'yesterday';
   if (days < 30) return `${days} days ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 /** Splits "wood, warm,  kitchen" into ["wood", "warm", "kitchen"] without duplicates. */
 export function parseTags(input: string): string[] {
-  return [...new Set(input.split(',').map((tag) => tag.trim()).filter(Boolean))];
+  return [
+    ...new Set(
+      input
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    ),
+  ];
 }

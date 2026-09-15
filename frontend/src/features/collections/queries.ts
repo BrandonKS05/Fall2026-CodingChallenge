@@ -16,7 +16,9 @@ export function useExplore(page = 1) {
   return useQuery({
     queryKey: queryKeys.collections.explore({ page }),
     queryFn: () =>
-      collectionsApi.explore({ page, perPage: EXPLORE_PAGE_SIZE }).then((response) => response.collections),
+      collectionsApi
+        .explore({ page, perPage: EXPLORE_PAGE_SIZE })
+        .then((response) => response.collections),
   });
 }
 

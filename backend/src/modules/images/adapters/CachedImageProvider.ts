@@ -1,11 +1,7 @@
 import { LRUCache } from 'lru-cache';
 import type { ImageProviderName } from '../../../domain/entities/Image.js';
 import type { ProviderImage } from '../../../domain/entities/ProviderImage.js';
-import type {
-  ImageProvider,
-  ImageSearchQuery,
-  ImageSearchResult,
-} from '../ports/ImageProvider.js';
+import type { ImageProvider, ImageSearchQuery, ImageSearchResult } from '../ports/ImageProvider.js';
 
 export interface CacheOptions {
   ttlMs?: number;

@@ -27,7 +27,9 @@ export function RolePicker({ value, onChange, disabled, label }: RolePickerProps
           onClick={() => onChange(role.value)}
           className={cn(
             'rounded px-2 py-0.5 text-xs transition-colors disabled:opacity-50',
-            value === role.value ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
+            value === role.value
+              ? 'bg-foreground text-background'
+              : 'text-muted-foreground hover:text-foreground',
           )}
         >
           {role.label}

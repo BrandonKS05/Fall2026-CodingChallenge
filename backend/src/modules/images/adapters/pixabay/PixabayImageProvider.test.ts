@@ -15,7 +15,13 @@ function providerWith(route: { status?: number; body: string }) {
 describe('PixabayImageProvider', () => {
   it('builds the request from the query and maps the response', async () => {
     const { fetchFn, provider } = providerWith({ body: okBody });
-    const result = await provider.search({ q: 'red cats', page: 2, perPage: 1, orientation: 'horizontal', color: 'red' });
+    const result = await provider.search({
+      q: 'red cats',
+      page: 2,
+      perPage: 1,
+      orientation: 'horizontal',
+      color: 'red',
+    });
 
     const url = new URL(fetchFn.calls[0] ?? '');
     expect(url.origin + url.pathname).toBe(baseUrl);
@@ -42,20 +48,32 @@ describe('PixabayImageProvider', () => {
   });
 
   it('treats an unknown id as null instead of an error', async () => {
-    expect(await providerWith({ status: 400, body: '[ERROR 400] "id" is invalid' }).provider.getById('x')).toBeNull();
     expect(
-      await providerWith({ body: JSON.stringify({ total: 0, totalHits: 0, hits: [] }) }).provider.getById('1'),
+      await providerWith({ status: 400, body: '[ERROR 400] "id" is invalid' }).provider.getById(
+        'x',
+      ),
+    ).toBeNull();
+    expect(
+      await providerWith({
+        body: JSON.stringify({ total: 0, totalHits: 0, hits: [] }),
+      }).provider.getById('1'),
     ).toBeNull();
   });
 
   it('turns rate limiting, failures, and garbage into UpstreamError', async () => {
     const query = { q: 'x', page: 1, perPage: 5, orientation: 'all' as const };
-    await expect(providerWith({ status: 429, body: '' }).provider.search(query)).rejects.toMatchObject({
+    await expect(
+      providerWith({ status: 429, body: '' }).provider.search(query),
+    ).rejects.toMatchObject({
       constructor: UpstreamError,
       status: 429,
     });
-    await expect(providerWith({ status: 500, body: 'boom' }).provider.search(query)).rejects.toMatchObject({ status: 500 });
-    await expect(providerWith({ body: '<html>not json</html>' }).provider.search(query)).rejects.toBeInstanceOf(UpstreamError);
+    await expect(
+      providerWith({ status: 500, body: 'boom' }).provider.search(query),
+    ).rejects.toMatchObject({ status: 500 });
+    await expect(
+      providerWith({ body: '<html>not json</html>' }).provider.search(query),
+    ).rejects.toBeInstanceOf(UpstreamError);
 
     const offline = new PixabayImageProvider({
       apiKey: 'k',

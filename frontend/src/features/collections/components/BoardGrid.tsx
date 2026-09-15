@@ -14,7 +14,11 @@ export function BoardGrid({ boards }: { boards: Collection[] }) {
 
 export function BoardGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" aria-busy aria-label="Loading boards">
+    <div
+      className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+      aria-busy
+      aria-label="Loading boards"
+    >
       {Array.from({ length: count }, (_, index) => (
         <div key={index} className="space-y-2 p-2">
           <Skeleton className="aspect-[4/3] w-full rounded-lg" />

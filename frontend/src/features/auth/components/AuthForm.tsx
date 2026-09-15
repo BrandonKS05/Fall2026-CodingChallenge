@@ -4,7 +4,12 @@
  * the server would reject.
  */
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { loginRequestSchema, registerRequestSchema, type LoginRequest, type RegisterRequest } from '@trove/shared';
+import {
+  loginRequestSchema,
+  registerRequestSchema,
+  type LoginRequest,
+  type RegisterRequest,
+} from '@trove/shared';
 import { z } from 'zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -13,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ApiError } from '@/lib/api';
 import { useAuthProviders, useLogin, useRegister } from '../queries';
-import { FormField } from './FormField';
+import { FormField } from '@/components/common/FormField';
 import { GoogleButton } from './GoogleButton';
 
 /** Reasons the Google callback can send the browser back with. */
@@ -26,7 +31,17 @@ const OAUTH_ERRORS: Record<string, string> = {
 
 type Mode = 'login' | 'register';
 
-const copy: Record<Mode, { title: string; description: string; submit: string; switchText: string; switchLabel: string; switchTo: string }> = {
+const copy: Record<
+  Mode,
+  {
+    title: string;
+    description: string;
+    submit: string;
+    switchText: string;
+    switchLabel: string;
+    switchTo: string;
+  }
+> = {
   login: {
     title: 'Welcome back',
     description: 'Log in to get to your boards.',
@@ -84,7 +99,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
       }
       navigate(destination, { replace: true });
     } catch (error) {
-      setServerError(error instanceof ApiError ? error.message : 'Something went wrong. Please try again.');
+      setServerError(
+        error instanceof ApiError ? error.message : 'Something went wrong. Please try again.',
+      );
     }
   });
 
@@ -132,7 +149,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
             {...form.register('password')}
           />
           {serverError && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
               {serverError}
             </p>
           )}
@@ -141,7 +161,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             {text.switchText}{' '}
-            <Link to={text.switchTo} className="font-medium text-foreground underline-offset-4 hover:underline">
+            <Link
+              to={text.switchTo}
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
               {text.switchLabel}
             </Link>
           </p>

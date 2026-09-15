@@ -1,19 +1,20 @@
 # ChangePlusPlus Fall 2026 Coding Challenge
-***Due 9/18 at 11:59 PM (CT)***. 
+
+_**Due 9/18 at 11:59 PM (CT)**_.
 Remember to submit [this form](https://forms.gle/JfR4cwAEwn4HhBuX8) when complete.
 
 Please read this document **CAREFULLY** and to its **ENTIRETY**\!
 
 **SETUP INSTRUCTIONS**<br>
-To begin programming, fork this repository by clicking the **fork** button on the top right of this repository (directly across from the name of the repository and in between *watch* and *star*). This creates your own version of the repository with these instructions on your own user account that you can freely edit and contribute to. You will link this forked repository when you submit the form above.
+To begin programming, fork this repository by clicking the **fork** button on the top right of this repository (directly across from the name of the repository and in between _watch_ and _star_). This creates your own version of the repository with these instructions on your own user account that you can freely edit and contribute to. You will link this forked repository when you submit the form above.
 
 If you're unsure of where or how to start, you can look into setting up your repository with [Vite](https://vite.dev/) and selecting React as the framework when prompted with a [Node.js](https://nodejs.org/en) backend or any other option you have in mind (No choice is better than another, do what you're comfortable with). These will come pre-built with some starter code you can look into to give you an idea of the fundamentals and you can work your way up from there!
 
 **Before You Begin**  
-The first step is completing the following coding project. 
+The first step is completing the following coding project.
 
-* **Time Requirement:** \~5 hours (depending on experience level and technical skills).  
-* **Note:** We will be having workshop(s) (structured presentations/tutorials) and office hours (unstructured help like TA hours) during the coding challenge. Join the Anchorlink and keep an eye out for an email\!
+- **Time Requirement:** \~5 hours (depending on experience level and technical skills).
+- **Note:** We will be having workshop(s) (structured presentations/tutorials) and office hours (unstructured help like TA hours) during the coding challenge. Join the Anchorlink and keep an eye out for an email\!
 
 We recognize that you’re all busy, but as Change++ team member, it’s expected that you’ll dedicate 4-6 hours every week on your project.
 
@@ -58,29 +59,28 @@ You can take inspiration from existing applications of this nature like Pinteres
 
 To get your images you you can refer to this API documentation [Pixabay API](https://pixabay.com/api/docs/) or any other APIs and methods you're comfortable with.
 
-## Deliverables 
+## Deliverables
+
 **Frontend**  
 The frontend serves as the way that a user would interact with your application. You have a lot of flexibility in terms of how you choose to build it ranging from a simple executable (ran from the terminal) to a website, app, or any (reasonable) technology you can think of. Feel free to get creative with styling components\!
 
 **Backend**  
 The backend consists of a RESTful API that can be accessed by the frontend and should do the following:
 
-* Be a separate server from the frontend.  
-* Endpoints to save images to a collection, delete images from a collection, share collections.  
-* Store collections in some sort of data structure. Props if you store it in a database\!
+- Be a separate server from the frontend.
+- Endpoints to save images to a collection, delete images from a collection, share collections.
+- Store collections in some sort of data structure. Props if you store it in a database\!
 
 **README**  
 Aside from adding, committing, and pushing your files to the repo, include a README.txt (not .md). INCLUDE YOUR FULL NAME AND VANDERBILT EMAIL IN THE README. A README is helpful because:
 
-* We need information about how to download and run your program, especially if you are using an unconventional programming method. Please write down some instructions for us to follow to properly see your program.  
-* We want you to include a brief (under 100 words) reflection about the challenge. Did you learn anything new? Reinforce any known concepts? Any issues come up?  
-* We are interested in any feedback you provide about the coding challenge. If you have any critiques for us; workshops, office hours, or any part of the challenge itself, please let us know.
+- We need information about how to download and run your program, especially if you are using an unconventional programming method. Please write down some instructions for us to follow to properly see your program.
+- We want you to include a brief (under 100 words) reflection about the challenge. Did you learn anything new? Reinforce any known concepts? Any issues come up?
+- We are interested in any feedback you provide about the coding challenge. If you have any critiques for us; workshops, office hours, or any part of the challenge itself, please let us know.
 
 **Completion Form**
 
 For your challenge to be considered complete, you must submit this short form: [Completion Form](https://forms.gle/JfR4cwAEwn4HhBuX8).
-
-
 
 ## Scoring
 
@@ -122,21 +122,20 @@ Necessary - Gameplay works <br>
 **Creativity / Bonus Features: up to 8 points**  
 Some EC features could be:
 
-* Private/Public Collection toggling
-* Notifications on edit for shared collections
-* Attempt to achieve architecture with low latency + high reliability (speed optimizations, rollback, etc)
-* Implements lazy/optimistic loading
+- Private/Public Collection toggling
+- Notifications on edit for shared collections
+- Attempt to achieve architecture with low latency + high reliability (speed optimizations, rollback, etc)
+- Implements lazy/optimistic loading
 
 **README: up to 1 point**  
 1 Point: Well-written README.txt
 
 **Completion form:** required for the application to be considered complete!
 
-
-
 ## Tips, Tricks, and Helpful Resources
 
 **We will be holding workshops and office hours to help you out. The following are the dates for these workshops are below and on our Instagram :**
+
 1. **Workshop (project overview, Git, and backend):** September 15th, 4:00 PM in FGH 138
 2. **Office Hours:** September 16th, 5:00 PM in FGH Atrium
 
