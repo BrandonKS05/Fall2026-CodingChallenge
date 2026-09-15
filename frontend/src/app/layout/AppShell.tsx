@@ -21,7 +21,9 @@ const links: NavItem[] = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user } = useSession();
-  const primaryLink = user ? { to: '/discover', label: 'Discover' } : { to: '/login', label: 'Sign in' };
+  const primaryLink = user
+    ? { to: '/discover', label: 'Discover' }
+    : { to: '/login', label: 'Sign in' };
 
   return (
     <div className="flex min-h-svh flex-col bg-stage text-stage-ink">
@@ -48,10 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {link.label}
               </NavLink>
             ))}
-            <NavLink
-              to={primaryLink.to}
-              className="transition-colors hover:text-stage-ink"
-            >
+            <NavLink to={primaryLink.to} className="transition-colors hover:text-stage-ink">
               {primaryLink.label}
             </NavLink>
           </nav>

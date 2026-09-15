@@ -49,11 +49,7 @@ export function BoardGrid({ boards, onCreate, fillTo = 8 }: BoardGridProps) {
               }}
             >
               <FloatingCard index={index}>
-                {isBlank ? (
-                  <BlankBoardCard onClick={onCreate} />
-                ) : (
-                  <BoardCard board={board} />
-                )}
+                {isBlank ? <BlankBoardCard onClick={onCreate} /> : <BoardCard board={board} />}
               </FloatingCard>
             </div>
           );

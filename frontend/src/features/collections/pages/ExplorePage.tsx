@@ -58,7 +58,11 @@ export default function ExplorePage() {
                 key={index}
                 className={cn(
                   'animate-pulse rounded-xl bg-[#d9d5c8]',
-                  index % 3 === 0 ? 'aspect-[4/5]' : index % 3 === 1 ? 'aspect-[3/4]' : 'aspect-[5/4]',
+                  index % 3 === 0
+                    ? 'aspect-[4/5]'
+                    : index % 3 === 1
+                      ? 'aspect-[3/4]'
+                      : 'aspect-[5/4]',
                 )}
               />
             ))}

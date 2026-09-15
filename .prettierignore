@@ -6,3 +6,4 @@ backend/drizzle
 backend/storage
 frontend/src/components/ui
 .github
+.playwright-mcp/
