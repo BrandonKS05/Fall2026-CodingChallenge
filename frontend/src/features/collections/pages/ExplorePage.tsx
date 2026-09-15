@@ -13,6 +13,7 @@ import {
 } from '@/components/common/JustifiedRows';
 import { StageButton } from '@/components/common/StageButton';
 import { StageChrome } from '@/components/common/StageChrome';
+import { MessagesLink } from '@/features/messaging';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,7 +71,11 @@ export default function ExplorePage() {
 
   return (
     <div className="flex min-h-svh flex-col bg-stage text-stage-ink">
-      <StageChrome signedIn={user !== null} position="sticky" />
+      <StageChrome
+        signedIn={user !== null}
+        position="sticky"
+        leading={<MessagesLink signedIn={user !== null} />}
+      />
 
       <main className="mx-auto w-full max-w-[1800px] flex-1 px-4 pt-4 sm:px-6">
         <header className="flex items-end justify-between gap-4 border-b border-stage-ink/30 pb-4">

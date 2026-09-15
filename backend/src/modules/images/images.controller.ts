@@ -1,16 +1,27 @@
 import { pipeline } from 'node:stream/promises';
 import type { RequestHandler } from 'express';
 import type { ImageService } from './ImageService.js';
+import type { LandingImagesQuery, LandingImagesResponse } from '@wumboo/shared';
 import type { IdParams } from '../../http/params.js';
 import { getValidated } from '../../http/middleware/validate.js';
+import { presentImage } from './image.presenter.js';
 
 export interface ImagesController {
+  landing: RequestHandler;
   serve: RequestHandler;
 }
 
 /** Streams stored files. Ids are immutable, so browsers may cache them for a year. */
 export function createImagesController(images: ImageService): ImagesController {
   return {
+    landing: async (_req, res) => {
+      const { query } = getValidated<unknown, LandingImagesQuery>(res);
+      const body: LandingImagesResponse = {
+        images: (await images.landingFeed(query.limit)).map(presentImage),
+      };
+      res.json(body);
+    },
+
     serve: async (_req, res) => {
       const { params } = getValidated<unknown, unknown, IdParams>(res);
       const object = await images.open(params.id);

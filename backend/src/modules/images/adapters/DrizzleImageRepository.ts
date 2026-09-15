@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { Image, ImageProviderName } from '../../../domain/entities/Image.js';
 import { ConflictError, NotFoundError } from '../../../domain/errors/index.js';
 import type { ImagePatch, ImageRepository, NewImage } from '../ports/ImageRepository.js';
@@ -44,6 +44,18 @@ export class DrizzleImageRepository implements ImageRepository {
   async findById(id: string): Promise<Image | null> {
     const row = await this.db.query.images.findFirst({ where: eq(images.id, id) });
     return row ? toImage(row) : null;
+  }
+
+  async listByProviderIds(
+    provider: ImageProviderName,
+    providerImageIds: string[],
+  ): Promise<Image[]> {
+    if (providerImageIds.length === 0) return [];
+    const rows = await this.db
+      .select()
+      .from(images)
+      .where(and(eq(images.provider, provider), inArray(images.providerImageId, providerImageIds)));
+    return rows.map(toImage);
   }
 
   async findByProviderId(

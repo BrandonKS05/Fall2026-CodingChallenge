@@ -5,6 +5,7 @@ import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { UserMenu } from './UserMenu';
 import { useSession } from '@/features/auth';
+import { MessagesLink } from '@/features/messaging';
 import { NotificationBell } from '@/features/notifications';
 
 interface NavItem {
@@ -56,6 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-1 text-stage-ink">
+            <MessagesLink signedIn={user !== null} />
             <NotificationBell user={user} />
             <ThemeToggle />
             <UserMenu />

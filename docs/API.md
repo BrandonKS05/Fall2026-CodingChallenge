@@ -27,6 +27,7 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | POST   | /api/collections/:id/like            | done   |
 | DELETE | /api/collections/:id/like            | done   |
 | GET    | /api/explore                         | done   |
+| GET    | /api/landing/images                  | done   |
 | GET    | /api/explore/images                  | done   |
 | GET    | /api/search                          | done   |
 | POST   | /api/collections/:id/items           | done   |

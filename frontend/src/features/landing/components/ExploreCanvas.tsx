@@ -1,5 +1,5 @@
 /**
- * Landing hero: images from public boards scattered across a dark stage that
+ * Landing hero: a fixed curation of images scattered across a dark stage that
  * drifts against the cursor. Tiles sit at fixed slots on a stage 40% larger
  * than the viewport; each slot has a depth, so near images travel further.
  *
@@ -10,11 +10,11 @@
  * whole hero through a full-viewport intermediate surface every frame, which
  * left stale slivers of the moving tiles on screen.
  */
-import type { ExploreImage, ExploreImagesResponse } from '@wumboo/shared';
+import type { Image as LandingImage, LandingImagesResponse } from '@wumboo/shared';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRightIcon } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { StageChrome } from '@/components/common/StageChrome';
 import { http, queryKeys } from '@/lib/api';
@@ -38,8 +38,6 @@ const NOISE =
 
 interface Tile {
   key: string;
-  collectionId: string;
-  title: string;
   src: string;
   /** CSS aspect-ratio, so the tile reserves its box before the image loads. */
   aspectRatio: string;
@@ -50,33 +48,30 @@ interface Tile {
 /** Which images failed to load, and which spare now stands in each affected slot. */
 interface Placement {
   /** The feed these choices were made for; a new feed starts clean. */
-  source: ExploreImage[] | undefined;
+  source: LandingImage[] | undefined;
   failed: ReadonlySet<string>;
-  overrides: ReadonlyMap<number, ExploreImage>;
+  overrides: ReadonlyMap<number, LandingImage>;
 }
 
 const EMPTY_PLACEMENT: Placement = { source: undefined, failed: new Set(), overrides: new Map() };
 
 /**
- * The server already interleaves boards newest-first and lists each image once;
- * slot order is prominence order. A slot whose image failed shows its spare,
- * or nothing, so every other tile keeps its slot, key, and motion.
+ * Slot order is prominence order, and the curation arrives in a fixed order, so
+ * the stage looks the same on every visit. A slot whose image failed shows its
+ * spare, or nothing, so every other tile keeps its slot, key, and motion.
  */
-function toTiles(images: ExploreImage[], placement: Placement, slots: Slot[]): Tile[] {
+function toTiles(images: LandingImage[], placement: Placement, slots: Slot[]): Tile[] {
   const tiles: Tile[] = [];
   for (const [index, slot] of slots.entries()) {
     const primary = images[index];
     if (!primary) break;
     const entry =
-      placement.overrides.get(index) ??
-      (placement.failed.has(primary.image.id) ? undefined : primary);
+      placement.overrides.get(index) ?? (placement.failed.has(primary.id) ? undefined : primary);
     if (!entry) continue;
     tiles.push({
-      key: entry.image.id,
-      collectionId: entry.collection.id,
-      title: entry.collection.title,
-      src: http.url(`/images/${entry.image.id}`),
-      aspectRatio: `${entry.image.width} / ${entry.image.height}`,
+      key: entry.id,
+      src: http.url(`/images/${entry.id}`),
+      aspectRatio: `${entry.width} / ${entry.height}`,
       slotIndex: index,
       slot,
     });
@@ -91,7 +86,7 @@ function toTiles(images: ExploreImage[], placement: Placement, slots: Slot[]): T
  */
 function replaceFailed(
   previous: Placement,
-  images: ExploreImage[],
+  images: LandingImage[],
   slotIndex: number,
   failedId: string,
   slotLimit: number,
@@ -99,10 +94,10 @@ function replaceFailed(
   const base = previous.source === images ? previous : EMPTY_PLACEMENT;
   const failed = new Set(base.failed).add(failedId);
   const overrides = new Map(base.overrides);
-  const held = new Set([...overrides.values()].map((entry) => entry.image.id));
+  const held = new Set([...overrides.values()].map((entry) => entry.id));
   const spare = images
     .slice(slotLimit)
-    .find((entry) => !failed.has(entry.image.id) && !held.has(entry.image.id));
+    .find((entry) => !failed.has(entry.id) && !held.has(entry.id));
   if (spare) overrides.set(slotIndex, spare);
   else overrides.delete(slotIndex);
   return { source: images, failed, overrides };
@@ -111,6 +106,8 @@ function replaceFailed(
 export interface ExploreCanvasProps {
   /** Swaps the "Sign in" link for "Discover" once there is a session. */
   signedIn?: boolean;
+  /** Goes at the start of the chrome's links. Passed in, because this is a feature component. */
+  chromeLeading?: ReactNode;
   tuning?: ParallaxTuning;
   slots?: Slot[];
   slotLimit?: number;
@@ -120,6 +117,7 @@ export interface ExploreCanvasProps {
 
 export function ExploreCanvas({
   signedIn = false,
+  chromeLeading,
   tuning = DEFAULT_TUNING,
   slots = SLOTS,
   slotLimit = TILE_LIMIT,
@@ -133,12 +131,12 @@ export function ExploreCanvas({
   const [hovering, setHovering] = useState(false);
   const feedLimit = slotLimit + spareImages;
 
-  // Through the existing client; a failure simply leaves the stage empty.
+  // The curated feed, through the existing client; a failure leaves the stage empty.
   const feed = useQuery({
-    queryKey: queryKeys.exploreImages({ limit: feedLimit }),
+    queryKey: queryKeys.landingImages({ limit: feedLimit }),
     queryFn: () =>
       http
-        .get<ExploreImagesResponse>('/explore/images', { query: { limit: feedLimit } })
+        .get<LandingImagesResponse>('/landing/images', { query: { limit: feedLimit } })
         .then((response) => response.images),
     retry: false,
     meta: { silentError: true },
@@ -196,7 +194,7 @@ export function ExploreCanvas({
         className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-28 bg-linear-to-t from-stage/60 to-transparent"
       />
 
-      <StageChrome signedIn={signedIn} />
+      <StageChrome signedIn={signedIn} leading={chromeLeading} />
 
       <Link
         to="/explore"
@@ -232,26 +230,26 @@ function StageTile({ tile, parallax, interactive, onHover, onError }: StageTileP
         y: interactive ? y : 0,
       }}
     >
-      <Link
-        to={`/boards/${tile.collectionId}`}
-        aria-label={`Open ${tile.title}`}
-        className="group relative block"
+      {/* Decoration, not content: the stage is the same for everyone, and the
+          chrome above it is what leads anywhere, so these are not links and
+          carry no alt text for a screen reader to read out thirty-six times. */}
+      <div
+        aria-hidden
+        className="relative block"
         style={{ aspectRatio: tile.aspectRatio }}
         onPointerEnter={() => onHover(true)}
         onPointerLeave={() => onHover(false)}
       >
         <img
+          data-testid="stage-tile"
           src={tile.src}
-          alt={tile.title}
+          alt=""
           draggable={false}
           decoding="async"
           onError={onError}
           className="block h-full w-full rounded-[2px] object-cover"
         />
-        <span className="pointer-events-none absolute -bottom-6 left-0 text-[11px] tracking-[0.2em] text-transparent uppercase transition-colors group-hover:text-stage-ink/70">
-          {tile.title}
-        </span>
-      </Link>
+      </div>
     </motion.div>
   );
 }

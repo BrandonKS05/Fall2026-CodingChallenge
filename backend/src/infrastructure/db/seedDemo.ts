@@ -15,6 +15,7 @@
 
 import type { Container } from '../../container.js';
 import type { CollectionVisibility } from '../../domain/entities/Collection.js';
+import { LANDING_IMAGE_IDS, LANDING_PROVIDER } from '../../modules/images/landingImages.js';
 
 export const DEMO_ACCOUNT = {
   email: 'demo@wumboo.app',
@@ -121,6 +122,9 @@ export async function seedDemo(container: Container): Promise<void> {
   const { services, repositories, logger } = container;
   const log = logger.child({ script: 'seed' });
 
+  const landingStored = await ensureLandingImages(container);
+  if (landingStored > 0) console.log(`Stored ${landingStored} landing images.`);
+
   const demo = await ensureAccount(container, DEMO_ACCOUNT);
   const sam = await ensureAccount(container, FRIEND_ACCOUNT);
   const accounts = { demo, sam };
@@ -200,6 +204,28 @@ export async function seedDemo(container: Container): Promise<void> {
   console.log(
     `Log in with ${DEMO_ACCOUNT.email} / ${DEMO_ACCOUNT.password} (or ${FRIEND_ACCOUNT.email} with the same password).`,
   );
+}
+
+/**
+ * The landing stage's curation. Downloaded like any other image, but owned by
+ * nobody: it belongs to no board, so nothing a person saves can change the hero.
+ */
+async function ensureLandingImages(container: Container): Promise<number> {
+  let stored = 0;
+  for (const providerImageId of LANDING_IMAGE_IDS) {
+    const existing = await container.repositories.images.findByProviderId(
+      LANDING_PROVIDER,
+      providerImageId,
+    );
+    if (existing) continue;
+    try {
+      await container.services.images.ensureStored(LANDING_PROVIDER, providerImageId);
+      stored += 1;
+    } catch (error) {
+      container.logger.warn({ err: error, providerImageId }, 'Landing image unavailable');
+    }
+  }
+  return stored;
 }
 
 async function ensureAccount(container: Container, account: typeof DEMO_ACCOUNT): Promise<Account> {

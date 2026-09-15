@@ -6,6 +6,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Image, ImageProviderName } from '../../domain/entities/Image.js';
 import { contentTypeForKey, extensionForContentType } from '../../domain/entities/ImageFile.js';
+import { LANDING_IMAGE_IDS, LANDING_PROVIDER } from './landingImages.js';
 import {
   ConflictError,
   InvalidOperationError,
@@ -46,6 +47,21 @@ export class ImageService {
     this.log = deps.logger.child({ service: 'ImageService' });
     this.maxBytes = deps.maxBytes ?? 15 * 1024 * 1024;
     this.timeoutMs = deps.timeoutMs ?? 15_000;
+  }
+
+  /**
+   * The landing stage's fixed curation, in the order it is written down. It
+   * reads the image table alone: no board, no saved item, nothing a person can
+   * change, so the front of the product stays put.
+   */
+  async landingFeed(limit: number): Promise<Image[]> {
+    const wanted = LANDING_IMAGE_IDS.slice(0, limit);
+    const stored = await this.deps.images.listByProviderIds(LANDING_PROVIDER, [...wanted]);
+    const byProviderId = new Map(stored.map((image) => [image.providerImageId, image]));
+    return wanted.flatMap((providerImageId) => {
+      const image = byProviderId.get(providerImageId);
+      return image ? [image] : [];
+    });
   }
 
   /**

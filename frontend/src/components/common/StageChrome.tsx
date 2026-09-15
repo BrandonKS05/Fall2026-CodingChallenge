@@ -5,12 +5,18 @@
  * these pages animate things underneath, and an opacity animation would get
  * its own compositor layer.
  */
+import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
 import { cn } from '@/lib/utils';
 
 interface StageChromeProps {
   signedIn: boolean;
+  /**
+   * Sits at the start of the links. A slot rather than a fixed control, because
+   * this is a shared component and the things that go here belong to features.
+   */
+  leading?: ReactNode;
   /** `absolute` floats over a fixed stage; `sticky` rides along a scrolling page. */
   position?: 'absolute' | 'sticky';
 }
@@ -18,7 +24,7 @@ interface StageChromeProps {
 const link = ({ isActive }: { isActive: boolean }) =>
   cn('transition-colors hover:text-stage-ink/70', isActive && 'underline underline-offset-4');
 
-export function StageChrome({ signedIn, position = 'absolute' }: StageChromeProps) {
+export function StageChrome({ signedIn, leading, position = 'absolute' }: StageChromeProps) {
   const auth = useAuthDialog();
   return (
     <header
@@ -39,6 +45,7 @@ export function StageChrome({ signedIn, position = 'absolute' }: StageChromeProp
         aria-label="Site"
         className="flex items-center gap-2 text-[10px] tracking-[0.2em] uppercase sm:gap-3 sm:text-[11px]"
       >
+        {leading}
         <NavLink to="/explore" className={link}>
           Explore
         </NavLink>

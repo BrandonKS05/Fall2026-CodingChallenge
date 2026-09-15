@@ -63,6 +63,14 @@ export function exploreImageFixture(
   };
 }
 
+/** One image of the landing stage's fixed curation: no board, because it has none. */
+export function landingImageFixture(
+  id: string,
+  overrides: Partial<ExploreImage['image']> = {},
+): ExploreImage['image'] {
+  return { ...itemFixture().image, id, url: `/api/images/${id}`, ...overrides };
+}
+
 export function searchResultFixture(
   id: string,
   overrides: Partial<SearchResult> = {},

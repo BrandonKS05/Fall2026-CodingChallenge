@@ -5,6 +5,11 @@ import { afterEach } from 'vitest';
 
 afterEach(cleanup);
 
+// jsdom implements no scrolling at all, so anything that scrolls into view is a no-op here.
+if (typeof Element.prototype.scrollIntoView !== 'function') {
+  Element.prototype.scrollIntoView = () => undefined;
+}
+
 // jsdom has no matchMedia; default to "no query matches". Tests stub it when a match matters.
 if (typeof window.matchMedia !== 'function') {
   window.matchMedia = (query: string): MediaQueryList =>

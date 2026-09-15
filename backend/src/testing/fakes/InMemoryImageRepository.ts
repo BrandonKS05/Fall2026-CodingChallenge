@@ -25,6 +25,16 @@ export class InMemoryImageRepository implements ImageRepository {
     );
   }
 
+  async listByProviderIds(
+    provider: ImageProviderName,
+    providerImageIds: string[],
+  ): Promise<Image[]> {
+    const wanted = new Set(providerImageIds);
+    return [...this.rows.values()].filter(
+      (image) => image.provider === provider && wanted.has(image.providerImageId),
+    );
+  }
+
   async create(input: NewImage): Promise<Image> {
     if (await this.findByProviderId(input.provider, input.providerImageId)) {
       throw new ConflictError('Image was already stored');

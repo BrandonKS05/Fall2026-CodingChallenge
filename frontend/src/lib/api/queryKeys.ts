@@ -15,10 +15,18 @@ export const queryKeys = {
     detail: (id: string) => ['collections', 'detail', id] as const,
     members: (id: string) => ['collections', 'detail', id, 'members'] as const,
   },
-  /** The landing stage's feed. Its own root, so board edits never reshuffle the stage mid-visit. */
+  /** Explore's gallery of images from public boards. */
   exploreImages: (params: { limit: number }) => ['explore', 'images', params] as const,
+  /** The landing stage's fixed curation. Nothing anyone posts can change it. */
+  landingImages: (params: { limit: number }) => ['landing', 'images', params] as const,
   shared: (slug: string) => ['shared', slug] as const,
   notifications: ['notifications'] as const,
+  /** Direct messages: the inbox, and one conversation's history. */
+  conversations: {
+    all: ['conversations'] as const,
+    list: () => ['conversations', 'list'] as const,
+    messages: (id: string) => ['conversations', 'detail', id, 'messages'] as const,
+  },
   /** The person's own saves across boards; every item mutation invalidates it. */
   savedItems: {
     all: ['saved-items'] as const,

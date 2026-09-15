@@ -1,26 +1,18 @@
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { exploreImageFixture } from '@/testing/fixtures';
+import { landingImageFixture } from '@/testing/fixtures';
 import { renderWithProviders, stubApi, type StubRoute } from '@/testing/render';
 import { ExploreCanvas } from './ExploreCanvas';
 import { SLOTS, SPARE_IMAGES, TILE_LIMIT } from './slots';
 
-const boards = [
-  { id: 'c1', title: 'Warm kitchens' },
-  { id: 'c2', title: 'Fog and pines' },
-  { id: 'c3', title: 'Ceramics' },
-];
-
-/** A full feed (every slot plus the spares) interleaved across three boards, in API order. */
+/** A full curation: every slot plus the spares, in the order the server lists them. */
 const FEED_SIZE = TILE_LIMIT + SPARE_IMAGES;
 const spare = (n: number) => `/api/images/i${TILE_LIMIT + n}`;
 const heroLeft = `${SLOTS[0]?.x ?? 0}%`;
-const feed = Array.from({ length: FEED_SIZE }, (_, index) =>
-  exploreImageFixture(`i${index + 1}`, boards[index % boards.length] as (typeof boards)[number]),
-);
+const feed = Array.from({ length: FEED_SIZE }, (_, index) => landingImageFixture(`i${index + 1}`));
 
 function renderCanvas(route: StubRoute = { body: { images: feed } }, props = {}) {
-  const api = stubApi({ 'GET /api/explore/images': route });
+  const api = stubApi({ 'GET /api/landing/images': route });
   vi.stubGlobal('fetch', api.fetchMock);
   renderWithProviders(<ExploreCanvas {...props} />);
   return api;
@@ -39,29 +31,27 @@ function stubMediaQueries(matching: string[]) {
   }));
 }
 
-const sources = () => screen.getAllByRole('img').map((img) => img.getAttribute('src'));
+// The tiles are decoration, so they have no role to query by: a test id it is.
+const tileImages = () => screen.queryAllByTestId('stage-tile');
+const sources = () => tileImages().map((img) => img.getAttribute('src'));
 const imgBySrc = (src: string) =>
-  screen.getAllByRole('img').find((img) => img.getAttribute('src') === src) as
-    HTMLImageElement | undefined;
+  tileImages().find((img) => img.getAttribute('src') === src) as HTMLImageElement | undefined;
 /** The stage slot a tile occupies: the inline `left` of its positioned wrapper. */
-const slotOf = (img: HTMLElement) => (img.closest('a')?.parentElement as HTMLElement).style.left;
+const slotOf = (img: HTMLElement) => (img.parentElement?.parentElement as HTMLElement).style.left;
 
 describe('ExploreCanvas', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('fills every slot from the feed in server order, each tile linking to its board', async () => {
+  it('fills every slot from the curated feed, in order, without linking anywhere', async () => {
     const api = renderCanvas();
-    const tiles = await screen.findAllByRole('link', { name: /^Open / });
+    const tiles = await screen.findAllByTestId('stage-tile');
     expect(tiles).toHaveLength(TILE_LIMIT);
-    expect(tiles.slice(0, 3).map((tile) => tile.getAttribute('aria-label'))).toEqual([
-      'Open Warm kitchens',
-      'Open Fog and pines',
-      'Open Ceramics',
-    ]);
-    expect(tiles[0]).toHaveAttribute('href', '/boards/c1');
-    expect(tiles[1]).toHaveAttribute('href', '/boards/c2');
-    expect(tiles[0]).toHaveStyle({ aspectRatio: '1600 / 1200' });
-    expect(sources()[0]).toBe('/api/images/i1');
+    expect(sources().slice(0, 3)).toEqual(['/api/images/i1', '/api/images/i2', '/api/images/i3']);
+    // Decoration: no board to open, nothing for a screen reader to announce.
+    expect(screen.queryByRole('link', { name: /^Open / })).not.toBeInTheDocument();
+    expect(tiles[0]).toHaveAttribute('alt', '');
+    expect(tiles[0]?.parentElement).toHaveStyle({ aspectRatio: '1600 / 1200' });
+    expect(api.calls[0]?.path).toBe('/api/landing/images');
     expect(api.calls[0]?.url).toContain(`limit=${FEED_SIZE}`);
   });
 
@@ -95,7 +85,7 @@ describe('ExploreCanvas', () => {
 
   it('hands the slot of a failed image to the first spare, leaving the other tiles alone', async () => {
     renderCanvas();
-    await screen.findAllByRole('img');
+    await screen.findAllByTestId('stage-tile');
     const first = imgBySrc('/api/images/i1')!;
     const second = imgBySrc('/api/images/i2')!;
     const slot = slotOf(first);
@@ -111,7 +101,7 @@ describe('ExploreCanvas', () => {
 
   it('claims spares in failure order, including when a spare itself fails', async () => {
     renderCanvas();
-    await screen.findAllByRole('img');
+    await screen.findAllByTestId('stage-tile');
     fireEvent.error(imgBySrc('/api/images/i1')!);
     await waitFor(() => expect(imgBySrc(spare(1))).toBeDefined());
 
@@ -131,7 +121,7 @@ describe('ExploreCanvas', () => {
 
   it('hides a failed tile when no spare is left, and a short feed fills only its own slots', async () => {
     renderCanvas({ body: { images: feed.slice(0, TILE_LIMIT) } });
-    await screen.findAllByRole('img');
+    await screen.findAllByTestId('stage-tile');
     fireEvent.error(imgBySrc('/api/images/i1')!);
     await waitFor(() => expect(sources()).toHaveLength(TILE_LIMIT - 1));
     expect(imgBySrc(spare(1))).toBeUndefined();
@@ -144,21 +134,21 @@ describe('ExploreCanvas', () => {
 
   it('fails silently to an empty stage', async () => {
     renderCanvas({ status: 500, body: { error: { code: 'INTERNAL_ERROR', message: 'down' } } });
-    await waitFor(() => expect(screen.queryByRole('img')).not.toBeInTheDocument());
+    await waitFor(() => expect(tileImages()).toHaveLength(0));
     expect(screen.getByRole('link', { name: /see more work/i })).toBeInTheDocument();
   });
 
   it('falls back to a static scatter with the native cursor for reduced motion and touch', async () => {
     stubMediaQueries(['prefers-reduced-motion']);
     renderCanvas();
-    await screen.findAllByRole('img');
+    await screen.findAllByTestId('stage-tile');
     expect(screen.queryByTestId('cursor-dot')).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Featured boards' })).not.toHaveClass('cursor-none');
     vi.unstubAllGlobals();
 
     stubMediaQueries(['pointer: coarse']);
     renderCanvas();
-    await screen.findAllByRole('img');
+    await screen.findAllByTestId('stage-tile');
     expect(screen.queryByTestId('cursor-dot')).not.toBeInTheDocument();
   });
 });

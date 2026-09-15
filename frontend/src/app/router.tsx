@@ -20,6 +20,7 @@ const BoardPage = lazy(() => import('@/features/collections/pages/BoardPage'));
 const ExplorePage = lazy(() => import('@/features/collections/pages/ExplorePage'));
 const SharedBoardPage = lazy(() => import('@/features/sharing/pages/SharedBoardPage'));
 const SettingsPage = lazy(() => import('@/features/auth/pages/SettingsPage'));
+const MessagesPage = lazy(() => import('@/features/messaging/pages/MessagesPage'));
 
 function page(element: ReactNode) {
   return <Suspense fallback={<PageSkeleton />}>{element}</Suspense>;
@@ -31,7 +32,10 @@ function page(element: ReactNode) {
  * arriving at a new one, so it should not blur and re-enter.
  */
 function transitionKey(pathname: string): string {
-  return pathname.startsWith('/settings') ? '/settings' : pathname;
+  for (const section of ['/settings', '/messages']) {
+    if (pathname.startsWith(section)) return section;
+  }
+  return pathname;
 }
 
 function RouteTransition({ children }: { children: ReactNode }) {
@@ -77,6 +81,8 @@ export const router = createBrowserRouter([
       { path: '/boards', element: <RequireAuth>{page(<BoardsPage />)}</RequireAuth> },
       { path: '/settings', element: <RequireAuth>{page(<SettingsPage />)}</RequireAuth> },
       { path: '/settings/:section', element: <RequireAuth>{page(<SettingsPage />)}</RequireAuth> },
+      { path: '/messages', element: <RequireAuth>{page(<MessagesPage />)}</RequireAuth> },
+      { path: '/messages/:id', element: <RequireAuth>{page(<MessagesPage />)}</RequireAuth> },
       // Sign-in as a URL, for deep links and Google's return trip; the card floats over Explore.
       { path: '/login', element: <AuthRoute mode="login" /> },
       { path: '/register', element: <AuthRoute mode="register" /> },
