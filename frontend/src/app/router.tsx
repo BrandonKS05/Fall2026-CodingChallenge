@@ -5,6 +5,8 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter, Outlet } from 'react-router';
 import { RequireAuth } from '@/features/auth/components/RequireAuth';
+import { AuthDialogProvider } from './AuthDialogProvider';
+import { AuthRoute } from './AuthRoute';
 import { AppShell } from './layout/AppShell';
 import { NotFoundPage } from './NotFoundPage';
 import { RouteErrorPage } from './RouteErrorPage';
@@ -16,40 +18,50 @@ const BoardsPage = lazy(() => import('@/features/collections/pages/BoardsPage'))
 const BoardPage = lazy(() => import('@/features/collections/pages/BoardPage'));
 const ExplorePage = lazy(() => import('@/features/collections/pages/ExplorePage'));
 const SharedBoardPage = lazy(() => import('@/features/sharing/pages/SharedBoardPage'));
-const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'));
-const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'));
 
 function page(element: ReactNode) {
   return <Suspense fallback={<PageSkeleton />}>{element}</Suspense>;
 }
 
 export const router = createBrowserRouter([
-  // The landing hero owns the whole viewport and its own chrome, so it sits outside the shell.
-  { path: '/', errorElement: <RouteErrorPage />, element: page(<LandingPage />) },
   {
+    // One sign-in dialog for the whole app: any page, including the landing hero, opens it in place.
     errorElement: <RouteErrorPage />,
     element: (
-      <AppShell>
+      <AuthDialogProvider>
         <Outlet />
-      </AppShell>
+      </AuthDialogProvider>
     ),
     children: [
-      { path: '/discover', element: page(<DiscoverPage />) },
-      { path: '/explore', element: page(<ExplorePage />) },
-      // Board pages are readable by non-members when unlisted or public, so the API decides, not the router.
-      { path: '/boards/:id', element: page(<BoardPage />) },
-      { path: '/s/:slug', element: page(<SharedBoardPage />) },
-      { path: '/login', element: page(<LoginPage />) },
-      { path: '/register', element: page(<RegisterPage />) },
+      // The landing hero owns the whole viewport and its own chrome, so it sits outside the shell.
+      { path: '/', element: page(<LandingPage />) },
       {
+        errorElement: <RouteErrorPage />,
         element: (
-          <RequireAuth>
+          <AppShell>
             <Outlet />
-          </RequireAuth>
+          </AppShell>
         ),
-        children: [{ path: '/boards', element: page(<BoardsPage />) }],
+        children: [
+          { path: '/discover', element: page(<DiscoverPage />) },
+          { path: '/explore', element: page(<ExplorePage />) },
+          // Board pages are readable by non-members when unlisted or public, so the API decides, not the router.
+          { path: '/boards/:id', element: page(<BoardPage />) },
+          { path: '/s/:slug', element: page(<SharedBoardPage />) },
+          // Sign-in as a URL, for deep links and Google's return trip; the card floats over Explore.
+          { path: '/login', element: <AuthRoute mode="login" /> },
+          { path: '/register', element: <AuthRoute mode="register" /> },
+          {
+            element: (
+              <RequireAuth>
+                <Outlet />
+              </RequireAuth>
+            ),
+            children: [{ path: '/boards', element: page(<BoardsPage />) }],
+          },
+          { path: '*', element: <NotFoundPage /> },
+        ],
       },
-      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ]);

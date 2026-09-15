@@ -1,9 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import type { Collection, CollectionSummary } from '../../domain/entities/Collection.js';
+import type {
+  Collection,
+  CollectionSummary,
+  PublicImage,
+} from '../../domain/entities/Collection.js';
 import { ConflictError, NotFoundError } from '../../domain/errors/index.js';
 import type {
   CollectionPatch,
   CollectionRepository,
+  ListPublicImagesOptions,
   ListPublicOptions,
   NewCollection,
 } from '../../modules/collections/ports/CollectionRepository.js';
@@ -51,6 +56,50 @@ export class InMemoryCollectionRepository implements CollectionRepository {
         .slice(offset, offset + limit)
         .map((collection) => this.toSummary(collection, viewerId ?? null)),
     );
+  }
+
+  /** Mirrors the SQL: keep each image once (newest board wins), rank the survivors per board, interleave. */
+  async listPublicImages({ limit }: ListPublicImagesOptions): Promise<PublicImage[]> {
+    interface Placement {
+      itemId: string;
+      image: PublicImage['image'];
+      board: Collection;
+      addedAt: Date;
+    }
+    const newestFirst = (a: Placement, b: Placement) =>
+      b.addedAt.getTime() - a.addedAt.getTime() || a.itemId.localeCompare(b.itemId);
+    const newestBoardFirst = (a: Placement, b: Placement) =>
+      b.board.updatedAt.getTime() - a.board.updatedAt.getTime() || newestFirst(a, b);
+
+    const chosen = new Map<string, Placement>();
+    for (const board of this.newestFirst().filter((row) => row.visibility === 'public')) {
+      for (const item of await this.items.listByCollection(board.id)) {
+        const placement = { itemId: item.id, image: item.image, board, addedAt: item.createdAt };
+        const current = chosen.get(item.imageId);
+        if (!current || newestBoardFirst(placement, current) < 0)
+          chosen.set(item.imageId, placement);
+      }
+    }
+
+    const ranked: { placement: Placement; rank: number }[] = [];
+    const byBoard = new Map<string, Placement[]>();
+    for (const placement of chosen.values()) {
+      byBoard.set(placement.board.id, [...(byBoard.get(placement.board.id) ?? []), placement]);
+    }
+    for (const placements of byBoard.values()) {
+      placements
+        .sort(newestFirst)
+        .slice(0, limit)
+        .forEach((placement, index) => ranked.push({ placement, rank: index + 1 }));
+    }
+    return ranked
+      .sort((a, b) => a.rank - b.rank || newestBoardFirst(a.placement, b.placement))
+      .slice(0, limit)
+      .map(({ placement: { image, board } }) => ({
+        image,
+        collectionId: board.id,
+        collectionTitle: board.title,
+      }));
   }
 
   async create(input: NewCollection): Promise<Collection> {

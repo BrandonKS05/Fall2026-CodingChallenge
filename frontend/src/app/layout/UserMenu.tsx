@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLogout, useSession } from '@/features/auth/queries';
+import { useAuthDialog } from '@/hooks/useAuthDialog';
 
 function initials(name: string): string {
   return name
@@ -27,16 +28,25 @@ export function UserMenu() {
   const { user, isLoading } = useSession();
   const logout = useLogout();
   const navigate = useNavigate();
+  const auth = useAuthDialog();
 
   if (isLoading) return <Skeleton className="size-8 rounded-full" />;
 
   if (!user) {
     return (
       <div className="flex items-center gap-2">
-        <Link to="/login" className={buttonVariants({ variant: 'ghost' })}>
+        <Link
+          to="/login"
+          onClick={auth.intercept({ mode: 'login' })}
+          className={buttonVariants({ variant: 'ghost' })}
+        >
           Log in
         </Link>
-        <Link to="/register" className={buttonVariants()}>
+        <Link
+          to="/register"
+          onClick={auth.intercept({ mode: 'register' })}
+          className={buttonVariants()}
+        >
           Sign up
         </Link>
       </div>

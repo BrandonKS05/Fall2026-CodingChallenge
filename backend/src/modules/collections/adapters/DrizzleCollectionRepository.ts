@@ -1,19 +1,26 @@
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
-import type { Collection, CollectionSummary } from '../../../domain/entities/Collection.js';
+import { and, asc, desc, eq, lte, sql, type SQL } from 'drizzle-orm';
+import type {
+  Collection,
+  CollectionSummary,
+  PublicImage,
+} from '../../../domain/entities/Collection.js';
 import type { CollectionRole } from '../../../domain/entities/Membership.js';
 import { ConflictError, NotFoundError } from '../../../domain/errors/index.js';
 import type {
   CollectionPatch,
   CollectionRepository,
+  ListPublicImagesOptions,
   ListPublicOptions,
   NewCollection,
 } from '../ports/CollectionRepository.js';
+import { toImage } from '../../images/adapters/DrizzleImageRepository.js';
 import type { Db } from '../../../infrastructure/db/client.js';
 import { isUniqueViolation } from '../../../infrastructure/db/errors.js';
 import {
   collectionItems,
   collectionMembers,
   collections,
+  images,
   users,
 } from '../../../infrastructure/db/schema/index.js';
 
@@ -129,6 +136,69 @@ export class DrizzleCollectionRepository implements CollectionRepository {
       .limit(limit)
       .offset(offset);
     return rows.map(toSummary);
+  }
+
+  /**
+   * Two passes of window ranks do the work before LIMIT. First every placement
+   * of an image is ranked so an image on several public boards is kept once,
+   * credited to the most recently updated board. Then the survivors are ranked
+   * within their board, which interleaves the boards: every board's newest
+   * surviving image comes before any board's second. Only the top `limit` per
+   * board reach the final sort, so a huge board cannot inflate the query.
+   */
+  async listPublicImages({ limit }: ListPublicImagesOptions): Promise<PublicImage[]> {
+    const placements = this.db.$with('placements').as(
+      this.db
+        .select({
+          itemId: collectionItems.id,
+          imageId: collectionItems.imageId,
+          collectionId: collectionItems.collectionId,
+          addedAt: collectionItems.createdAt,
+          boardUpdatedAt: collections.updatedAt,
+          rankForImage:
+            sql<number>`row_number() over (partition by ${collectionItems.imageId} order by ${collections.updatedAt} desc, ${collectionItems.createdAt} desc, ${collectionItems.id})`.as(
+              'rank_for_image',
+            ),
+        })
+        .from(collectionItems)
+        .innerJoin(collections, eq(collections.id, collectionItems.collectionId))
+        .where(eq(collections.visibility, 'public')),
+    );
+    const ranked = this.db.$with('ranked').as(
+      this.db
+        .select({
+          itemId: placements.itemId,
+          imageId: placements.imageId,
+          collectionId: placements.collectionId,
+          addedAt: placements.addedAt,
+          boardUpdatedAt: placements.boardUpdatedAt,
+          rankInBoard:
+            sql<number>`row_number() over (partition by ${placements.collectionId} order by ${placements.addedAt} desc, ${placements.itemId})`.as(
+              'rank_in_board',
+            ),
+        })
+        .from(placements)
+        .where(eq(placements.rankForImage, 1)),
+    );
+    const rows = await this.db
+      .with(placements, ranked)
+      .select({ image: images, collectionId: collections.id, collectionTitle: collections.title })
+      .from(ranked)
+      .innerJoin(images, eq(images.id, ranked.imageId))
+      .innerJoin(collections, eq(collections.id, ranked.collectionId))
+      .where(lte(ranked.rankInBoard, limit))
+      .orderBy(
+        asc(ranked.rankInBoard),
+        desc(ranked.boardUpdatedAt),
+        desc(ranked.addedAt),
+        asc(ranked.itemId),
+      )
+      .limit(limit);
+    return rows.map((row) => ({
+      image: toImage(row.image),
+      collectionId: row.collectionId,
+      collectionTitle: row.collectionTitle,
+    }));
   }
 
   /** The board and its owner membership are written in one transaction so neither can exist alone. */

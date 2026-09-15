@@ -8,6 +8,7 @@ import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { useSession } from '@/features/auth/queries';
+import { useAuthDialog } from '@/hooks/useAuthDialog';
 import { EditItemDialog } from '@/features/items/components/EditItemDialog';
 import { ImageLightbox } from '@/features/items/components/ImageLightbox';
 import { ItemGrid, ItemGridSkeleton } from '@/features/items/components/ItemGrid';
@@ -23,6 +24,7 @@ export default function BoardPage() {
   const { id = '' } = useParams();
   const board = useBoard(id);
   const { user } = useSession();
+  const auth = useAuthDialog();
   // Only needed for "move to"; fetched lazily by the query cache, cheap when already loaded.
   const myBoards = useBoards();
   const addItem = useAddItem(id);
@@ -43,7 +45,12 @@ export default function BoardPage() {
           }
           action={
             !user && (
-              <Link to="/login" state={{ from: `/boards/${id}` }} className={buttonVariants()}>
+              <Link
+                to="/login"
+                state={{ from: `/boards/${id}` }}
+                onClick={auth.intercept({ mode: 'login', from: `/boards/${id}` })}
+                className={buttonVariants()}
+              >
                 Log in
               </Link>
             )

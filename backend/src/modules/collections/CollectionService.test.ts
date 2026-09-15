@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Image } from '../../domain/entities/Image.js';
 import { ForbiddenError, NotFoundError } from '../../domain/errors/index.js';
 import { CollectionService } from './CollectionService.js';
 import { silentLogger } from '../../testing/fakes/fakeAuth.js';
@@ -98,5 +99,109 @@ describe('CollectionService', () => {
     await expect(
       service.authorize('00000000-0000-0000-0000-000000000000', ownerId, 'view'),
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  describe('listPublicImages', () => {
+    afterEach(() => vi.useRealTimers());
+
+    /** Fake timers give every write a distinct, ordered timestamp. */
+    async function later<T>(work: () => Promise<T>): Promise<T> {
+      vi.advanceTimersByTime(1_000);
+      return work();
+    }
+
+    async function storeImage(providerImageId: string): Promise<Image> {
+      return later(() =>
+        repos.images.create({
+          provider: 'pixabay',
+          providerImageId,
+          storageKey: `images/${providerImageId}.jpg`,
+          width: 1600,
+          height: 1200,
+          blurhash: null,
+          palette: [],
+          tags: [],
+          credit: { name: 'photographer', url: null },
+          sourceUrl: `https://pixabay.com/photos/${providerImageId}/`,
+        }),
+      );
+    }
+
+    async function addTo(collectionId: string, image: Image): Promise<void> {
+      await later(async () =>
+        repos.items.create({
+          collectionId,
+          imageId: image.id,
+          addedById: ownerId,
+          caption: '',
+          tags: [],
+          position: await repos.items.nextPosition(collectionId),
+        }),
+      );
+    }
+
+    it('interleaves public boards newest-first, lists each image once, and skips other boards', async () => {
+      vi.useFakeTimers({ now: new Date('2026-09-15T12:00:00Z') });
+      const a = await later(() =>
+        service.create(ownerId, { ...draft, title: 'A', visibility: 'public' }),
+      );
+      const b = await later(() =>
+        service.create(ownerId, { ...draft, title: 'B', visibility: 'public' }),
+      );
+      const c = await later(() =>
+        service.create(ownerId, { ...draft, title: 'C', visibility: 'unlisted' }),
+      );
+      const [x, y, z, w, v] = await Promise.all(['x', 'y', 'z', 'w', 'v'].map(storeImage));
+      if (!x || !y || !z || !w || !v) throw new Error('fixtures');
+
+      await addTo(a.id, x);
+      await addTo(a.id, y);
+      await addTo(a.id, z);
+      await addTo(b.id, y); // the same image on two public boards
+      await addTo(b.id, w);
+      await addTo(c.id, v);
+      await later(() => repos.collections.touch(a.id)); // A is the most recently updated board
+
+      const feed = await service.listPublicImages(10);
+      expect(feed.map((row) => row.image.providerImageId)).toEqual(['z', 'w', 'y', 'x']);
+      expect(feed.map((row) => row.collectionTitle)).toEqual(['A', 'B', 'A', 'A']);
+      expect(feed[0]?.collectionId).toBe(a.id);
+      expect(feed[0]?.image).toEqual(z);
+
+      // Round-robin survives the cap: the second slot goes to B's newest, not A's second.
+      expect((await service.listPublicImages(2)).map((row) => row.image.providerImageId)).toEqual([
+        'z',
+        'w',
+      ]);
+    });
+
+    it('keeps a board in the lead round when its newest image was claimed by a newer board', async () => {
+      vi.useFakeTimers({ now: new Date('2026-09-15T12:00:00Z') });
+      const a = await later(() =>
+        service.create(ownerId, { ...draft, title: 'A', visibility: 'public' }),
+      );
+      const b = await later(() =>
+        service.create(ownerId, { ...draft, title: 'B', visibility: 'public' }),
+      );
+      const [x, y, z, w] = await Promise.all(['x', 'y', 'z', 'w'].map(storeImage));
+      if (!x || !y || !z || !w) throw new Error('fixtures');
+
+      await addTo(a.id, x);
+      await addTo(a.id, y);
+      await addTo(a.id, z); // A's newest...
+      await addTo(b.id, w);
+      await addTo(b.id, z); // ...is also B's newest, and B is the newer board
+      await later(() => repos.collections.touch(b.id));
+
+      const feed = await service.listPublicImages(10);
+      // Z goes to B; A's newest surviving image (Y) still leads for A instead of dropping a round.
+      expect(feed.map((row) => row.image.providerImageId)).toEqual(['z', 'y', 'w', 'x']);
+      expect(feed.map((row) => row.collectionTitle)).toEqual(['B', 'A', 'B', 'A']);
+    });
+
+    it('is empty without public boards', async () => {
+      await service.create(ownerId, draft);
+      expect(await service.listPublicImages(10)).toEqual([]);
+    });
   });
 });

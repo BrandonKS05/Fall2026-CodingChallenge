@@ -14,6 +14,8 @@ export const queryKeys = {
     members: (id: string) => ['collections', 'detail', id, 'members'] as const,
     explore: (params: Partial<PaginationQuery>) => ['collections', 'explore', params] as const,
   },
+  /** The landing stage's feed. Its own root, so board edits never reshuffle the stage mid-visit. */
+  exploreImages: (params: { limit: number }) => ['explore', 'images', params] as const,
   shared: (slug: string) => ['shared', slug] as const,
   notifications: ['notifications'] as const,
 };

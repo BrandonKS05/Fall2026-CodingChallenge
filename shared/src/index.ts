@@ -9,6 +9,7 @@ export * from './schemas/common.js';
 export * from './schemas/auth.js';
 export * from './schemas/search.js';
 export * from './schemas/collection.js';
+export * from './schemas/explore.js';
 export * from './schemas/item.js';
 export * from './schemas/share.js';
 export * from './schemas/notification.js';

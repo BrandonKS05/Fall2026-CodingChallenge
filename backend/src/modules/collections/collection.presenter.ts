@@ -2,9 +2,11 @@ import type {
   Collection as CollectionDto,
   CollectionDetailResponse,
   CollectionListResponse,
+  ExploreImagesResponse,
 } from '@wumboo/shared';
-import type { CollectionSummary } from '../../domain/entities/Collection.js';
+import type { CollectionSummary, PublicImage } from '../../domain/entities/Collection.js';
 import type { ItemDetail } from '../../domain/entities/CollectionItem.js';
+import { presentImage } from '../images/image.presenter.js';
 import { presentItem } from '../items/item.presenter.js';
 
 export function presentCollection(summary: CollectionSummary): CollectionDto {
@@ -25,6 +27,15 @@ export function presentCollection(summary: CollectionSummary): CollectionDto {
 
 export function presentCollectionList(summaries: CollectionSummary[]): CollectionListResponse {
   return { collections: summaries.map(presentCollection) };
+}
+
+export function presentExploreImages(rows: PublicImage[]): ExploreImagesResponse {
+  return {
+    images: rows.map((row) => ({
+      image: presentImage(row.image),
+      collection: { id: row.collectionId, title: row.collectionTitle },
+    })),
+  };
 }
 
 export function presentCollectionDetail(

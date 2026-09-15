@@ -234,10 +234,15 @@ repository tests against a service container, and the production build on every 
 ### Landing hero
 
 `/` is `ExploreCanvas` (`frontend/src/components/explore/`), a full-viewport stage outside the app
-shell. Public boards from `GET /api/explore` are placed at twelve fixed slots on a stage 40% larger
-than the viewport; each slot has a depth from 0.3 to 1 and the images translate against the cursor
-by `travel * depth`, spring-smoothed with `motion`. A pale dot replaces the native cursor and grows
-over images. Reduced-motion and touch users get the same scatter with no tracking and the native
+shell. Images from `GET /api/explore/images` (public boards, interleaved so no board dominates) are
+placed at eighteen fixed slots on a stage 40% larger than the viewport; the page fetches 24 so a tile
+whose image fails to load hands its slot to a spare. Each slot has a depth from 0.3 to 1 and the
+images translate against the cursor by `travel * depth`, spring-smoothed with `motion`; every tile
+reserves its aspect-ratio box before the image arrives so the scatter never reflows. A pale dot
+replaces the native cursor and grows over images. The stage is deliberately one paint layer: the dot
+is absolutely positioned inside the isolated section, nothing uses `will-change`, and the grain
+overlay is plain low-opacity paint, because a fixed, composited blend layer over moving tiles pushed
+the whole hero through an intermediate render surface every frame and left trails on screen. Reduced-motion and touch users get the same scatter with no tracking and the native
 cursor. The two stage colors are tokens (`--stage`, `--stage-ink`) in `src/index.css`. The feel is
 tuned in `useParallax.ts` (`DEFAULT_TUNING`): travel, stiffness, damping, cursor stiffness; the dot
 size and hover scale are constants at the top of `ExploreCanvas.tsx`. Search lives at `/discover`.

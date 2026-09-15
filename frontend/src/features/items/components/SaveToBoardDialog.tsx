@@ -4,7 +4,7 @@
  */
 import type { Collection, SearchResult, User } from '@wumboo/shared';
 import { ImageIcon, PlusIcon } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type MouseEvent } from 'react';
 import { Link } from 'react-router';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { useAuthDialog, type AuthMode } from '@/hooks/useAuthDialog';
 import { ApiError, http } from '@/lib/api';
 import { pluralize } from '@/lib/format';
 import { useSaveToBoard } from '../queries';
@@ -38,6 +39,13 @@ export function SaveToBoardDialog({
 }: SaveToBoardDialogProps) {
   const save = useSaveToBoard();
   const [newTitle, setNewTitle] = useState('');
+  const auth = useAuthDialog();
+  const here = window.location.pathname + window.location.search;
+  /** The sign-in card takes this dialog's place; the boards are here again after signing in. */
+  const openAuth = (mode: AuthMode) => (event: MouseEvent<HTMLAnchorElement>) => {
+    auth.intercept({ mode, from: here })(event);
+    if (event.defaultPrevented) onClose();
+  };
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,12 +110,18 @@ export function SaveToBoardDialog({
           <div className="flex gap-2">
             <Link
               to="/login"
-              state={{ from: window.location.pathname + window.location.search }}
+              state={{ from: here }}
+              onClick={openAuth('login')}
               className={buttonVariants()}
             >
               Log in
             </Link>
-            <Link to="/register" className={buttonVariants({ variant: 'outline' })}>
+            <Link
+              to="/register"
+              state={{ from: here }}
+              onClick={openAuth('register')}
+              className={buttonVariants({ variant: 'outline' })}
+            >
               Create an account
             </Link>
           </div>

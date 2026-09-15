@@ -1,5 +1,5 @@
 /** Contract-shaped fixtures for component tests. */
-import type { Collection, Item, SearchResult } from '@wumboo/shared';
+import type { Collection, ExploreImage, Item, SearchResult } from '@wumboo/shared';
 
 const now = new Date('2026-09-14T12:00:00Z').toISOString();
 
@@ -45,6 +45,18 @@ export function itemFixture(overrides: Partial<Item> = {}): Item {
     createdAt: now,
     updatedAt: now,
     ...overrides,
+  };
+}
+
+/** One row of the landing feed: an item image credited to a board. */
+export function exploreImageFixture(
+  id: string,
+  collection: { id: string; title: string },
+  overrides: Partial<ExploreImage['image']> = {},
+): ExploreImage {
+  return {
+    image: { ...itemFixture().image, id, url: `/api/images/${id}`, ...overrides },
+    collection,
   };
 }
 

@@ -28,7 +28,7 @@ Prerequisites: Node 20.19+ (24 recommended), pnpm 10 (corepack enable), Docker D
 2. docker compose up -d           # Postgres on localhost:5434
 3. pnpm install
 4. pnpm db:migrate                # creates the tables
-5. pnpm db:seed                   # demo accounts and four filled boards (downloads ~30 photos)
+5. pnpm db:seed                   # demo accounts and eight boards, five public (downloads ~60 photos)
 6. pnpm dev                       # frontend http://localhost:5173, API http://localhost:4000
 
 Demo login:  demo@wumboo.app / demo-password-123

@@ -5,6 +5,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/hooks/useTheme';
+import { AuthDialogProvider } from '@/app/AuthDialogProvider';
 import { createQueryClient } from '@/app/providers';
 
 interface Options extends Omit<RenderOptions, 'wrapper'> {
@@ -20,7 +21,9 @@ export function renderWithProviders(ui: ReactElement, { route = '/', ...options 
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+            <MemoryRouter initialEntries={[route]}>
+              <AuthDialogProvider>{children}</AuthDialogProvider>
+            </MemoryRouter>
           </TooltipProvider>
         </QueryClientProvider>
       </ThemeProvider>

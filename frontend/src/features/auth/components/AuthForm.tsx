@@ -1,7 +1,8 @@
 /**
  * Login and registration share one form. Validation uses the same zod
  * schemas the backend enforces, so the client can never accept something
- * the server would reject.
+ * the server would reject. The surface around it (card, dialog) is the
+ * caller's; this is only the fields, the submit, and the mode switch.
  */
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import {
@@ -15,7 +16,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { AuthMode } from '@/hooks/useAuthDialog';
 import { ApiError } from '@/lib/api';
 import { useAuthProviders, useLogin, useRegister } from '../queries';
 import { FormField } from '@/components/common/FormField';
@@ -29,36 +30,25 @@ const OAUTH_ERRORS: Record<string, string> = {
   google_unavailable: 'Google sign-in is not set up on this server.',
 };
 
-type Mode = 'login' | 'register';
-
 const copy: Record<
-  Mode,
-  {
-    title: string;
-    description: string;
-    submit: string;
-    switchText: string;
-    switchLabel: string;
-    switchTo: string;
-  }
+  AuthMode,
+  { submit: string; switchText: string; switchLabel: string; switchTo: AuthMode }
 > = {
   login: {
-    title: 'Welcome back',
-    description: 'Log in to get to your boards.',
     submit: 'Log in',
     switchText: 'New here?',
     switchLabel: 'Create an account',
-    switchTo: '/register',
+    switchTo: 'register',
   },
   register: {
-    title: 'Create your account',
-    description: 'Save what you find and never lose it again.',
     submit: 'Sign up',
     switchText: 'Already have an account?',
     switchLabel: 'Log in',
-    switchTo: '/login',
+    switchTo: 'login',
   },
 };
+
+const ROUTE_FOR: Record<AuthMode, string> = { login: '/login', register: '/register' };
 
 type FormValues = RegisterRequest;
 
@@ -69,7 +59,15 @@ const resolvers = {
   register: standardSchemaResolver<FormValues, unknown, FormValues>(registerRequestSchema),
 };
 
-export function AuthForm({ mode }: { mode: Mode }) {
+export interface AuthFormProps {
+  mode: AuthMode;
+  /** Switch modes in place (inside the dialog). Without it the switch is a link to the other route. */
+  onSwitchMode?: (mode: AuthMode) => void;
+  /** Runs after a successful sign-in. Without it the form navigates to `state.from` or the boards. */
+  onSuccess?: () => void;
+}
+
+export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useLogin();
@@ -97,7 +95,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
       } else {
         await register.mutateAsync(values);
       }
-      navigate(destination, { replace: true });
+      if (onSuccess) onSuccess();
+      else await navigate(destination, { replace: true });
     } catch (error) {
       setServerError(
         error instanceof ApiError ? error.message : 'Something went wrong. Please try again.',
@@ -105,71 +104,74 @@ export function AuthForm({ mode }: { mode: Mode }) {
     }
   });
 
+  const switchClassName = 'font-medium text-foreground underline-offset-4 hover:underline';
+
   return (
-    <Card className="mx-auto w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>{text.title}</CardTitle>
-        <CardDescription>{text.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {providers.data?.google && (
-          <>
-            <GoogleButton />
-            <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden>
-              <span className="h-px flex-1 bg-border" />
-              or
-              <span className="h-px flex-1 bg-border" />
-            </div>
-          </>
+    <div className="space-y-4">
+      {providers.data?.google && (
+        <>
+          <GoogleButton />
+          <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden>
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
+      <form onSubmit={onSubmit} noValidate className="space-y-4">
+        {mode === 'register' && (
+          <FormField
+            id="displayName"
+            label="Name"
+            autoComplete="name"
+            error={form.formState.errors.displayName?.message}
+            {...form.register('displayName')}
+          />
         )}
-        <form onSubmit={onSubmit} noValidate className="space-y-4">
-          {mode === 'register' && (
-            <FormField
-              id="displayName"
-              label="Name"
-              autoComplete="name"
-              error={form.formState.errors.displayName?.message}
-              {...form.register('displayName')}
-            />
-          )}
-          <FormField
-            id="email"
-            label="Email"
-            type="email"
-            autoComplete="email"
-            error={form.formState.errors.email?.message}
-            {...form.register('email')}
-          />
-          <FormField
-            id="password"
-            label="Password"
-            type="password"
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            error={form.formState.errors.password?.message}
-            {...form.register('password')}
-          />
-          {serverError && (
-            <p
-              role="alert"
-              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
-              {serverError}
-            </p>
-          )}
-          <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? 'One moment…' : text.submit}
-          </Button>
-          <p className="text-center text-sm text-muted-foreground">
-            {text.switchText}{' '}
-            <Link
-              to={text.switchTo}
-              className="font-medium text-foreground underline-offset-4 hover:underline"
+        <FormField
+          id="email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          error={form.formState.errors.email?.message}
+          {...form.register('email')}
+        />
+        <FormField
+          id="password"
+          label="Password"
+          type="password"
+          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+          error={form.formState.errors.password?.message}
+          {...form.register('password')}
+        />
+        {serverError && (
+          <p
+            role="alert"
+            className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            {serverError}
+          </p>
+        )}
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? 'One moment…' : text.submit}
+        </Button>
+        <p className="text-center text-sm text-muted-foreground">
+          {text.switchText}{' '}
+          {onSwitchMode ? (
+            <button
+              type="button"
+              className={switchClassName}
+              onClick={() => onSwitchMode(text.switchTo)}
             >
               {text.switchLabel}
+            </button>
+          ) : (
+            <Link to={ROUTE_FOR[text.switchTo]} className={switchClassName}>
+              {text.switchLabel}
             </Link>
-          </p>
-        </form>
-      </CardContent>
-    </Card>
+          )}
+        </p>
+      </form>
+    </div>
   );
 }

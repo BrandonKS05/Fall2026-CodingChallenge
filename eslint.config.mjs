@@ -172,6 +172,7 @@ export default tseslint.config(
       'frontend/src/app/router.tsx',
       'frontend/src/app/providers.tsx',
       'frontend/src/hooks/useTheme.tsx',
+      'frontend/src/hooks/useAuthDialog.tsx',
     ],
     rules: { 'react-refresh/only-export-components': 'off' },
   },

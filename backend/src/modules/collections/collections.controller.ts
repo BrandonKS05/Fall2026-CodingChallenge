@@ -1,5 +1,6 @@
 import type {
   CreateCollectionRequest,
+  ExploreImagesQuery,
   PaginationQuery,
   UpdateCollectionRequest,
 } from '@wumboo/shared';
@@ -12,11 +13,13 @@ import {
   presentCollection,
   presentCollectionDetail,
   presentCollectionList,
+  presentExploreImages,
 } from './collection.presenter.js';
 
 export interface CollectionsController {
   list: RequestHandler;
   explore: RequestHandler;
+  exploreImages: RequestHandler;
   create: RequestHandler;
   get: RequestHandler;
   update: RequestHandler;
@@ -34,6 +37,11 @@ export function createCollectionsController(service: CollectionService): Collect
       const { query } = getValidated<unknown, PaginationQuery>(res);
       const summaries = await service.listPublic(optionalUser(res)?.id ?? null, query);
       res.json(presentCollectionList(summaries));
+    },
+
+    exploreImages: async (_req, res) => {
+      const { query } = getValidated<unknown, ExploreImagesQuery>(res);
+      res.json(presentExploreImages(await service.listPublicImages(query.limit)));
     },
 
     create: async (_req, res) => {

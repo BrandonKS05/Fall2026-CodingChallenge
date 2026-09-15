@@ -1,8 +1,10 @@
-import { collectionSchema } from '@wumboo/shared';
+import { collectionSchema, exploreImagesResponseSchema } from '@wumboo/shared';
 import type { Express } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { FakePasswordHasher } from '../../testing/fakes/fakeAuth.js';
+import { createFakeFetch, FAKE_JPEG } from '../../testing/fakes/fakeFetch.js';
+import { FakeImageProvider, fakeProviderImage } from '../../testing/fakes/FakeImageProvider.js';
 import { createFakeRepositories } from '../../testing/fakeRepositories.js';
 import { buildTestApp } from '../../testing/testApp.js';
 
@@ -123,5 +125,73 @@ describe('collections routes', () => {
       .set('Cookie', owner)
       .send({});
     expect(empty.status).toBe(400);
+  });
+});
+
+describe('GET /api/explore/images', () => {
+  let app: Express;
+  let owner: string;
+
+  async function board(title: string, visibility: 'public' | 'private'): Promise<string> {
+    const res = await request(app)
+      .post('/api/collections')
+      .set('Cookie', owner)
+      .send({ title, visibility });
+    return res.body.id;
+  }
+
+  async function save(boardId: string, providerImageId: string): Promise<void> {
+    const res = await request(app)
+      .post(`/api/collections/${boardId}/items`)
+      .set('Cookie', owner)
+      .send({ provider: 'pixabay', providerImageId, caption: '' });
+    expect(res.status).toBe(201);
+  }
+
+  beforeEach(async () => {
+    const ids = ['201', '202', '203'];
+    app = buildTestApp({
+      repositories: createFakeRepositories(),
+      passwordHasher: new FakePasswordHasher(),
+      imageProvider: new FakeImageProvider(ids.map((id) => fakeProviderImage(id))),
+      fetchFn: createFakeFetch({ '*': { contentType: 'image/jpeg', body: FAKE_JPEG } }),
+    });
+    owner = await signUp(app, 'owner@example.com');
+  });
+
+  it('lists only public boards, matches the contract, and needs no session', async () => {
+    const shown = await board('Shown', 'public');
+    const hidden = await board('Hidden', 'private');
+    await save(shown, '201');
+    await save(shown, '202');
+    await save(hidden, '203');
+
+    const res = await request(app).get('/api/explore/images');
+    expect(res.status).toBe(200);
+    expect(exploreImagesResponseSchema.safeParse(res.body).success).toBe(true);
+    expect(res.body.images).toHaveLength(2);
+    for (const entry of res.body.images) {
+      expect(entry.collection).toEqual({ id: shown, title: 'Shown' });
+      expect(entry.image.url).toMatch(/^\/api\/images\/[0-9a-f-]{36}$/);
+    }
+    // Order within one board rests on timestamps, which the fakes stamp at millisecond resolution.
+    const ids: string[] = res.body.images.map(
+      (entry: { image: { providerImageId: string } }) => entry.image.providerImageId,
+    );
+    expect([...ids].sort()).toEqual(['201', '202']);
+  });
+
+  it('honors the limit and rejects values outside 1..60', async () => {
+    const shown = await board('Shown', 'public');
+    await save(shown, '201');
+    await save(shown, '202');
+
+    expect((await request(app).get('/api/explore/images?limit=1')).body.images).toHaveLength(1);
+    for (const limit of [0, 61]) {
+      const res = await request(app).get(`/api/explore/images?limit=${limit}`);
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(res.body.error.details[0].path).toBe('query.limit');
+    }
   });
 });

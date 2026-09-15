@@ -1,3 +1,4 @@
+import type { Image } from './Image.js';
 import type { CollectionRole } from './Membership.js';
 
 /**
@@ -28,4 +29,11 @@ export interface CollectionSummary extends Collection {
   previewImageIds: string[];
   /** The viewing user's role, or null for a non-member. */
   role: CollectionRole | null;
+}
+
+/** An image on a public board, credited to that board, for the landing stage. */
+export interface PublicImage {
+  image: Image;
+  collectionId: string;
+  collectionTitle: string;
 }

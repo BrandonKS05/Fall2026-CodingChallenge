@@ -4,6 +4,8 @@ import type { Database } from '../../../infrastructure/db/client.js';
 import { DrizzleCollectionRepository } from './DrizzleCollectionRepository.js';
 import { DrizzleMembershipRepository } from './DrizzleMembershipRepository.js';
 import { DrizzleUserRepository } from '../../auth/adapters/DrizzleUserRepository.js';
+import { DrizzleImageRepository } from '../../images/adapters/DrizzleImageRepository.js';
+import { DrizzleItemRepository } from '../../items/adapters/DrizzleItemRepository.js';
 import { connectTestDatabase, RUN_DB_TESTS, truncateAll } from '../../../testing/testDatabase.js';
 
 describe.skipIf(!RUN_DB_TESTS)(
@@ -13,6 +15,8 @@ describe.skipIf(!RUN_DB_TESTS)(
     let users: DrizzleUserRepository;
     let collections: DrizzleCollectionRepository;
     let memberships: DrizzleMembershipRepository;
+    let images: DrizzleImageRepository;
+    let items: DrizzleItemRepository;
     let ownerId: string;
     let otherId: string;
 
@@ -21,6 +25,8 @@ describe.skipIf(!RUN_DB_TESTS)(
       users = new DrizzleUserRepository(database.db);
       collections = new DrizzleCollectionRepository(database.db);
       memberships = new DrizzleMembershipRepository(database.db);
+      images = new DrizzleImageRepository(database.db);
+      items = new DrizzleItemRepository(database.db);
     });
 
     beforeEach(async () => {
@@ -36,6 +42,73 @@ describe.skipIf(!RUN_DB_TESTS)(
     afterAll(() => database.close());
 
     const draft = { title: 'Board', description: 'd', visibility: 'private' as const };
+
+    it('lists public images interleaved across boards, each image once', async () => {
+      const a = await collections.create({ ...draft, title: 'A', ownerId, visibility: 'public' });
+      const b = await collections.create({ ...draft, title: 'B', ownerId, visibility: 'public' });
+      const c = await collections.create({ ...draft, title: 'C', ownerId, visibility: 'unlisted' });
+      const store = (providerImageId: string) =>
+        images.create({
+          provider: 'pixabay',
+          providerImageId,
+          storageKey: `images/${providerImageId}.jpg`,
+          width: 1600,
+          height: 1200,
+          blurhash: null,
+          palette: ['#112233'],
+          tags: ['t'],
+          credit: { name: 'photographer', url: null },
+          sourceUrl: `https://pixabay.com/photos/${providerImageId}/`,
+        });
+      const add = async (collectionId: string, imageId: string) =>
+        items.create({
+          collectionId,
+          imageId,
+          addedById: ownerId,
+          caption: '',
+          tags: [],
+          position: await items.nextPosition(collectionId),
+        });
+      const [x, y, z, w, v] = await Promise.all(['x', 'y', 'z', 'w', 'v'].map(store));
+      if (!x || !y || !z || !w || !v) throw new Error('fixtures');
+      for (const [collectionId, image] of [
+        [a.id, x],
+        [a.id, y],
+        [a.id, z],
+        [b.id, y],
+        [b.id, w],
+        [c.id, v],
+      ] as const) {
+        await add(collectionId, image.id);
+      }
+      await collections.touch(a.id);
+
+      const feed = await collections.listPublicImages({ limit: 10 });
+      expect(feed.map((row) => row.image.providerImageId)).toEqual(['z', 'w', 'y', 'x']);
+      expect(feed.map((row) => row.collectionTitle)).toEqual(['A', 'B', 'A', 'A']);
+      expect(feed[0]).toMatchObject({ collectionId: a.id, image: z });
+      expect(
+        (await collections.listPublicImages({ limit: 2 })).map((row) => row.image.providerImageId),
+      ).toEqual(['z', 'w']);
+
+      // A board whose newest image was claimed by a newer board still leads with its next image.
+      await collections.update(c.id, { visibility: 'public' });
+      const shared = await add(c.id, z.id); // Z is now C's newest as well
+      expect(shared.collectionId).toBe(c.id);
+      await collections.touch(c.id); // and C is the newest board
+      expect(
+        (await collections.listPublicImages({ limit: 10 })).map((row) => [
+          row.collectionTitle,
+          row.image.providerImageId,
+        ]),
+      ).toEqual([
+        ['C', 'z'],
+        ['A', 'y'],
+        ['B', 'w'],
+        ['C', 'v'],
+        ['A', 'x'],
+      ]);
+    });
 
     it('creates a board together with its owner membership', async () => {
       const board = await collections.create({ ...draft, ownerId });

@@ -1,5 +1,6 @@
 import {
   createCollectionRequestSchema,
+  exploreImagesQuerySchema,
   paginationQuerySchema,
   updateCollectionRequestSchema,
 } from '@wumboo/shared';
@@ -45,5 +46,7 @@ export function createExploreRouter(container: Container): Router {
 
   const router = Router();
   router.get('/', maybeSignedIn, validate({ query: paginationQuerySchema }), controller.explore);
+  // Landing-stage feed. Anonymous: it only reads public boards and carries nothing viewer-specific.
+  router.get('/images', validate({ query: exploreImagesQuerySchema }), controller.exploreImages);
   return router;
 }

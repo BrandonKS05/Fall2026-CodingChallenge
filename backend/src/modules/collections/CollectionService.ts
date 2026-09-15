@@ -3,7 +3,11 @@
  * used by the item and sharing services, so the access policy is enforced in
  * exactly one place.
  */
-import type { Collection, CollectionSummary } from '../../domain/entities/Collection.js';
+import type {
+  Collection,
+  CollectionSummary,
+  PublicImage,
+} from '../../domain/entities/Collection.js';
 import type { ItemDetail } from '../../domain/entities/CollectionItem.js';
 import type { CollectionRole } from '../../domain/entities/Membership.js';
 import { ForbiddenError, NotFoundError } from '../../domain/errors/index.js';
@@ -64,6 +68,11 @@ export class CollectionService {
       offset: (page - 1) * perPage,
       ...(viewerId !== null && { viewerId }),
     });
+  }
+
+  /** Landing-stage feed. Only public boards are read, so there is no viewer and no role. */
+  listPublicImages(limit: number): Promise<PublicImage[]> {
+    return this.deps.collections.listPublicImages({ limit });
   }
 
   async create(ownerId: string, input: CreateCollectionInput): Promise<CollectionSummary> {

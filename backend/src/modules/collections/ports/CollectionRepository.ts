@@ -2,6 +2,7 @@ import type {
   Collection,
   CollectionSummary,
   CollectionVisibility,
+  PublicImage,
 } from '../../../domain/entities/Collection.js';
 
 export interface NewCollection {
@@ -20,6 +21,10 @@ export interface ListPublicOptions {
   viewerId?: string;
 }
 
+export interface ListPublicImagesOptions {
+  limit: number;
+}
+
 export interface CollectionRepository {
   findById(id: string): Promise<Collection | null>;
   findByShareSlug(slug: string): Promise<Collection | null>;
@@ -29,6 +34,12 @@ export interface CollectionRepository {
   listForUser(userId: string): Promise<CollectionSummary[]>;
   /** Public boards for Explore, most recently updated first. */
   listPublic(options: ListPublicOptions): Promise<CollectionSummary[]>;
+  /**
+   * Images on public boards for the landing stage: each image once (credited
+   * to the most recently updated board that holds it), boards interleaved so
+   * every board's newest image comes before any board's second, capped at limit.
+   */
+  listPublicImages(options: ListPublicImagesOptions): Promise<PublicImage[]>;
   /** Creates the board and its owner membership atomically. */
   create(input: NewCollection): Promise<Collection>;
   /** Throws NotFoundError when the id does not exist. */

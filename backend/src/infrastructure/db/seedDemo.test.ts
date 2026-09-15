@@ -86,6 +86,24 @@ describe('seedDemo', () => {
     expect(harness.storage.objects.size).toBe(TOTAL_IMAGES);
   });
 
+  it('seeds enough public images for the landing stage', async () => {
+    const publicCount = SEED_BOARDS.filter((b) => b.visibility === 'public').reduce(
+      (sum, b) => sum + b.count,
+      0,
+    );
+    expect(publicCount).toBeGreaterThanOrEqual(24);
+
+    await seedDemo(harness.container);
+
+    const feed = await harness.repositories.collections.listPublicImages({ limit: 24 });
+    expect(feed).toHaveLength(24);
+    expect(new Set(feed.map((row) => row.collectionId)).size).toBeGreaterThanOrEqual(4);
+    const publicTitles = SEED_BOARDS.filter((b) => b.visibility === 'public').map((b) => b.title);
+    const lead = feed.slice(0, publicTitles.length).map((row) => row.collectionTitle);
+    expect(new Set(lead).size).toBe(publicTitles.length);
+    expect(lead.sort()).toEqual([...publicTitles].sort());
+  });
+
   it('adds nothing on a second run', async () => {
     await seedDemo(harness.container);
     const before = {
