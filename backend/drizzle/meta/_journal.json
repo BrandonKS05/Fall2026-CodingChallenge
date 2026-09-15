@@ -50,6 +50,20 @@
       "when": 1789497282676,
       "tag": "0006_direct_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789500413506,
+      "tag": "0007_follows",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789500966952,
+      "tag": "0008_message_sequence",
+      "breakpoints": true
     }
   ]
 }

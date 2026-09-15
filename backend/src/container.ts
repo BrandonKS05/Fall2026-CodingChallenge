@@ -45,6 +45,7 @@ import { MessagingService } from './modules/messaging/MessagingService.js';
 import { noBroadcast } from './modules/messaging/ports/MessageBroadcaster.js';
 import { NotificationService } from './modules/notifications/NotificationService.js';
 import { ShareService } from './modules/sharing/ShareService.js';
+import { SocialService } from './modules/social/SocialService.js';
 
 export interface Services {
   auth: AuthService;
@@ -54,6 +55,7 @@ export interface Services {
   items: ItemService;
   messaging: MessagingService;
   share: ShareService;
+  social: SocialService;
   notifications: NotificationService;
 }
 
@@ -186,6 +188,12 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
       users: repositories.users,
       collectionService: collections,
       events,
+      logger,
+    }),
+    social: new SocialService({
+      users: repositories.users,
+      follows: repositories.follows,
+      collections: repositories.collections,
       logger,
     }),
     notifications,

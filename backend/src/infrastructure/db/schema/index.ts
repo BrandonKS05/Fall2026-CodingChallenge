@@ -13,4 +13,5 @@ export * from './notifications.js';
 export * from './conversations.js';
 export * from './conversationMembers.js';
 export * from './messages.js';
+export * from './follows.js';
 export * from './relations.js';

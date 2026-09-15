@@ -1,0 +1,78 @@
+import { followListResponseSchema, handleFromSeed, profileResponseSchema } from '@wumboo/shared';
+import type { Express } from 'express';
+import request from 'supertest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { buildTestApp } from '../../testing/testApp.js';
+
+async function signUp(app: Express, email: string): Promise<{ cookie: string; handle: string }> {
+  const handle = handleFromSeed(email);
+  const res = await request(app)
+    .post('/api/auth/register')
+    .send({ email, handle, password: 'password-123', displayName: email.split('@')[0] });
+  const header = res.headers['set-cookie'];
+  const cookies = Array.isArray(header) ? header : [header ?? ''];
+  return { cookie: cookies.find((cookie) => cookie.startsWith('wumboo_session=')) ?? '', handle };
+}
+
+describe('user routes', () => {
+  let app: Express;
+  let ada: { cookie: string; handle: string };
+  let sam: { cookie: string; handle: string };
+
+  beforeEach(async () => {
+    app = buildTestApp();
+    ada = await signUp(app, 'ada@example.com');
+    sam = await signUp(app, 'sam@example.com');
+  });
+
+  it('serves a profile to anyone, in the shape the contract promises', async () => {
+    const res = await request(app).get(`/api/users/${ada.handle}`);
+
+    expect(res.status).toBe(200);
+    expect(profileResponseSchema.safeParse(res.body).success).toBe(true);
+    expect(res.body.profile).toMatchObject({
+      handle: 'ada',
+      followerCount: 0,
+      followedByViewer: false,
+      isViewer: false,
+    });
+    expect((await request(app).get('/api/users/nobodyhome')).status).toBe(404);
+    // A handle is normalized on the way in, so the link is forgiving.
+    expect((await request(app).get('/api/users/ADA')).status).toBe(200);
+  });
+
+  it('follows and unfollows, answering with the profile both times', async () => {
+    const followed = await request(app)
+      .post(`/api/users/${ada.handle}/follow`)
+      .set('Cookie', sam.cookie);
+    expect(followed.status).toBe(200);
+    expect(followed.body.profile).toMatchObject({ followerCount: 1, followedByViewer: true });
+
+    const dropped = await request(app)
+      .delete(`/api/users/${ada.handle}/follow`)
+      .set('Cookie', sam.cookie);
+    expect(dropped.body.profile).toMatchObject({ followerCount: 0, followedByViewer: false });
+  });
+
+  it('needs a session to follow, and refuses your own handle', async () => {
+    expect((await request(app).post(`/api/users/${ada.handle}/follow`)).status).toBe(401);
+    expect(
+      (await request(app).post(`/api/users/${ada.handle}/follow`).set('Cookie', ada.cookie)).status,
+    ).toBe(400);
+  });
+
+  it('lists followers and following for anyone to read', async () => {
+    await request(app).post(`/api/users/${ada.handle}/follow`).set('Cookie', sam.cookie);
+
+    const followers = await request(app).get(`/api/users/${ada.handle}/followers`);
+    expect(followListResponseSchema.safeParse(followers.body).success).toBe(true);
+    expect(followers.body.profiles.map((p: { handle: string }) => p.handle)).toEqual(['sam']);
+    expect(followers.body.profiles[0].followedByViewer).toBe(false);
+
+    const asSam = await request(app)
+      .get(`/api/users/${sam.handle}/following`)
+      .set('Cookie', sam.cookie);
+    expect(asSam.body.profiles.map((p: { handle: string }) => p.handle)).toEqual(['ada']);
+    expect((await request(app).get(`/api/users/${ada.handle}/followers?limit=0`)).status).toBe(400);
+  });
+});

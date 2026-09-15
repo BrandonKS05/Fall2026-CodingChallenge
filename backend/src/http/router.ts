@@ -12,6 +12,7 @@ import { createSavedItemsRouter } from '../modules/items/items.routes.js';
 import { createNotificationsRouter } from '../modules/notifications/notifications.routes.js';
 import { createSearchRouter } from '../modules/images/search.routes.js';
 import { createSharedRouter } from '../modules/sharing/share.routes.js';
+import { createUsersRouter } from '../modules/social/social.routes.js';
 
 /** Mounts every resource router under /api. */
 export function createApiRouter(container: Container): Router {
@@ -31,6 +32,7 @@ export function createApiRouter(container: Container): Router {
   api.use('/items', createSavedItemsRouter(container));
   api.use('/notifications', createNotificationsRouter(container));
   api.use('/conversations', createConversationsRouter(container));
+  api.use('/users', createUsersRouter(container));
 
   return api;
 }

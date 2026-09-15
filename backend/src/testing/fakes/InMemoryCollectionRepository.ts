@@ -60,6 +60,13 @@ export class InMemoryCollectionRepository implements CollectionRepository {
     );
   }
 
+  async listPublicByOwner(ownerId: string, viewerId: string | null): Promise<CollectionSummary[]> {
+    const theirs = this.newestFirst().filter(
+      (row) => row.visibility === 'public' && row.ownerId === ownerId,
+    );
+    return Promise.all(theirs.map((collection) => this.toSummary(collection, viewerId)));
+  }
+
   /** Public boards whose owner still wants to be found, mirroring the SQL's predicate. */
   private async discoverable(boards: Collection[]): Promise<Collection[]> {
     const open: Collection[] = [];

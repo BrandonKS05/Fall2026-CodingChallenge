@@ -166,6 +166,17 @@ export class DrizzleCollectionRepository implements CollectionRepository {
     return rows.map(toSummary);
   }
 
+  async listPublicByOwner(ownerId: string, viewerId: string | null): Promise<CollectionSummary[]> {
+    const rows = await this.db
+      .select(summaryColumns(viewerId))
+      .from(collections)
+      .innerJoin(users, eq(users.id, collections.ownerId))
+      .leftJoin(collectionMembers, viewerMembership(viewerId))
+      .where(and(eq(collections.visibility, 'public'), eq(collections.ownerId, ownerId)))
+      .orderBy(desc(collections.updatedAt));
+    return rows.map(toSummary);
+  }
+
   /**
    * Two passes of window ranks do the work before LIMIT. First every placement
    * of an image is ranked so an image on several public boards is kept once,

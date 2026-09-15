@@ -42,6 +42,11 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | POST   | /api/collections/:id/members         | done   |
 | PATCH  | /api/collections/:id/members/:userId | done   |
 | DELETE | /api/collections/:id/members/:userId | done   |
+| GET    | /api/users/:handle                   | done   |
+| GET    | /api/users/:handle/followers         | done   |
+| GET    | /api/users/:handle/following         | done   |
+| POST   | /api/users/:handle/follow            | done   |
+| DELETE | /api/users/:handle/follow            | done   |
 | GET    | /api/conversations                   | done   |
 | POST   | /api/conversations                   | done   |
 | GET    | /api/conversations/:id/messages      | done   |
@@ -239,6 +244,22 @@ Every change to a board notifies its other members: `item_added`, `item_updated`
 
 | Endpoint | Auth | Notes |
 | -------- | ---- | ----- |
+
+### People
+
+Public profiles and the follow graph. A profile is reached by handle, so it
+ignores the discovery setting — that one governs whether Explore lists a board.
+
+| Endpoint                           | Auth     | Notes                                                                                                                                                                  |
+| ---------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/users/:handle`           | optional | `{ profile, boards }`. The profile carries follower and following counts, the public board count, `followedByViewer`, and `isViewer`. `boards` is their public boards. |
+| `GET /api/users/:handle/followers` | optional | `?limit=` (1-100, default 50). People who follow them, most recent first, each flagged with whether you follow them too.                                               |
+| `GET /api/users/:handle/following` | optional | The same, in the other direction.                                                                                                                                      |
+| `POST /api/users/:handle/follow`   | required | Follows them and answers with the profile. Following twice is not an error; your own handle is 400.                                                                    |
+| `DELETE /api/users/:handle/follow` | required | Unfollows and answers with the profile. Unfollowing someone you never followed is not an error.                                                                        |
+
+Following someone does not create a notification: the notification table is
+about boards, and a follow has none. The profile's counts are its surface.
 
 ### Messages
 

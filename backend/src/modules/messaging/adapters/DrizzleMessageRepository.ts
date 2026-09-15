@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, lt } from 'drizzle-orm';
 import type { MessageDetail } from '../../../domain/entities/Conversation.js';
 import { NotFoundError } from '../../../domain/errors/index.js';
 import type { Db } from '../../../infrastructure/db/client.js';
@@ -34,9 +34,9 @@ export class DrizzleMessageRepository implements MessageRepository {
   constructor(private readonly db: Db) {}
 
   /**
-   * Walks backwards from `before` along (created_at desc, id desc), the exact
-   * order the conversation index is stored in, so a page is a range scan
-   * however deep into the history it sits.
+   * Walks backwards from `before` along the conversation's sequence, the exact
+   * order the index is stored in, so a page is a range scan however deep into
+   * the history it sits — and never ties, so nothing is skipped or reordered.
    */
   async listByConversation(
     conversationId: string,
@@ -50,12 +50,10 @@ export class DrizzleMessageRepository implements MessageRepository {
       .where(
         and(
           eq(messages.conversationId, conversationId),
-          cursor
-            ? sql`(${messages.createdAt}, ${messages.id}) < (${cursor.createdAt}, ${cursor.id}::uuid)`
-            : undefined,
+          cursor === null ? undefined : lt(messages.seq, cursor),
         ),
       )
-      .orderBy(desc(messages.createdAt), desc(messages.id))
+      .orderBy(desc(messages.seq))
       // One extra row answers "is there an older page" without a second count.
       .limit(limit + 1);
 
@@ -78,8 +76,9 @@ export class DrizzleMessageRepository implements MessageRepository {
     return toDetail(detail);
   }
 
-  private async cursorFor(messageId: string): Promise<{ createdAt: Date; id: string } | null> {
+  /** A cursor is a message id on the wire and its sequence number underneath. */
+  private async cursorFor(messageId: string): Promise<number | null> {
     const row = await this.db.query.messages.findFirst({ where: eq(messages.id, messageId) });
-    return row ? { createdAt: row.createdAt, id: row.id } : null;
+    return row?.seq ?? null;
   }
 }

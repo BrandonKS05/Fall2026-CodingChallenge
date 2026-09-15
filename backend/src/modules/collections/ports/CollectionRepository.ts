@@ -35,6 +35,11 @@ export interface CollectionRepository {
   /** Public boards for Explore, most recently updated first. */
   listPublic(options: ListPublicOptions): Promise<CollectionSummary[]>;
   /**
+   * One person's public boards, for their profile page. Unlike Explore this
+   * ignores the discovery setting: a profile is reached by handle, not browsed.
+   */
+  listPublicByOwner(ownerId: string, viewerId: string | null): Promise<CollectionSummary[]>;
+  /**
    * Images on public boards for the landing stage: each image once (credited
    * to the most recently updated board that holds it), boards interleaved so
    * every board's newest image comes before any board's second, capped at limit.

@@ -19,6 +19,8 @@ import type { ConversationRepository } from '../../modules/messaging/ports/Conve
 import type { MessageRepository } from '../../modules/messaging/ports/MessageRepository.js';
 import { DrizzleConversationRepository } from '../../modules/messaging/adapters/DrizzleConversationRepository.js';
 import { DrizzleMessageRepository } from '../../modules/messaging/adapters/DrizzleMessageRepository.js';
+import type { FollowRepository } from '../../modules/social/ports/FollowRepository.js';
+import { DrizzleFollowRepository } from '../../modules/social/adapters/DrizzleFollowRepository.js';
 import type { NotificationRepository } from '../../modules/notifications/ports/NotificationRepository.js';
 import { DrizzleNotificationRepository } from '../../modules/notifications/adapters/DrizzleNotificationRepository.js';
 import type { Db } from './client.js';
@@ -31,6 +33,7 @@ export interface Repositories {
   images: ImageRepository;
   items: ItemRepository;
   notifications: NotificationRepository;
+  follows: FollowRepository;
   conversations: ConversationRepository;
   messages: MessageRepository;
 }
@@ -44,6 +47,7 @@ export function createDrizzleRepositories(db: Db): Repositories {
     images: new DrizzleImageRepository(db),
     items: new DrizzleItemRepository(db),
     notifications: new DrizzleNotificationRepository(db),
+    follows: new DrizzleFollowRepository(db),
     conversations: new DrizzleConversationRepository(db),
     messages: new DrizzleMessageRepository(db),
   };
