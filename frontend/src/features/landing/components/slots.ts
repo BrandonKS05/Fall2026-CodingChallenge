@@ -41,7 +41,48 @@ export const SLOTS = [
   { x: 31.4, y: 81.4, width: 12, depth: 0.6 },
 ] satisfies Slot[];
 
+export const EXPLORE_SLOTS = [
+  { x: 39, y: 34, width: 11.2, depth: 1 },
+  { x: 19, y: 19, width: 8.6, depth: 0.46 },
+  { x: 49, y: 16, width: 8.6, depth: 0.38 },
+  { x: 68, y: 22, width: 8.6, depth: 0.34 },
+  { x: 62, y: 41, width: 7.1, depth: 0.5 },
+  { x: 32, y: 47, width: 7.1, depth: 0.64 },
+  { x: 8, y: 37, width: 8.5, depth: 0.28 },
+  { x: 49, y: 58, width: 7.1, depth: 0.72 },
+  { x: 69, y: 61, width: 7.1, depth: 0.56 },
+  { x: 19, y: 68, width: 7.6, depth: 0.76 },
+  { x: 82, y: 44, width: 7.1, depth: 0.4 },
+  { x: 72, y: 11, width: 5.7, depth: 0.2 },
+  { x: 52, y: 8, width: 6.2, depth: 0.24 },
+  { x: 24, y: 10, width: 5.7, depth: 0.22 },
+  { x: 10, y: 64, width: 7.1, depth: 0.48 },
+  { x: 84, y: 72, width: 6.2, depth: 0.34 },
+  { x: 56, y: 81, width: 7.1, depth: 0.62 },
+  { x: 39, y: 83, width: 6.4, depth: 0.58 },
+  { x: 4, y: 21, width: 5.6, depth: 0.2 },
+  { x: 91, y: 19, width: 5.1, depth: 0.18 },
+  { x: 62, y: 30, width: 5.7, depth: 0.42 },
+  { x: 33, y: 31, width: 5.7, depth: 0.58 },
+  { x: 76, y: 79, width: 5.8, depth: 0.44 },
+  { x: 16, y: 84, width: 5.1, depth: 0.36 },
+  { x: 47, y: 49, width: 5.6, depth: 0.46 },
+  { x: 28, y: 57, width: 5.5, depth: 0.66 },
+  { x: 71, y: 50, width: 5.5, depth: 0.52 },
+  { x: 43, y: 23, width: 5.4, depth: 0.28 },
+  { x: 12, y: 53, width: 5.1, depth: 0.42 },
+  { x: 60, y: 66, width: 5.1, depth: 0.74 },
+  { x: 78, y: 32, width: 4.8, depth: 0.22 },
+  { x: 28, y: 74, width: 4.6, depth: 0.7 },
+  { x: 88, y: 58, width: 4.6, depth: 0.3 },
+  { x: 52, y: 28, width: 4.8, depth: 0.32 },
+  { x: 35, y: 10, width: 4.5, depth: 0.18 },
+  { x: 6, y: 76, width: 4.6, depth: 0.38 },
+] satisfies Slot[];
+
 /** One tile per slot. */
 export const TILE_LIMIT = SLOTS.length;
+export const EXPLORE_TILE_LIMIT = EXPLORE_SLOTS.length;
 /** Extra rows fetched so a tile whose image fails to load can be replaced in place. */
 export const SPARE_IMAGES = 6;
+export const EXPLORE_SPARE_IMAGES = 12;

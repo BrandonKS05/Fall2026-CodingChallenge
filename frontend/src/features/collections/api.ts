@@ -3,7 +3,7 @@ import type {
   CollectionDetailResponse,
   CollectionListResponse,
   CreateCollectionRequest,
-  PaginationQuery,
+  ExploreImagesResponse,
   UpdateCollectionRequest,
 } from '@wumboo/shared';
 import { http } from '@/lib/api';
@@ -11,8 +11,8 @@ import { http } from '@/lib/api';
 /** Adapter: the feature's slice of the API contract as typed calls, so components never see URLs. */
 export const collectionsApi = {
   list: () => http.get<CollectionListResponse>('/collections'),
-  explore: (query: Partial<PaginationQuery>) =>
-    http.get<CollectionListResponse>('/explore', { query }),
+  exploreImages: (limit: number) =>
+    http.get<ExploreImagesResponse>('/explore/images', { query: { limit } }),
   get: (id: string) => http.get<CollectionDetailResponse>(`/collections/${id}`),
   create: (body: CreateCollectionRequest) => http.post<Collection>('/collections', body),
   update: (id: string, body: UpdateCollectionRequest) =>

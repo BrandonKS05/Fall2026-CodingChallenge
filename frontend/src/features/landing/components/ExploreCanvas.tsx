@@ -16,7 +16,7 @@ import { ArrowRightIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { useAuthDialog } from '@/hooks/useAuthDialog';
+import { StageChrome } from '@/components/common/StageChrome';
 import { http, queryKeys } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { SLOTS, SPARE_IMAGES, TILE_LIMIT, type Slot } from './slots';
@@ -32,8 +32,6 @@ import {
 /** Custom cursor dot, in px, and how much it grows over an image. */
 const DOT_SIZE = 12;
 const DOT_HOVER_SCALE = 1.6;
-
-const FETCH_LIMIT = TILE_LIMIT + SPARE_IMAGES;
 
 const NOISE =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
@@ -64,9 +62,9 @@ const EMPTY_PLACEMENT: Placement = { source: undefined, failed: new Set(), overr
  * slot order is prominence order. A slot whose image failed shows its spare,
  * or nothing, so every other tile keeps its slot, key, and motion.
  */
-function toTiles(images: ExploreImage[], placement: Placement): Tile[] {
+function toTiles(images: ExploreImage[], placement: Placement, slots: Slot[]): Tile[] {
   const tiles: Tile[] = [];
-  for (const [index, slot] of SLOTS.entries()) {
+  for (const [index, slot] of slots.entries()) {
     const primary = images[index];
     if (!primary) break;
     const entry =
@@ -96,13 +94,14 @@ function replaceFailed(
   images: ExploreImage[],
   slotIndex: number,
   failedId: string,
+  slotLimit: number,
 ): Placement {
   const base = previous.source === images ? previous : EMPTY_PLACEMENT;
   const failed = new Set(base.failed).add(failedId);
   const overrides = new Map(base.overrides);
   const held = new Set([...overrides.values()].map((entry) => entry.image.id));
   const spare = images
-    .slice(TILE_LIMIT)
+    .slice(slotLimit)
     .find((entry) => !failed.has(entry.image.id) && !held.has(entry.image.id));
   if (spare) overrides.set(slotIndex, spare);
   else overrides.delete(slotIndex);
@@ -113,22 +112,33 @@ export interface ExploreCanvasProps {
   /** Swaps the "Sign in" link for "Discover" once there is a session. */
   signedIn?: boolean;
   tuning?: ParallaxTuning;
+  slots?: Slot[];
+  slotLimit?: number;
+  spareImages?: number;
+  stageScale?: number;
 }
 
-export function ExploreCanvas({ signedIn = false, tuning = DEFAULT_TUNING }: ExploreCanvasProps) {
+export function ExploreCanvas({
+  signedIn = false,
+  tuning = DEFAULT_TUNING,
+  slots = SLOTS,
+  slotLimit = TILE_LIMIT,
+  spareImages = SPARE_IMAGES,
+  stageScale = 1,
+}: ExploreCanvasProps) {
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const coarsePointer = useMediaQuery('(pointer: coarse)');
   const interactive = !reducedMotion && !coarsePointer;
   const parallax = useParallax(interactive, tuning);
   const [hovering, setHovering] = useState(false);
-  const auth = useAuthDialog();
+  const feedLimit = slotLimit + spareImages;
 
   // Through the existing client; a failure simply leaves the stage empty.
   const feed = useQuery({
-    queryKey: queryKeys.exploreImages({ limit: FETCH_LIMIT }),
+    queryKey: queryKeys.exploreImages({ limit: feedLimit }),
     queryFn: () =>
       http
-        .get<ExploreImagesResponse>('/explore/images', { query: { limit: FETCH_LIMIT } })
+        .get<ExploreImagesResponse>('/explore/images', { query: { limit: feedLimit } })
         .then((response) => response.images),
     retry: false,
     meta: { silentError: true },
@@ -137,7 +147,7 @@ export function ExploreCanvas({ signedIn = false, tuning = DEFAULT_TUNING }: Exp
   // slot to a spare rather than showing a broken picture.
   const [placement, setPlacement] = useState<Placement>(EMPTY_PLACEMENT);
   const images = feed.data ?? [];
-  const tiles = toTiles(images, placement.source === images ? placement : EMPTY_PLACEMENT);
+  const tiles = toTiles(images, placement.source === images ? placement : EMPTY_PLACEMENT, slots);
 
   return (
     // overflow-clip, not hidden: a clipped box is not a scroll container, so focusing an
@@ -156,7 +166,10 @@ export function ExploreCanvas({ signedIn = false, tuning = DEFAULT_TUNING }: Exp
         style={{ backgroundImage: NOISE }}
       />
 
-      <div className="absolute inset-[-20%]">
+      <div
+        className="absolute inset-[-26%]"
+        style={{ transform: `scale(${stageScale})`, transformOrigin: 'center center' }}
+      >
         {tiles.map((tile) => (
           <StageTile
             key={tile.key}
@@ -165,7 +178,9 @@ export function ExploreCanvas({ signedIn = false, tuning = DEFAULT_TUNING }: Exp
             interactive={interactive}
             onHover={setHovering}
             onError={() =>
-              setPlacement((previous) => replaceFailed(previous, images, tile.slotIndex, tile.key))
+              setPlacement((previous) =>
+                replaceFailed(previous, images, tile.slotIndex, tile.key, slotLimit),
+              )
             }
           />
         ))}
@@ -181,43 +196,7 @@ export function ExploreCanvas({ signedIn = false, tuning = DEFAULT_TUNING }: Exp
         className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-28 bg-linear-to-t from-stage/60 to-transparent"
       />
 
-      <p className="sr-only">Public boards from everyone on Wumboo, newest first.</p>
-
-      <header className="absolute inset-x-0 top-0 z-40 flex items-center justify-between px-6 py-5">
-        <Link
-          to="/"
-          className="text-2xl leading-none font-bold tracking-tighter uppercase [font-stretch:condensed]"
-        >
-          Wumboo
-        </Link>
-        <nav
-          aria-label="Landing"
-          className="flex items-center gap-3 text-[11px] tracking-[0.2em] uppercase"
-        >
-          {/* Color transitions, never opacity: an opacity animation gets its own compositor layer. */}
-          <Link to="/explore" className="transition-colors hover:text-stage-ink/70">
-            Explore
-          </Link>
-          <span aria-hidden>·</span>
-          <Link to="/boards" className="transition-colors hover:text-stage-ink/70">
-            Boards
-          </Link>
-          <span aria-hidden>·</span>
-          {signedIn ? (
-            <Link to="/discover" className="transition-colors hover:text-stage-ink/70">
-              Discover
-            </Link>
-          ) : (
-            <Link
-              to="/login"
-              onClick={auth.intercept({ mode: 'login' })}
-              className="transition-colors hover:text-stage-ink/70"
-            >
-              Sign in
-            </Link>
-          )}
-        </nav>
-      </header>
+      <StageChrome signedIn={signedIn} />
 
       <Link
         to="/explore"

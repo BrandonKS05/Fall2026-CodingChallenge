@@ -2,7 +2,7 @@
  * Query key factory. Keys are hierarchical so invalidating a parent
  * (e.g. every collection query) is one call.
  */
-import type { PaginationQuery, SearchQuery } from '@wumboo/shared';
+import type { SearchQuery } from '@wumboo/shared';
 
 export const queryKeys = {
   session: ['session'] as const,
@@ -12,7 +12,6 @@ export const queryKeys = {
     list: () => ['collections', 'list'] as const,
     detail: (id: string) => ['collections', 'detail', id] as const,
     members: (id: string) => ['collections', 'detail', id, 'members'] as const,
-    explore: (params: Partial<PaginationQuery>) => ['collections', 'explore', params] as const,
   },
   /** The landing stage's feed. Its own root, so board edits never reshuffle the stage mid-visit. */
   exploreImages: (params: { limit: number }) => ['explore', 'images', params] as const,

@@ -3,28 +3,24 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { collectionsApi } from './api';
 
-export const EXPLORE_PAGE_SIZE = 24;
-
 /**
  * The signed-in user's boards. Pages a visitor can see pass `enabled: false`
  * while signed out, so the request (which needs a session) is never made and
  * never surfaces a 401 as an error toast.
  */
+/** Every image on every public board, interleaved by the server so no board dominates. */
+export function useExploreImages(limit: number) {
+  return useQuery({
+    queryKey: queryKeys.exploreImages({ limit }),
+    queryFn: () => collectionsApi.exploreImages(limit).then((response) => response.images),
+  });
+}
+
 export function useBoards(enabled = true) {
   return useQuery({
     queryKey: queryKeys.collections.list(),
     queryFn: () => collectionsApi.list().then((response) => response.collections),
     enabled,
-  });
-}
-
-export function useExplore(page = 1) {
-  return useQuery({
-    queryKey: queryKeys.collections.explore({ page }),
-    queryFn: () =>
-      collectionsApi
-        .explore({ page, perPage: EXPLORE_PAGE_SIZE })
-        .then((response) => response.collections),
   });
 }
 

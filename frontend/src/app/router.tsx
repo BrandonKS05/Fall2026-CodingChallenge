@@ -3,7 +3,8 @@
  * cross-feature composition happens only here and in the shell.
  */
 import { lazy, Suspense, type ReactNode } from 'react';
-import { createBrowserRouter, Outlet } from 'react-router';
+import { AnimatePresence, motion } from 'motion/react';
+import { createBrowserRouter, Outlet, useLocation } from 'react-router';
 import { AuthDialogProvider } from './AuthDialogProvider';
 import { AuthRoute } from '@/features/auth/pages/AuthRoute';
 import { AppShell } from './layout/AppShell';
@@ -23,18 +24,49 @@ function page(element: ReactNode) {
   return <Suspense fallback={<PageSkeleton />}>{element}</Suspense>;
 }
 
+function RouteTransition({ children }: { children: ReactNode }) {
+  const location = useLocation();
+
+  if (location.pathname === '/') {
+    return <>{children}</>;
+  }
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, filter: 'blur(14px)', scale: 1.14 }}
+        animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
+        exit={{ opacity: 0, filter: 'blur(18px)', scale: 0.96 }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        // Full height, never a scroll container: sticky chrome and filters rely on the document scrolling.
+        className="min-h-svh w-full overflow-x-clip"
+        style={{ willChange: 'transform, opacity, filter' }}
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export const router = createBrowserRouter([
   {
     // One sign-in dialog for the whole app: any page, including the landing hero, opens it in place.
     errorElement: <RouteErrorPage />,
     element: (
       <AuthDialogProvider>
-        <Outlet />
+        <RouteTransition>
+          <Outlet />
+        </RouteTransition>
       </AuthDialogProvider>
     ),
     children: [
       // The landing hero owns the whole viewport and its own chrome, so it sits outside the shell.
       { path: '/', element: page(<LandingPage />) },
+      { path: '/explore', element: page(<ExplorePage />) },
+      // Sign-in as a URL, for deep links and Google's return trip; the card floats over Explore.
+      { path: '/login', element: <AuthRoute mode="login" /> },
+      { path: '/register', element: <AuthRoute mode="register" /> },
       {
         errorElement: <RouteErrorPage />,
         element: (
@@ -44,13 +76,9 @@ export const router = createBrowserRouter([
         ),
         children: [
           { path: '/discover', element: page(<DiscoverPage />) },
-          { path: '/explore', element: page(<ExplorePage />) },
           // Board pages are readable by non-members when unlisted or public, so the API decides, not the router.
           { path: '/boards/:id', element: page(<BoardPage />) },
           { path: '/s/:slug', element: page(<SharedBoardPage />) },
-          // Sign-in as a URL, for deep links and Google's return trip; the card floats over Explore.
-          { path: '/login', element: <AuthRoute mode="login" /> },
-          { path: '/register', element: <AuthRoute mode="register" /> },
           {
             element: (
               <RequireAuth>
