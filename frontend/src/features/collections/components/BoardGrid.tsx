@@ -28,7 +28,6 @@ interface BoardGridProps {
 
 export function BoardGrid({ boards, onCreate, fillTo = 8 }: BoardGridProps) {
   const blanks = onCreate ? Math.max(1, fillTo - boards.length) : 0;
-  const slots = LANDING_SLOTS.slice(0, Math.max(boards.length, 1));
   const allCards = [...boards, ...Array.from({ length: blanks }, () => null)];
 
   return (
@@ -36,7 +35,8 @@ export function BoardGrid({ boards, onCreate, fillTo = 8 }: BoardGridProps) {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.06),transparent_30%),radial-gradient(circle_at_80%_60%,rgba(255,255,255,0.04),transparent_25%)]" />
       <div className="absolute inset-[-10%]">
         {allCards.map((board, index) => {
-          const slot = slots[index % slots.length] ?? LANDING_SLOTS[LANDING_SLOTS.length - 1];
+          const slot =
+            LANDING_SLOTS[Math.min(index % LANDING_SLOTS.length, LANDING_SLOTS.length - 1)]!;
           const isBlank = board === null;
           return (
             <div

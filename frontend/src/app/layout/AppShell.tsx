@@ -14,22 +14,24 @@ interface NavItem {
 }
 
 const links: NavItem[] = [
-  { to: '/discover', label: 'Discover' },
   { to: '/explore', label: 'Explore' },
-  { to: '/boards', label: 'My boards' },
+  { to: '/boards', label: 'Boards' },
+  { to: '/discover', label: 'Discover' },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user } = useSession();
+  const primaryLink = user ? { to: '/discover', label: 'Discover' } : { to: '/login', label: 'Sign in' };
+
   return (
-    <div className="flex min-h-svh flex-col">
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 sm:gap-6">
-          <Logo />
-          {/* One row at every width: labels never wrap, and on a phone the nav scrolls sideways instead. */}
+    <div className="flex min-h-svh flex-col bg-stage text-stage-ink">
+      <header className="sticky top-0 z-40 border-b border-stage-ink/10 bg-stage text-stage-ink">
+        <div className="mx-auto flex h-20 w-full max-w-[1500px] items-center justify-between gap-6 px-6">
+          <Logo className="text-stage-ink" />
+
           <nav
             aria-label="Primary"
-            className="flex min-w-0 items-center gap-1 overflow-x-auto text-xs [scrollbar-width:none] sm:text-sm"
+            className="flex items-center gap-4 text-[11px] tracking-[0.2em] uppercase text-stage-ink/80"
           >
             {links.map((link) => (
               <NavLink
@@ -38,25 +40,30 @@ export function AppShell({ children }: { children: ReactNode }) {
                 end={link.end}
                 className={({ isActive }) =>
                   cn(
-                    'shrink-0 rounded-md px-2 py-1.5 whitespace-nowrap transition-colors hover:bg-accent hover:text-accent-foreground sm:px-3',
-                    isActive
-                      ? 'bg-accent text-accent-foreground font-medium'
-                      : 'text-muted-foreground',
+                    'transition-colors hover:text-stage-ink',
+                    isActive ? 'text-stage-ink' : 'text-stage-ink/70',
                   )
                 }
               >
                 {link.label}
               </NavLink>
             ))}
+            <NavLink
+              to={primaryLink.to}
+              className="transition-colors hover:text-stage-ink"
+            >
+              {primaryLink.label}
+            </NavLink>
           </nav>
-          <div className="ml-auto flex shrink-0 items-center gap-1">
+
+          <div className="ml-auto flex shrink-0 items-center gap-1 text-stage-ink">
             <NotificationBell user={user} />
             <ThemeToggle />
             <UserMenu />
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-[1500px] flex-1 px-6 py-8">{children}</main>
     </div>
   );
 }

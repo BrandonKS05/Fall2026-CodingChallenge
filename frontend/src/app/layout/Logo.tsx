@@ -1,17 +1,17 @@
 import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
 
-/** Wordmark plus the same glyph as the favicon. */
+/** Wordmark styling matches the landing-page chrome. */
 export function Logo({ className }: { className?: string }) {
   return (
-    <Link to="/" className={cn('flex items-center gap-2 font-semibold tracking-tight', className)}>
-      <span
-        aria-hidden
-        className="grid size-7 place-items-center rounded-lg bg-foreground text-background text-sm font-bold"
-      >
-        W
-      </span>
-      <span className="hidden text-lg sm:inline">Wumboo</span>
+    <Link
+      to="/"
+      className={cn(
+        'inline-flex items-center text-[clamp(1.6rem,2vw,2.4rem)] font-black tracking-[-0.09em] uppercase leading-none text-current',
+        className,
+      )}
+    >
+      WUMBOO
     </Link>
   );
 }
