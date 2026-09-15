@@ -151,6 +151,32 @@
   --ring: #151515;
 }
 
+/*
+ * The mirror of .paper for the dark stage: the same token names, so shadcn
+ * components (inputs, menus, switches) read correctly on it in either theme.
+ */
+.stage-surface {
+  color-scheme: dark;
+  --background: #1a1a1a;
+  --foreground: #e8e6d9;
+  --card: #201f1d;
+  --card-foreground: #e8e6d9;
+  --popover: #232220;
+  --popover-foreground: #e8e6d9;
+  --primary: #e8e6d9;
+  --primary-foreground: #1a1a1a;
+  --secondary: #2c2b28;
+  --secondary-foreground: #e8e6d9;
+  --muted: #2c2b28;
+  --muted-foreground: #a09d90;
+  --accent: #2c2b28;
+  --accent-foreground: #e8e6d9;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: rgb(232 230 217 / 16%);
+  --input: rgb(232 230 217 / 24%);
+  --ring: #e8e6d9;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

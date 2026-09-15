@@ -1,3 +1,4 @@
+import type { UserPreferences } from '@wumboo/shared';
 import type { User } from '../../../domain/entities/User.js';
 
 export interface NewUser {
@@ -9,7 +10,7 @@ export interface NewUser {
 }
 
 /** What a person may change about themselves. */
-export type UserPatch = Partial<Pick<User, 'displayName' | 'bio'>>;
+export type UserPatch = Partial<Pick<User, 'displayName' | 'bio' | 'preferences'>>;
 
 export interface UserRepository {
   findById(id: string): Promise<User | null>;
@@ -21,6 +22,12 @@ export interface UserRepository {
   linkGoogle(userId: string, googleId: string): Promise<User>;
   /** Throws NotFoundError for an unknown id. */
   update(userId: string, patch: UserPatch): Promise<User>;
+  /** Replaces the stored password hash. Throws NotFoundError for an unknown id. */
+  setPassword(userId: string, passwordHash: string): Promise<void>;
+  /** Retires every token issued so far and resolves the new version. */
+  bumpSessionVersion(userId: string): Promise<number>;
+  /** Preferences for several people at once, for fan-out decisions. Unknown ids are absent. */
+  findPreferences(userIds: string[]): Promise<Map<string, UserPreferences>>;
   /** Removes the account; boards, memberships, saves, likes, and notifications go with it. */
   delete(userId: string): Promise<void>;
 }

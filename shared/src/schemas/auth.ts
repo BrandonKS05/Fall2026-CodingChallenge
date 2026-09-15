@@ -4,6 +4,7 @@
  */
 import { z } from 'zod';
 import { atLeastOneField, idSchema, timestampSchema } from './common.js';
+import { userPreferencesPatchSchema, userPreferencesSchema } from './preferences.js';
 
 /** Normalizes before validating so " Foo@Bar.com " and "foo@bar.com" are the same account. */
 export const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
@@ -29,10 +30,21 @@ export const bioSchema = z.string().trim().max(160);
 
 /** PATCH /auth/me: any subset of what a person may change about themselves, but not nothing. */
 export const updateProfileRequestSchema = z
-  .object({ displayName: displayNameSchema, bio: bioSchema })
+  .object({
+    displayName: displayNameSchema,
+    bio: bioSchema,
+    preferences: userPreferencesPatchSchema,
+  })
   .partial()
   .refine(atLeastOneField, { error: 'At least one field must be provided' });
 export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>;
+
+/** POST /auth/me/password: proving the current password is what authorizes the change. */
+export const changePasswordRequestSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: passwordSchema,
+});
+export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
 
 /** The authenticated user's own profile. */
 export const userSchema = z.object({
@@ -41,6 +53,8 @@ export const userSchema = z.object({
   displayName: z.string(),
   /** Shown on the person's page; empty until they write one. */
   bio: z.string(),
+  /** The person's own settings; only ever sent to the person they belong to. */
+  preferences: userPreferencesSchema,
   createdAt: timestampSchema,
 });
 export type User = z.infer<typeof userSchema>;

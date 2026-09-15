@@ -126,6 +126,76 @@ describe('auth routes', () => {
     expect(String(deleted.headers['set-cookie'])).toMatch(/wumboo_session=;/);
     expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).body.user).toBeNull();
   });
+
+  it('patches preferences without disturbing the rest, and keeps them out of other views', async () => {
+    const registered = await request(app).post('/api/auth/register').send(account);
+    const cookie = sessionCookie(registered);
+    expect(registered.body.user.preferences.notifications.itemAdded).toBe(true);
+
+    const patched = await request(app)
+      .patch('/api/auth/me')
+      .set('Cookie', cookie)
+      .send({
+        preferences: { notifications: { memberAdded: false }, mutedTags: ['Neon', 'neon'] },
+      });
+
+    expect(patched.status).toBe(200);
+    expect(patched.body.preferences).toMatchObject({
+      notifications: { memberAdded: false, itemAdded: true },
+      mutedTags: ['neon'],
+      discoverable: true,
+    });
+
+    const rejected = await request(app)
+      .patch('/api/auth/me')
+      .set('Cookie', cookie)
+      .send({ preferences: { defaultBoardVisibility: 'everyone' } });
+    expect(rejected.status).toBe(400);
+  });
+
+  it('changes the password, which signs the other devices out but not this one', async () => {
+    const registered = await request(app).post('/api/auth/register').send(account);
+    const oldCookie = sessionCookie(registered);
+
+    const wrong = await request(app)
+      .post('/api/auth/me/password')
+      .set('Cookie', oldCookie)
+      .send({ currentPassword: 'not-it', newPassword: 'a-longer-secret' });
+    expect(wrong.status).toBe(401);
+
+    const changed = await request(app)
+      .post('/api/auth/me/password')
+      .set('Cookie', oldCookie)
+      .send({ currentPassword: account.password, newPassword: 'a-longer-secret' });
+    expect(changed.status).toBe(204);
+
+    const newCookie = sessionCookie(changed);
+    expect(newCookie).not.toBe('');
+    // The device that made the change carries on; the cookie it arrived with is dead.
+    expect(
+      (await request(app).get('/api/auth/me').set('Cookie', newCookie)).body.user,
+    ).not.toBeNull();
+    expect((await request(app).get('/api/auth/me').set('Cookie', oldCookie)).body.user).toBeNull();
+
+    const relogin = await request(app)
+      .post('/api/auth/login')
+      .send({ email: account.email, password: 'a-longer-secret' });
+    expect(relogin.status).toBe(200);
+  });
+
+  it('signs out other sessions on request', async () => {
+    const registered = await request(app).post('/api/auth/register').send(account);
+    const oldCookie = sessionCookie(registered);
+
+    const revoked = await request(app)
+      .post('/api/auth/me/sessions/revoke')
+      .set('Cookie', oldCookie);
+
+    expect(revoked.status).toBe(204);
+    expect((await request(app).get('/api/auth/me').set('Cookie', oldCookie)).body.user).toBeNull();
+    const kept = sessionCookie(revoked);
+    expect((await request(app).get('/api/auth/me').set('Cookie', kept)).body.user).not.toBeNull();
+  });
 });
 
 describe('Google sign-in routes', () => {

@@ -8,6 +8,7 @@ export function presentUser(user: PublicUser): UserDto {
     email: user.email,
     displayName: user.displayName,
     bio: user.bio,
+    preferences: user.preferences,
     createdAt: user.createdAt.toISOString(),
   };
 }

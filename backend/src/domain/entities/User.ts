@@ -1,3 +1,5 @@
+import type { UserPreferences } from '@wumboo/shared';
+
 export interface User {
   id: string;
   email: string;
@@ -8,12 +10,16 @@ export interface User {
   googleId: string | null;
   /** Shown on the person's own page; empty until written. */
   bio: string;
+  /** The account's own settings, always complete: stored gaps are filled with defaults. */
+  preferences: UserPreferences;
+  /** Every token carries this; raising it retires the tokens already out there. */
+  sessionVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
 /** A user as seen outside the auth boundary: never carries the password hash. */
-export type PublicUser = Omit<User, 'passwordHash' | 'googleId'>;
+export type PublicUser = Omit<User, 'passwordHash' | 'googleId' | 'sessionVersion'>;
 
 /** Explicit allow-list so a new sensitive column can never leak by accident. */
 export function toPublicUser(user: User): PublicUser {
@@ -22,6 +28,7 @@ export function toPublicUser(user: User): PublicUser {
     email: user.email,
     displayName: user.displayName,
     bio: user.bio,
+    preferences: user.preferences,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

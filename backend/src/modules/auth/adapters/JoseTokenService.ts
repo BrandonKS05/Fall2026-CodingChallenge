@@ -13,9 +13,9 @@ export class JoseTokenService implements TokenService {
     this.key = new TextEncoder().encode(secret);
   }
 
-  sign({ userId }: SessionClaims): Promise<string> {
+  sign({ userId, sessionVersion }: SessionClaims): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
-    return new SignJWT({})
+    return new SignJWT({ v: sessionVersion })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(userId)
       .setIssuer(this.issuer)
@@ -32,7 +32,9 @@ export class JoseTokenService implements TokenService {
         audience: this.issuer,
         algorithms: ['HS256'],
       });
-      return payload.sub ? { userId: payload.sub } : null;
+      // Tokens issued before sessions could be revoked carry no version, which reads as zero.
+      const sessionVersion = typeof payload.v === 'number' ? payload.v : 0;
+      return payload.sub ? { userId: payload.sub, sessionVersion } : null;
     } catch {
       return null;
     }

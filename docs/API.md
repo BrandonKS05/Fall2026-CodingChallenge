@@ -12,6 +12,8 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | GET    | /api/auth/me                         | done   |
 | GET    | /api/auth/providers                  | done   |
 | PATCH  | /api/auth/me                         | done   |
+| POST   | /api/auth/me/password                | done   |
+| POST   | /api/auth/me/sessions/revoke         | done   |
 | DELETE | /api/auth/me                         | done   |
 | GET    | /api/auth/google                     | done   |
 | GET    | /api/auth/google/callback            | done   |
@@ -82,14 +84,16 @@ Sessions are JWTs in an `httpOnly`, `SameSite=Lax` cookie named `wumboo_session`
 The browser sends it automatically; the frontend never reads or stores the token. `Secure` is set in
 production. Register and login are rate limited to 20 attempts per 15 minutes per client.
 
-| Endpoint                  | Body                                    | Response                                                                                                            |
-| ------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/auth/register` | `{ email, password (8+), displayName }` | 201 `{ user }` and sets the cookie. 409 if the email is taken.                                                      |
-| `POST /api/auth/login`    | `{ email, password }`                   | 200 `{ user }` and sets the cookie. 401 for bad credentials, with the same message whether or not the email exists. |
-| `POST /api/auth/logout`   | none                                    | 204 and clears the cookie.                                                                                          |
-| `GET /api/auth/me`        | none                                    | 200 `{ user }` for a valid session, `{ user: null }` otherwise. Never 401, so the client can probe quietly.         |
-| `PATCH /api/auth/me`      | required                                | `{ displayName?, bio? }` (bio up to 160 characters). Returns the updated user.                                      |
-| `DELETE /api/auth/me`     | required                                | Deletes the account and everything it owned or added, and clears the session. 204.                                  |
+| Endpoint                            | Body                                    | Response                                                                                                                                                                                    |
+| ----------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/auth/register`           | `{ email, password (8+), displayName }` | 201 `{ user }` and sets the cookie. 409 if the email is taken.                                                                                                                              |
+| `POST /api/auth/login`              | `{ email, password }`                   | 200 `{ user }` and sets the cookie. 401 for bad credentials, with the same message whether or not the email exists.                                                                         |
+| `POST /api/auth/logout`             | none                                    | 204 and clears the cookie.                                                                                                                                                                  |
+| `GET /api/auth/me`                  | none                                    | 200 `{ user }` for a valid session, `{ user: null }` otherwise. Never 401, so the client can probe quietly.                                                                                 |
+| `PATCH /api/auth/me`                | required                                | `{ displayName?, bio?, preferences? }` (bio up to 160 characters). A preference patch merges into what is stored, so flipping one switch leaves the others alone. Returns the updated user. |
+| `POST /api/auth/me/password`        | required                                | `{ currentPassword, newPassword }`. Wrong current password is 401; a Google-only account is 400. On success every other session ends and this one gets a fresh cookie. 204.                 |
+| `POST /api/auth/me/sessions/revoke` | required                                | Signs out every other device and re-issues this session's cookie. 204.                                                                                                                      |
+| `DELETE /api/auth/me`               | required                                | Deletes the account and everything it owned or added, and clears the session. 204.                                                                                                          |
 
 `user` is `{ id, email, displayName, createdAt }`. Emails are trimmed and lowercased before use.
 

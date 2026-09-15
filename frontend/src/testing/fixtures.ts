@@ -1,5 +1,6 @@
 /** Contract-shaped fixtures for component tests. */
-import type { Collection, ExploreImage, Item, SearchResult } from '@wumboo/shared';
+import { DEFAULT_USER_PREFERENCES } from '@wumboo/shared';
+import type { Collection, ExploreImage, Item, SearchResult, User } from '@wumboo/shared';
 
 const now = new Date('2026-09-14T12:00:00Z').toISOString();
 
@@ -82,10 +83,11 @@ export function searchResultFixture(
   };
 }
 
-export const userFixture = {
+export const userFixture: User = {
   id: 'u1',
   email: 'ada@example.com',
   displayName: 'Ada',
   bio: '',
+  preferences: DEFAULT_USER_PREFERENCES,
   createdAt: now,
 };

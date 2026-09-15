@@ -5,6 +5,7 @@
 import { randomBytes } from 'node:crypto';
 import type {
   AuthProvidersResponse,
+  ChangePasswordRequest,
   LoginRequest,
   RegisterRequest,
   UpdateProfileRequest,
@@ -32,6 +33,8 @@ export interface AuthControllerDeps {
 }
 
 export interface AuthController {
+  changePassword: RequestHandler;
+  revokeSessions: RequestHandler;
   register: RequestHandler;
   login: RequestHandler;
   logout: RequestHandler;
@@ -81,6 +84,21 @@ export function createAuthController({ auth, env, google }: AuthControllerDeps):
     updateProfile: async (_req, res) => {
       const { body } = getValidated<UpdateProfileRequest>(res);
       res.json(presentUser(await auth.updateProfile(currentUser(res).id, body)));
+    },
+
+    /** The new password re-issues this session's cookie; the other devices lose theirs. */
+    changePassword: async (_req, res) => {
+      const { body } = getValidated<ChangePasswordRequest>(res);
+      const token = await auth.changePassword(currentUser(res).id, body);
+      setSessionCookie(res, token, env);
+      res.status(204).end();
+    },
+
+    /** Signs out everywhere else, keeping the caller signed in here. */
+    revokeSessions: async (_req, res) => {
+      const token = await auth.revokeOtherSessions(currentUser(res).id);
+      setSessionCookie(res, token, env);
+      res.status(204).end();
     },
 
     /** The account is gone, so the session cookie goes with it. */

@@ -1,4 +1,5 @@
-import { eq, sql } from 'drizzle-orm';
+import { parsePreferences, type UserPreferences } from '@wumboo/shared';
+import { eq, inArray, sql } from 'drizzle-orm';
 import type { User } from '../../../domain/entities/User.js';
 import { ConflictError, NotFoundError } from '../../../domain/errors/index.js';
 import type { NewUser, UserPatch, UserRepository } from '../ports/UserRepository.js';
@@ -16,6 +17,8 @@ const toUser = (row: UserRow): User => ({
   passwordHash: row.passwordHash,
   googleId: row.googleId,
   bio: row.bio,
+  preferences: parsePreferences(row.preferences),
+  sessionVersion: row.sessionVersion,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 });
@@ -75,6 +78,34 @@ export class DrizzleUserRepository implements UserRepository {
       .returning();
     if (!row) throw new NotFoundError('User', userId);
     return toUser(row);
+  }
+
+  async setPassword(userId: string, passwordHash: string): Promise<void> {
+    const [row] = await this.db
+      .update(users)
+      .set({ passwordHash, updatedAt: sql`now()` })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    if (!row) throw new NotFoundError('User', userId);
+  }
+
+  async bumpSessionVersion(userId: string): Promise<number> {
+    const [row] = await this.db
+      .update(users)
+      .set({ sessionVersion: sql`${users.sessionVersion} + 1`, updatedAt: sql`now()` })
+      .where(eq(users.id, userId))
+      .returning({ sessionVersion: users.sessionVersion });
+    if (!row) throw new NotFoundError('User', userId);
+    return row.sessionVersion;
+  }
+
+  async findPreferences(userIds: string[]): Promise<Map<string, UserPreferences>> {
+    if (userIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({ id: users.id, preferences: users.preferences })
+      .from(users)
+      .where(inArray(users.id, userIds));
+    return new Map(rows.map((row) => [row.id, parsePreferences(row.preferences)]));
   }
 
   /** Foreign keys cascade, so everything the person owned or added disappears with them. */

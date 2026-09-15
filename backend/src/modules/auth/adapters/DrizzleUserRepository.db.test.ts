@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { DEFAULT_USER_PREFERENCES, type UserPreferences } from '@wumboo/shared';
+import { sql } from 'drizzle-orm';
 import { ConflictError } from '../../../domain/errors/index.js';
 import type { Database } from '../../../infrastructure/db/client.js';
 import { DrizzleCollectionRepository } from '../../collections/adapters/DrizzleCollectionRepository.js';
@@ -74,6 +76,40 @@ describe.skipIf(!RUN_DB_TESTS)('DrizzleUserRepository (postgres)', () => {
     expect(await collections.findById(own.id)).toBeNull();
     expect(await items.listByCollection(theirs.id)).toEqual([]);
     expect(await collections.findById(theirs.id)).not.toBeNull();
+  });
+
+  it('stores settings as one document, filling in whatever a row predates', async () => {
+    const user = await repository.create(input);
+    expect(user.preferences).toEqual(DEFAULT_USER_PREFERENCES);
+    expect(user.sessionVersion).toBe(0);
+
+    const saved: UserPreferences = {
+      ...DEFAULT_USER_PREFERENCES,
+      notifications: { ...DEFAULT_USER_PREFERENCES.notifications, itemRemoved: false },
+      mutedTags: ['neon'],
+      discoverable: false,
+    };
+    expect((await repository.update(user.id, { preferences: saved })).preferences).toEqual(saved);
+    expect(await repository.findPreferences([user.id])).toEqual(new Map([[user.id, saved]]));
+    expect(await repository.findPreferences([])).toEqual(new Map());
+
+    // A row written before a setting existed keeps the rest and takes the default for it.
+    await database.db.execute(
+      sql`update users set preferences = '{"discoverable": false}'::jsonb where id = ${user.id}`,
+    );
+    const reread = await repository.findById(user.id);
+    expect(reread?.preferences).toEqual({ ...DEFAULT_USER_PREFERENCES, discoverable: false });
+  });
+
+  it('replaces the password and retires older sessions', async () => {
+    const user = await repository.create(input);
+
+    await repository.setPassword(user.id, 'hash-2');
+    expect((await repository.findById(user.id))?.passwordHash).toBe('hash-2');
+
+    expect(await repository.bumpSessionVersion(user.id)).toBe(1);
+    expect(await repository.bumpSessionVersion(user.id)).toBe(2);
+    expect((await repository.findById(user.id))?.sessionVersion).toBe(2);
   });
 
   it('returns null for unknown users', async () => {

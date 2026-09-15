@@ -1,8 +1,8 @@
 /**
  * Session middleware. Reads the session cookie, verifies the token, loads the
  * user, and exposes it to controllers through currentUser(). Loading the user
- * on every request costs one indexed query and guarantees deleted accounts
- * lose access immediately.
+ * on every request costs one indexed query and guarantees deleted accounts and
+ * revoked sessions lose access immediately.
  */
 import type { RequestHandler, Response } from 'express';
 import { SESSION_COOKIE_NAME } from '../../config/session.js';
@@ -20,7 +20,9 @@ function authenticate(deps: AuthenticateDeps, options: { required: boolean }): R
   return async (req, res, next) => {
     const token: unknown = req.cookies?.[SESSION_COOKIE_NAME];
     const claims = typeof token === 'string' && token ? await deps.tokens.verify(token) : null;
-    const user = claims ? await deps.users.findById(claims.userId) : null;
+    const found = claims ? await deps.users.findById(claims.userId) : null;
+    // A token from before the last "sign out everywhere" names an older version.
+    const user = found && found.sessionVersion === claims?.sessionVersion ? found : null;
 
     if (!user) {
       if (options.required) {

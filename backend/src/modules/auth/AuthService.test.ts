@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { AuthenticationError, ConflictError } from '../../domain/errors/index.js';
+import { DEFAULT_USER_PREFERENCES } from '@wumboo/shared';
+import {
+  AuthenticationError,
+  ConflictError,
+  InvalidOperationError,
+} from '../../domain/errors/index.js';
 import { AuthService } from './AuthService.js';
 import {
   FakePasswordHasher,
@@ -75,6 +80,73 @@ describe('AuthService', () => {
     await expect(
       service.login({ email: credentials.email, password: credentials.password }),
     ).rejects.toBeInstanceOf(AuthenticationError);
+  });
+
+  describe('settings', () => {
+    it('merges a preference patch into what is stored, leaving the other switches alone', async () => {
+      const { user } = await service.register(credentials);
+
+      const once = await service.updateProfile(user.id, {
+        preferences: { notifications: { itemAdded: false }, mutedTags: ['neon'] },
+      });
+      expect(once.preferences.notifications).toEqual({
+        ...DEFAULT_USER_PREFERENCES.notifications,
+        itemAdded: false,
+      });
+
+      const twice = await service.updateProfile(user.id, { preferences: { discoverable: false } });
+      expect(twice.preferences).toMatchObject({
+        notifications: { itemAdded: false, memberAdded: true },
+        mutedTags: ['neon'],
+        discoverable: false,
+        defaultBoardVisibility: 'private',
+      });
+    });
+
+    it('changes the password, retires the old tokens, and keeps the caller signed in', async () => {
+      const { user, token } = await service.register(credentials);
+
+      const fresh = await service.changePassword(user.id, {
+        currentPassword: credentials.password,
+        newPassword: 'a longer secret',
+      });
+
+      expect(fresh).not.toBe(token);
+      const stored = await users.findById(user.id);
+      expect(stored?.passwordHash).toBe('hashed:a longer secret');
+      expect(stored?.sessionVersion).toBe(1);
+      await expect(
+        service.login({ email: credentials.email, password: 'a longer secret' }),
+      ).resolves.toMatchObject({ user: { id: user.id } });
+    });
+
+    it('refuses a password change without the current password, or on a Google account', async () => {
+      const { user } = await service.register(credentials);
+      await expect(
+        service.changePassword(user.id, { currentPassword: 'wrong', newPassword: 'another one' }),
+      ).rejects.toBeInstanceOf(AuthenticationError);
+      expect((await users.findById(user.id))?.sessionVersion).toBe(0);
+
+      const google = await service.loginWithOAuth({
+        providerId: 'g-1',
+        email: 'grace@example.com',
+        displayName: 'Grace',
+        emailVerified: true,
+      });
+      await expect(
+        service.changePassword(google.user.id, {
+          currentPassword: 'anything',
+          newPassword: 'another one',
+        }),
+      ).rejects.toBeInstanceOf(InvalidOperationError);
+    });
+
+    it('revoking sessions raises the version, so an older token no longer matches', async () => {
+      const { user } = await service.register(credentials);
+      const revoked = await service.revokeOtherSessions(user.id);
+      expect(revoked).toBe(`token:${user.id}.1`);
+      expect((await users.findById(user.id))?.sessionVersion).toBe(1);
+    });
   });
 });
 

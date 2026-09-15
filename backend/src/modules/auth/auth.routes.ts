@@ -1,4 +1,5 @@
 import {
+  changePasswordRequestSchema,
   loginRequestSchema,
   registerRequestSchema,
   updateProfileRequestSchema,
@@ -43,6 +44,14 @@ export function createAuthRouter(container: Container): Router {
     validate({ body: updateProfileRequestSchema }),
     controller.updateProfile,
   );
+  router.post(
+    '/me/password',
+    credentialLimiter,
+    signedIn,
+    validate({ body: changePasswordRequestSchema }),
+    controller.changePassword,
+  );
+  router.post('/me/sessions/revoke', signedIn, controller.revokeSessions);
   router.delete('/me', signedIn, controller.deleteAccount);
   router.get('/providers', controller.providers);
   router.get('/google', credentialLimiter, controller.googleStart);

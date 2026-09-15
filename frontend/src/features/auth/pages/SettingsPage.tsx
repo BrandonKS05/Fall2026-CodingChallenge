@@ -1,7 +1,8 @@
 /**
  * Settings: the person's own name and bio, the account they signed up with,
- * and the one irreversible action, deleting the account. The forms sit on the
- * same paper as the sign-in card, so the dark stage never swallows the fields.
+ * and the one irreversible action, deleting the account. The whole page runs on
+ * the stage's token scope, so the fields match every other page rather than
+ * borrowing the app theme's light surfaces.
  */
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { bioSchema, displayNameSchema } from '@wumboo/shared';
@@ -33,7 +34,7 @@ const BIO_LIMIT = 160;
 export default function SettingsPage() {
   const { user } = useSession();
   return (
-    <div className="flex min-h-svh flex-col bg-stage text-stage-ink">
+    <div className="stage-surface flex min-h-svh flex-col bg-stage text-stage-ink">
       <StageChrome signedIn position="sticky" />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-4 pb-24 sm:px-6">
         <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Settings</h1>
@@ -49,10 +50,10 @@ export default function SettingsPage() {
   );
 }
 
-/** A sheet of paper on the stage: the same palette the sign-in card uses. */
+/** One panel of the page: a hairline card on the stage, titled in small caps. */
 function Sheet({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="paper rounded-lg bg-[#f1efe1] p-6 text-[#151515] ring-1 ring-[#151515]/15">
+    <section className="rounded-xl border border-stage-ink/15 bg-stage-ink/[0.03] p-6">
       <h2 className="text-[11px] tracking-[0.2em] text-muted-foreground uppercase">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>

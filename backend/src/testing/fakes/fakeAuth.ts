@@ -16,13 +16,16 @@ export class FakePasswordHasher implements PasswordHasher {
   }
 }
 
+/** `token:<id>` for a fresh account, `token:<id>.<version>` once sessions have been revoked. */
 export class FakeTokenService implements TokenService {
-  async sign({ userId }: SessionClaims): Promise<string> {
-    return `token:${userId}`;
+  async sign({ userId, sessionVersion }: SessionClaims): Promise<string> {
+    return sessionVersion === 0 ? `token:${userId}` : `token:${userId}.${sessionVersion}`;
   }
 
   async verify(token: string): Promise<SessionClaims | null> {
-    return token.startsWith('token:') ? { userId: token.slice('token:'.length) } : null;
+    if (!token.startsWith('token:')) return null;
+    const [userId = '', version] = token.slice('token:'.length).split('.');
+    return { userId, sessionVersion: version ? Number(version) : 0 };
   }
 }
 

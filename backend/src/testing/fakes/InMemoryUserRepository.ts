@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { DEFAULT_USER_PREFERENCES, type UserPreferences } from '@wumboo/shared';
 import type { User } from '../../domain/entities/User.js';
 import { ConflictError, NotFoundError } from '../../domain/errors/index.js';
 import type {
@@ -35,6 +36,8 @@ export class InMemoryUserRepository implements UserRepository {
       passwordHash: input.passwordHash,
       googleId: input.googleId ?? null,
       bio: '',
+      preferences: DEFAULT_USER_PREFERENCES,
+      sessionVersion: 0,
       createdAt: now,
       updatedAt: now,
     };
@@ -48,6 +51,28 @@ export class InMemoryUserRepository implements UserRepository {
     const updated = { ...existing, googleId, updatedAt: new Date() };
     this.rows.set(userId, updated);
     return updated;
+  }
+
+  async setPassword(userId: string, passwordHash: string): Promise<void> {
+    const existing = this.rows.get(userId);
+    if (!existing) throw new NotFoundError('User', userId);
+    this.rows.set(userId, { ...existing, passwordHash, updatedAt: new Date() });
+  }
+
+  async bumpSessionVersion(userId: string): Promise<number> {
+    const existing = this.rows.get(userId);
+    if (!existing) throw new NotFoundError('User', userId);
+    const sessionVersion = existing.sessionVersion + 1;
+    this.rows.set(userId, { ...existing, sessionVersion, updatedAt: new Date() });
+    return sessionVersion;
+  }
+
+  async findPreferences(userIds: string[]): Promise<Map<string, UserPreferences>> {
+    const found = userIds.flatMap((userId) => {
+      const user = this.rows.get(userId);
+      return user ? [[userId, user.preferences] as const] : [];
+    });
+    return new Map(found);
   }
 
   /** Test helper: simulate an account being removed while a session is live. */

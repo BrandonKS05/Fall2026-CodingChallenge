@@ -3,8 +3,13 @@
  * be tested with in-memory fakes and reused by any transport.
  */
 import { randomUUID } from 'node:crypto';
+import { mergePreferences, type UserPreferencesPatch } from '@wumboo/shared';
 import { toPublicUser, type PublicUser, type User } from '../../domain/entities/User.js';
-import { AuthenticationError, ConflictError } from '../../domain/errors/index.js';
+import {
+  AuthenticationError,
+  ConflictError,
+  InvalidOperationError,
+} from '../../domain/errors/index.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';
 import type { OAuthProfile } from './ports/OAuthProvider.js';
 import type { PasswordHasher } from './ports/PasswordHasher.js';
@@ -27,6 +32,18 @@ export interface RegisterInput {
 export interface LoginInput {
   email: string;
   password: string;
+}
+
+/** What a person may change about themselves in one request. */
+export interface ProfilePatch {
+  displayName?: string | undefined;
+  bio?: string | undefined;
+  preferences?: UserPreferencesPatch | undefined;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface AuthResult {
@@ -57,11 +74,50 @@ export class AuthService {
     return this.startSession(user);
   }
 
-  /** Name and bio are the person's own to change; everything else stays as registered. */
-  async updateProfile(userId: string, patch: UserPatch): Promise<PublicUser> {
-    const user = await this.deps.users.update(userId, patch);
+  /**
+   * Name, bio, and settings are the person's own to change; everything else stays
+   * as registered. A preference patch merges into what is stored, so a request
+   * that flips one switch cannot silently reset the others.
+   */
+  async updateProfile(userId: string, patch: ProfilePatch): Promise<PublicUser> {
+    const { preferences, ...fields } = patch;
+    const next: UserPatch = { ...fields };
+    if (preferences) {
+      next.preferences = mergePreferences(
+        (await this.requireUser(userId)).preferences,
+        preferences,
+      );
+    }
+    const user = await this.deps.users.update(userId, next);
     this.log.info({ userId }, 'Profile updated');
     return toPublicUser(user);
+  }
+
+  /**
+   * Changing the password proves it is really you, so it also ends every other
+   * session. The caller gets a fresh token and stays signed in where they are.
+   */
+  async changePassword(userId: string, input: ChangePasswordInput): Promise<string> {
+    const user = await this.requireUser(userId);
+    if (user.passwordHash === null) {
+      throw new InvalidOperationError('This account signs in with Google, so it has no password');
+    }
+    const valid = await this.deps.passwordHasher.verify(user.passwordHash, input.currentPassword);
+    if (!valid) throw new AuthenticationError('That is not your current password');
+
+    await this.deps.users.setPassword(
+      userId,
+      await this.deps.passwordHasher.hash(input.newPassword),
+    );
+    this.log.info({ userId }, 'Password changed');
+    return this.revokeOtherSessions(userId);
+  }
+
+  /** Retires every token issued so far and returns a fresh one for the caller. */
+  async revokeOtherSessions(userId: string): Promise<string> {
+    const sessionVersion = await this.deps.users.bumpSessionVersion(userId);
+    this.log.info({ userId, sessionVersion }, 'Sessions revoked');
+    return this.deps.tokens.sign({ userId, sessionVersion });
   }
 
   /** Removes the account and, through the database's cascades, everything it owned or added. */
@@ -113,13 +169,20 @@ export class AuthService {
 
   /** Resolves the session's user, or throws when the account no longer exists. */
   async getUser(userId: string): Promise<PublicUser> {
+    return toPublicUser(await this.requireUser(userId));
+  }
+
+  private async requireUser(userId: string): Promise<User> {
     const user = await this.deps.users.findById(userId);
     if (!user) throw new AuthenticationError('Session user no longer exists');
-    return toPublicUser(user);
+    return user;
   }
 
   private async startSession(user: User): Promise<AuthResult> {
-    const token = await this.deps.tokens.sign({ userId: user.id });
+    const token = await this.deps.tokens.sign({
+      userId: user.id,
+      sessionVersion: user.sessionVersion,
+    });
     return { user: toPublicUser(user), token };
   }
 
