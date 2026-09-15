@@ -73,8 +73,12 @@ export class CollectionService {
   }
 
   /** Landing-stage feed. Only public boards are read, so there is no viewer and no role. */
-  listPublicImages(limit: number): Promise<PublicImage[]> {
-    return this.deps.collections.listPublicImages({ limit });
+  /** The stage's feed, minus anything the viewer has muted. */
+  async listPublicImages(limit: number, mutedTags: readonly string[] = []): Promise<PublicImage[]> {
+    const images = await this.deps.collections.listPublicImages({ limit });
+    const muted = new Set(mutedTags);
+    if (muted.size === 0) return images;
+    return images.filter((entry) => !entry.image.tags.some((tag) => muted.has(tag.toLowerCase())));
   }
 
   async create(ownerId: string, input: CreateCollectionInput): Promise<CollectionSummary> {

@@ -187,4 +187,17 @@ describe('ImageService', () => {
     await expect(service.ensureStored('pixabay', '104')).rejects.toBeInstanceOf(NotFoundError);
     void UpstreamError;
   });
+
+  it('leaves out hits carrying a tag the viewer has muted', async () => {
+    const query = { q: 'kitchen', page: 1, perPage: 10, orientation: 'all' } as const;
+    const all = await service.search(query);
+    expect(all.results.length).toBeGreaterThan(0);
+
+    const muted = await service.search(query, { mutedTags: ['kitchen'] });
+    expect(muted.results).toEqual([]);
+    // The provider's own total is left alone: muting hides hits, it does not re-count them.
+    expect(muted.total).toBe(all.total);
+
+    expect((await service.search(query, { mutedTags: ['nothing'] })).results).toEqual(all.results);
+  });
 });

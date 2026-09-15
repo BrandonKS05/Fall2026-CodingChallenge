@@ -52,12 +52,22 @@ export class InMemoryCollectionRepository implements CollectionRepository {
   }
 
   async listPublic({ limit, offset, viewerId }: ListPublicOptions): Promise<CollectionSummary[]> {
-    const publicBoards = this.newestFirst().filter((row) => row.visibility === 'public');
+    const publicBoards = await this.discoverable(this.newestFirst());
     return Promise.all(
       publicBoards
         .slice(offset, offset + limit)
         .map((collection) => this.toSummary(collection, viewerId ?? null)),
     );
+  }
+
+  /** Public boards whose owner still wants to be found, mirroring the SQL's predicate. */
+  private async discoverable(boards: Collection[]): Promise<Collection[]> {
+    const open: Collection[] = [];
+    for (const board of boards.filter((row) => row.visibility === 'public')) {
+      const owner = await this.users.findById(board.ownerId);
+      if (owner?.preferences.discoverable !== false) open.push(board);
+    }
+    return open;
   }
 
   /** Mirrors the SQL: keep each image once (newest board wins), rank the survivors per board, interleave. */
@@ -74,7 +84,7 @@ export class InMemoryCollectionRepository implements CollectionRepository {
       b.board.updatedAt.getTime() - a.board.updatedAt.getTime() || newestFirst(a, b);
 
     const chosen = new Map<string, Placement>();
-    for (const board of this.newestFirst().filter((row) => row.visibility === 'public')) {
+    for (const board of await this.discoverable(this.newestFirst())) {
       for (const item of await this.items.listByCollection(board.id)) {
         const placement = { itemId: item.id, image: item.image, board, addedAt: item.createdAt };
         const current = chosen.get(item.imageId);

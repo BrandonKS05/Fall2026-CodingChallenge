@@ -1,5 +1,11 @@
 import { handleSchema } from '@wumboo/shared';
-import type { LoginRequest, RegisterRequest, UpdateProfileRequest, User } from '@wumboo/shared';
+import type {
+  ChangePasswordRequest,
+  LoginRequest,
+  RegisterRequest,
+  UpdateProfileRequest,
+  User,
+} from '@wumboo/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { authApi } from './api';
@@ -75,6 +81,18 @@ export function useUpdateProfile() {
     onSuccess: (user) => queryClient.setQueryData(queryKeys.session, user),
     meta: { silentError: true },
   });
+}
+
+/** Changing the password also ends the other sessions, server-side. */
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (body: ChangePasswordRequest) => authApi.changePassword(body),
+    meta: { silentError: true },
+  });
+}
+
+export function useRevokeSessions() {
+  return useMutation({ mutationFn: () => authApi.revokeSessions(), meta: { silentError: true } });
 }
 
 /** Ends the account; the cache forgets everything the person could see. */

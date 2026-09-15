@@ -1,3 +1,4 @@
+import { DEFAULT_USER_PREFERENCES } from '@wumboo/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Image } from '../../domain/entities/Image.js';
 import { ForbiddenError, InvalidOperationError, NotFoundError } from '../../domain/errors/index.js';
@@ -226,6 +227,25 @@ describe('CollectionService', () => {
       await expect(
         service.like('00000000-0000-0000-0000-000000000000', otherId),
       ).rejects.toBeInstanceOf(NotFoundError);
+    });
+  });
+
+  describe('discovery settings', () => {
+    it('keeps the boards of someone who opted out of discovery out of Explore', async () => {
+      const board = await service.create(ownerId, {
+        title: 'Public one',
+        description: '',
+        visibility: 'public',
+      });
+      expect(await service.listPublic(null, { page: 1, perPage: 10 })).toHaveLength(1);
+
+      await repos.users.update(ownerId, {
+        preferences: { ...DEFAULT_USER_PREFERENCES, discoverable: false },
+      });
+
+      expect(await service.listPublic(null, { page: 1, perPage: 10 })).toEqual([]);
+      // The board itself is untouched: anyone with the link still opens it.
+      expect(await service.get(board.id, null)).toMatchObject({ title: 'Public one' });
     });
   });
 });

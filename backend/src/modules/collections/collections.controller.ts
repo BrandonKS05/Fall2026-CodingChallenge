@@ -43,7 +43,12 @@ export function createCollectionsController(service: CollectionService): Collect
 
     exploreImages: async (_req, res) => {
       const { query } = getValidated<unknown, ExploreImagesQuery>(res);
-      res.json(presentExploreImages(await service.listPublicImages(query.limit)));
+      const viewer = optionalUser(res);
+      res.json(
+        presentExploreImages(
+          await service.listPublicImages(query.limit, viewer?.preferences.mutedTags),
+        ),
+      );
     },
 
     create: async (_req, res) => {

@@ -16,6 +16,7 @@ import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import type { Env } from '../../config/env.js';
 import type { OAuthProvider } from './ports/OAuthProvider.js';
+import type { AccountExportService } from './AccountExportService.js';
 import type { AuthService } from './AuthService.js';
 import {
   clearOAuthStateCookie,
@@ -30,12 +31,14 @@ import { presentAuth, presentSession, presentUser } from './user.presenter.js';
 
 export interface AuthControllerDeps {
   auth: AuthService;
+  accountExport: AccountExportService;
   env: Pick<Env, 'NODE_ENV' | 'APP_URL'>;
   google?: OAuthProvider | undefined;
 }
 
 export interface AuthController {
   handleAvailability: RequestHandler;
+  exportAccount: RequestHandler;
   changePassword: RequestHandler;
   revokeSessions: RequestHandler;
   register: RequestHandler;
@@ -56,7 +59,12 @@ const callbackQuerySchema = z.object({
   error: z.string().optional(),
 });
 
-export function createAuthController({ auth, env, google }: AuthControllerDeps): AuthController {
+export function createAuthController({
+  auth,
+  accountExport,
+  env,
+  google,
+}: AuthControllerDeps): AuthController {
   const redirectUri = `${env.APP_URL}/api/auth/google/callback`;
   const backToLogin = (reason: string) => `${env.APP_URL}/login?error=${reason}`;
 
@@ -87,6 +95,18 @@ export function createAuthController({ auth, env, google }: AuthControllerDeps):
     updateProfile: async (_req, res) => {
       const { body } = getValidated<UpdateProfileRequest>(res);
       res.json(presentUser(await auth.updateProfile(currentUser(res).id, body)));
+    },
+
+    /** The whole account as a file, so leaving is never a matter of copying screens. */
+    exportAccount: async (_req, res) => {
+      const user = currentUser(res);
+      const data = await accountExport.export(user.id);
+      const day = new Date().toISOString().slice(0, 10);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="wumboo-${user.handle}-${day}.json"`,
+      );
+      res.json(data);
     },
 
     /** The new password re-issues this session's cookie; the other devices lose theirs. */

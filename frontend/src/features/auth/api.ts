@@ -1,6 +1,7 @@
 import type {
   AuthProvidersResponse,
   AuthResponse,
+  ChangePasswordRequest,
   HandleAvailabilityResponse,
   LoginRequest,
   RegisterRequest,
@@ -23,5 +24,8 @@ export const authApi = {
       `/auth/handle-available?handle=${encodeURIComponent(handle)}`,
     ),
   updateProfile: (body: UpdateProfileRequest) => http.patch<User>('/auth/me', body),
+  changePassword: (body: ChangePasswordRequest) => http.post<void>('/auth/me/password', body),
+  revokeSessions: () => http.post<void>('/auth/me/sessions/revoke'),
+  exportAccount: () => http.get<Record<string, unknown>>('/auth/me/export'),
   deleteAccount: () => http.delete('/auth/me'),
 };

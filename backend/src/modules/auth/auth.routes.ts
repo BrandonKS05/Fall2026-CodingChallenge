@@ -14,7 +14,12 @@ import { validate } from '../../http/middleware/validate.js';
 
 export function createAuthRouter(container: Container): Router {
   const { env, services, repositories, tokens, oauth } = container;
-  const controller = createAuthController({ auth: services.auth, env, google: oauth.google });
+  const controller = createAuthController({
+    auth: services.auth,
+    accountExport: services.accountExport,
+    env,
+    google: oauth.google,
+  });
 
   // Brute-force protection on the credential endpoints. Relaxed under test so suites can exercise the routes.
   const credentialLimiter = createRateLimiter({
@@ -53,6 +58,7 @@ export function createAuthRouter(container: Container): Router {
     controller.changePassword,
   );
   router.post('/me/sessions/revoke', signedIn, controller.revokeSessions);
+  router.get('/me/export', signedIn, controller.exportAccount);
   router.delete('/me', signedIn, controller.deleteAccount);
   // Open, because the sign-up form asks before an account exists; limited, because it is a lookup.
   router.get(

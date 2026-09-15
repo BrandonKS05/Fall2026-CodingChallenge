@@ -2,6 +2,7 @@ import { searchQuerySchema } from '@wumboo/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { createSearchController } from './search.controller.js';
+import { optionalAuth } from '../../http/middleware/authenticate.js';
 import { createRateLimiter } from '../../http/middleware/rateLimit.js';
 import { validate } from '../../http/middleware/validate.js';
 
@@ -13,7 +14,19 @@ export function createSearchRouter(container: Container): Router {
     limit: container.env.NODE_ENV === 'test' ? 1_000 : 30,
   });
 
+  // Signed in or not, the search works; a session only adds the muted tags to leave out.
+  const maybeSignedIn = optionalAuth({
+    tokens: container.tokens,
+    users: container.repositories.users,
+  });
+
   const router = Router();
-  router.get('/', limiter, validate({ query: searchQuerySchema }), controller.search);
+  router.get(
+    '/',
+    limiter,
+    maybeSignedIn,
+    validate({ query: searchQuerySchema }),
+    controller.search,
+  );
   return router;
 }

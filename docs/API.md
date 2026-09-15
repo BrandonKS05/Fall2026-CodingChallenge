@@ -15,6 +15,7 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | GET    | /api/auth/handle-available           | done   |
 | POST   | /api/auth/me/password                | done   |
 | POST   | /api/auth/me/sessions/revoke         | done   |
+| GET    | /api/auth/me/export                  | done   |
 | DELETE | /api/auth/me                         | done   |
 | GET    | /api/auth/google                     | done   |
 | GET    | /api/auth/google/callback            | done   |

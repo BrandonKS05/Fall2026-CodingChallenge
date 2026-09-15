@@ -1,3 +1,4 @@
+import { DEFAULT_USER_PREFERENCES } from '@wumboo/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createEvent } from '../../domain/events/index.js';
 import { silentLogger } from '../../testing/fakes/fakeAuth.js';
@@ -18,6 +19,7 @@ describe('NotificationService', () => {
     service = new NotificationService({
       notifications: repos.notifications,
       memberships: repos.memberships,
+      users: repos.users,
       logger: silentLogger,
     });
     const user = (email: string) =>
@@ -58,6 +60,37 @@ describe('NotificationService', () => {
     });
     expect((await service.inbox(viewer)).unreadCount).toBe(1);
     expect((await service.inbox(editor)).unreadCount).toBe(0);
+  });
+
+  it('writes nothing for a member who has that kind of notification switched off', async () => {
+    await repos.users.update(viewer, {
+      preferences: {
+        ...DEFAULT_USER_PREFERENCES,
+        notifications: { ...DEFAULT_USER_PREFERENCES.notifications, itemAdded: false },
+      },
+    });
+
+    await service.handle(
+      createEvent('item.added', {
+        collectionId: boardId,
+        actorId: owner,
+        itemId: 'i1',
+        imageId: 'img1',
+      }),
+    );
+
+    expect((await service.inbox(editor)).notifications).toHaveLength(1);
+    expect((await service.inbox(viewer)).notifications).toEqual([]);
+
+    // Another kind still reaches them: the switch is per kind, not a blanket mute.
+    await service.handle(
+      createEvent('collection.updated', {
+        collectionId: boardId,
+        actorId: owner,
+        changes: ['title'],
+      }),
+    );
+    expect((await service.inbox(viewer)).notifications).toHaveLength(1);
   });
 
   it('marks some or all notifications read', async () => {

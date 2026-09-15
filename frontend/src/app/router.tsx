@@ -67,6 +67,7 @@ export const router = createBrowserRouter([
       { path: '/explore', element: page(<ExplorePage />) },
       { path: '/boards', element: <RequireAuth>{page(<BoardsPage />)}</RequireAuth> },
       { path: '/settings', element: <RequireAuth>{page(<SettingsPage />)}</RequireAuth> },
+      { path: '/settings/:section', element: <RequireAuth>{page(<SettingsPage />)}</RequireAuth> },
       // Sign-in as a URL, for deep links and Google's return trip; the card floats over Explore.
       { path: '/login', element: <AuthRoute mode="login" /> },
       { path: '/register', element: <AuthRoute mode="register" /> },

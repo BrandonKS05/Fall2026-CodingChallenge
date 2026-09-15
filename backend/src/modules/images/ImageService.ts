@@ -48,8 +48,22 @@ export class ImageService {
     this.timeoutMs = deps.timeoutMs ?? 15_000;
   }
 
-  search(query: ImageSearchQuery): Promise<ImageSearchResult> {
-    return this.provider(DEFAULT_PROVIDER).search(query);
+  /**
+   * Discovery, minus anything the viewer has muted. The provider still decides
+   * what matches; muting only removes hits before they are shown, so the count
+   * the provider reports stays its own.
+   */
+  async search(
+    query: ImageSearchQuery,
+    options: { mutedTags?: readonly string[] } = {},
+  ): Promise<ImageSearchResult> {
+    const found = await this.provider(DEFAULT_PROVIDER).search(query);
+    const muted = new Set(options.mutedTags ?? []);
+    if (muted.size === 0) return found;
+    return {
+      ...found,
+      results: found.results.filter((hit) => !hit.tags.some((tag) => muted.has(tag.toLowerCase()))),
+    };
   }
 
   /** Returns the stored copy of a provider image, downloading it on first use. */

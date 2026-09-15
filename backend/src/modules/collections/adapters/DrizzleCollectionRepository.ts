@@ -109,6 +109,13 @@ const toSummary = (row: SummaryRow): CollectionSummary => ({
   role: row.role,
 });
 
+/**
+ * Someone who has turned discovery off keeps their public boards reachable by
+ * link, but out of Explore. Settings written before the switch existed have no
+ * such key, and `->>` yields null for those, which reads as still discoverable.
+ */
+const ownerIsDiscoverable = sql`coalesce((${users.preferences} ->> 'discoverable')::boolean, true)`;
+
 export class DrizzleCollectionRepository implements CollectionRepository {
   constructor(private readonly db: Db) {}
 
@@ -152,7 +159,7 @@ export class DrizzleCollectionRepository implements CollectionRepository {
       .from(collections)
       .innerJoin(users, eq(users.id, collections.ownerId))
       .leftJoin(collectionMembers, viewerMembership(viewerId ?? null))
-      .where(eq(collections.visibility, 'public'))
+      .where(and(eq(collections.visibility, 'public'), ownerIsDiscoverable))
       .orderBy(desc(collections.updatedAt))
       .limit(limit)
       .offset(offset);
@@ -183,7 +190,8 @@ export class DrizzleCollectionRepository implements CollectionRepository {
         })
         .from(collectionItems)
         .innerJoin(collections, eq(collections.id, collectionItems.collectionId))
-        .where(eq(collections.visibility, 'public')),
+        .innerJoin(users, eq(users.id, collections.ownerId))
+        .where(and(eq(collections.visibility, 'public'), ownerIsDiscoverable)),
     );
     const ranked = this.db.$with('ranked').as(
       this.db

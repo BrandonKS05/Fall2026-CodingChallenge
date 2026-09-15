@@ -49,7 +49,12 @@ export function createExploreRouter(container: Container): Router {
 
   const router = Router();
   router.get('/', maybeSignedIn, validate({ query: paginationQuerySchema }), controller.explore);
-  // Landing-stage feed. Anonymous: it only reads public boards and carries nothing viewer-specific.
-  router.get('/images', validate({ query: exploreImagesQuerySchema }), controller.exploreImages);
+  // Landing-stage feed. It reads public boards only; a session just adds the muted tags to leave out.
+  router.get(
+    '/images',
+    maybeSignedIn,
+    validate({ query: exploreImagesQuerySchema }),
+    controller.exploreImages,
+  );
   return router;
 }

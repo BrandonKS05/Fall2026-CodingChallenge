@@ -2,9 +2,11 @@
 export { AuthDialog } from './components/AuthDialog';
 export { RequireAuth } from './components/RequireAuth';
 export {
+  useChangePassword,
   useDeleteAccount,
   useHandleAvailability,
   useLogout,
+  useRevokeSessions,
   useSession,
   useUpdateProfile,
 } from './queries';

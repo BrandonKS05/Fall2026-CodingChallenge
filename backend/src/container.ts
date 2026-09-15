@@ -36,6 +36,7 @@ import type { PasswordHasher } from './modules/auth/ports/PasswordHasher.js';
 import { createDrizzleRepositories, type Repositories } from './infrastructure/db/repositories.js';
 import type { StorageBackend } from './modules/images/ports/StorageBackend.js';
 import type { TokenService } from './modules/auth/ports/TokenService.js';
+import { AccountExportService } from './modules/auth/AccountExportService.js';
 import { AuthService } from './modules/auth/AuthService.js';
 import { CollectionService } from './modules/collections/CollectionService.js';
 import { ImageService } from './modules/images/ImageService.js';
@@ -45,6 +46,7 @@ import { ShareService } from './modules/sharing/ShareService.js';
 
 export interface Services {
   auth: AuthService;
+  accountExport: AccountExportService;
   collections: CollectionService;
   images: ImageService;
   items: ItemService;
@@ -144,22 +146,29 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
   const notifications = new NotificationService({
     notifications: repositories.notifications,
     memberships: repositories.memberships,
+    users: repositories.users,
     logger,
   });
   // Observer: notifications react to board events without the publishers knowing.
   notifications.register(events);
+  const items = new ItemService({
+    items: repositories.items,
+    collectionRepository: repositories.collections,
+    collectionService: collections,
+    imageService: images,
+    events,
+    logger,
+  });
   const services: Services = {
     auth: new AuthService({ users: repositories.users, passwordHasher, tokens, logger }),
+    accountExport: new AccountExportService({
+      users: repositories.users,
+      collections: repositories.collections,
+      items,
+    }),
     collections,
     images,
-    items: new ItemService({
-      items: repositories.items,
-      collectionRepository: repositories.collections,
-      collectionService: collections,
-      imageService: images,
-      events,
-      logger,
-    }),
+    items,
     share: new ShareService({
       collections: repositories.collections,
       memberships: repositories.memberships,
