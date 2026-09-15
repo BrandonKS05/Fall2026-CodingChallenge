@@ -2,7 +2,11 @@
  * Items are images placed on a board. Every operation authorizes through
  * CollectionService first, then touches the board so lists reorder by activity.
  */
-import type { CollectionItem, ItemDetail } from '../../domain/entities/CollectionItem.js';
+import type {
+  CollectionItem,
+  ItemDetail,
+  SavedItem,
+} from '../../domain/entities/CollectionItem.js';
 import type { ImageProviderName } from '../../domain/entities/Image.js';
 import { NotFoundError } from '../../domain/errors/index.js';
 import { createEvent } from '../../domain/events/index.js';
@@ -42,6 +46,21 @@ export class ItemService {
 
   constructor(private readonly deps: ItemServiceDeps) {
     this.log = deps.logger.child({ service: 'ItemService' });
+  }
+
+  /** Everything the person has saved across every board they belong to, newest first. */
+  async listMine(userId: string, limit: number): Promise<SavedItem[]> {
+    const items = await this.deps.items.listForUser(userId, limit);
+    // One title lookup per distinct board, not per item; a person belongs to a handful of boards.
+    const titles = new Map<string, string>();
+    for (const collectionId of new Set(items.map((item) => item.collectionId))) {
+      const collection = await this.deps.collectionRepository.findById(collectionId);
+      titles.set(collectionId, collection?.title ?? '');
+    }
+    return items.map((item) => ({
+      ...item,
+      collectionTitle: titles.get(item.collectionId) ?? '',
+    }));
   }
 
   async add(collectionId: string, actorId: string, input: AddItemInput): Promise<ItemDetail> {

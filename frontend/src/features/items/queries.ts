@@ -7,11 +7,19 @@ import type {
   CreateItemRequest,
   UpdateItemRequest,
 } from '@wumboo/shared';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { itemsApi } from './api';
 
 type Detail = CollectionDetailResponse;
+
+/** The Pins view: everything saved across the person's boards, newest first. */
+export function useMyItems(limit = 100) {
+  return useQuery({
+    queryKey: queryKeys.savedItems.list({ limit }),
+    queryFn: () => itemsApi.listMine(limit).then((response) => response.items),
+  });
+}
 
 export function useAddItem(collectionId: string) {
   const queryClient = useQueryClient();
@@ -20,6 +28,7 @@ export function useAddItem(collectionId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.detail(collectionId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.list() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.savedItems.all });
     },
   });
 }
@@ -60,6 +69,7 @@ export function useUpdateItem(collectionId: string) {
     onSettled: (_result, _error, { patch }) => {
       void queryClient.invalidateQueries({ queryKey: detailKey });
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.list() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.savedItems.all });
       if (patch.collectionId) {
         void queryClient.invalidateQueries({
           queryKey: queryKeys.collections.detail(patch.collectionId),
@@ -95,8 +105,10 @@ export function useRemoveItem(collectionId: string) {
       if (context?.previous) queryClient.setQueryData(detailKey, context.previous);
     },
     onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.savedItems.all });
       void queryClient.invalidateQueries({ queryKey: detailKey });
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.list() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.savedItems.all });
     },
   });
 }
@@ -110,6 +122,7 @@ export function useSaveToBoard() {
     onSuccess: (_item, { collectionId }) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.detail(collectionId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.list() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.savedItems.all });
     },
     meta: { silentError: true },
   });

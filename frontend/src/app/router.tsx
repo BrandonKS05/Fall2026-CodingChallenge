@@ -64,6 +64,7 @@ export const router = createBrowserRouter([
       // The landing hero owns the whole viewport and its own chrome, so it sits outside the shell.
       { path: '/', element: page(<LandingPage />) },
       { path: '/explore', element: page(<ExplorePage />) },
+      { path: '/boards', element: <RequireAuth>{page(<BoardsPage />)}</RequireAuth> },
       // Sign-in as a URL, for deep links and Google's return trip; the card floats over Explore.
       { path: '/login', element: <AuthRoute mode="login" /> },
       { path: '/register', element: <AuthRoute mode="register" /> },
@@ -79,14 +80,6 @@ export const router = createBrowserRouter([
           // Board pages are readable by non-members when unlisted or public, so the API decides, not the router.
           { path: '/boards/:id', element: page(<BoardPage />) },
           { path: '/s/:slug', element: page(<SharedBoardPage />) },
-          {
-            element: (
-              <RequireAuth>
-                <Outlet />
-              </RequireAuth>
-            ),
-            children: [{ path: '/boards', element: page(<BoardsPage />) }],
-          },
           { path: '*', element: <NotFoundPage /> },
         ],
       },

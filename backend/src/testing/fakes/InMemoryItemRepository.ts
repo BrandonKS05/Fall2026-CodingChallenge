@@ -7,6 +7,7 @@ import type {
   NewItem,
 } from '../../modules/items/ports/ItemRepository.js';
 import type { InMemoryImageRepository } from './InMemoryImageRepository.js';
+import type { InMemoryMembershipRepository } from './InMemoryMembershipRepository.js';
 import type { InMemoryUserRepository } from './InMemoryUserRepository.js';
 
 export class InMemoryItemRepository implements ItemRepository {
@@ -15,7 +16,17 @@ export class InMemoryItemRepository implements ItemRepository {
   constructor(
     private readonly images: InMemoryImageRepository,
     private readonly users: InMemoryUserRepository,
+    private readonly memberships: InMemoryMembershipRepository,
   ) {}
+
+  async listForUser(userId: string, limit: number): Promise<ItemDetail[]> {
+    const mine = [];
+    for (const item of this.rows.values()) {
+      if (await this.memberships.find(item.collectionId, userId)) mine.push(item);
+    }
+    mine.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || a.id.localeCompare(b.id));
+    return Promise.all(mine.slice(0, limit).map((item) => this.toDetail(item)));
+  }
 
   async findById(id: string): Promise<CollectionItem | null> {
     return this.rows.get(id) ?? null;

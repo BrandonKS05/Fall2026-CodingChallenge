@@ -19,3 +19,8 @@ export interface ItemDetail extends CollectionItem {
   image: Image;
   addedBy: { id: string; displayName: string };
 }
+
+/** An item in a person's own Pins view: the detail plus the board it lives on. */
+export interface SavedItem extends ItemDetail {
+  collectionTitle: string;
+}

@@ -123,4 +123,29 @@ describe('ItemService', () => {
     await service.remove(boardId, item.id, editor);
     expect((await collections.getDetail(boardId, owner)).items).toEqual([]);
   });
+
+  describe('listMine', () => {
+    it('gathers saves from every board the person belongs to, with board titles, and nothing else', async () => {
+      const second = (
+        await collections.create(owner, { title: 'Second', description: '', visibility: 'private' })
+      ).id;
+      await save('1', owner);
+      await save('2', editor);
+      await save('3', owner, second);
+
+      const mine = await service.listMine(owner, 10);
+      expect(mine.map((item) => item.image.providerImageId).sort()).toEqual(['1', '2', '3']);
+      expect(new Set(mine.map((item) => item.collectionTitle))).toEqual(
+        new Set(['Board', 'Second']),
+      );
+
+      // A member of the first board only sees that board's saves; a stranger sees none.
+      expect((await service.listMine(viewer, 10)).map((item) => item.collectionTitle)).toEqual([
+        'Board',
+        'Board',
+      ]);
+      expect(await service.listMine(stranger, 10)).toEqual([]);
+      expect(await service.listMine(owner, 2)).toHaveLength(2);
+    });
+  });
 });

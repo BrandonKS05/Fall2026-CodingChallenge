@@ -1,4 +1,8 @@
-import { createItemRequestSchema, updateItemRequestSchema } from '@wumboo/shared';
+import {
+  createItemRequestSchema,
+  savedItemsQuerySchema,
+  updateItemRequestSchema,
+} from '@wumboo/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
 import { createItemsController } from './items.controller.js';
@@ -30,5 +34,15 @@ export function createItemsRouter(container: Container): Router {
     validate({ params: collectionItemParams }),
     controller.remove,
   );
+  return router;
+}
+
+/** Mounted at /items: the signed-in person's saves across every board they belong to. */
+export function createSavedItemsRouter(container: Container): Router {
+  const controller = createItemsController(container.services.items);
+  const signedIn = requireAuth({ tokens: container.tokens, users: container.repositories.users });
+
+  const router = Router();
+  router.get('/', signedIn, validate({ query: savedItemsQuerySchema }), controller.listMine);
   return router;
 }

@@ -15,9 +15,24 @@ const feed = [
   exploreImageFixture('i5', kitchens),
 ];
 
-function renderExplore(route: StubRoute = { body: { images: feed } }) {
+const user = {
+  id: 'u1',
+  email: 'ada@example.com',
+  displayName: 'Ada',
+  createdAt: '2026-09-14T12:00:00Z',
+};
+
+/** A feed long enough to trip the visitor gate, alternating boards. */
+const longFeed = Array.from({ length: 20 }, (_, index) =>
+  exploreImageFixture(`i${index + 1}`, index % 2 ? pines : kitchens),
+);
+
+function renderExplore(
+  route: StubRoute = { body: { images: feed } },
+  session: StubRoute = { body: { user: null } },
+) {
   const api = stubApi({
-    'GET /api/auth/me': { body: { user: null } },
+    'GET /api/auth/me': session,
     'GET /api/explore/images': route,
   });
   vi.stubGlobal('fetch', api.fetchMock);
@@ -62,6 +77,24 @@ describe('ExplorePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Order: Newest first' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Oldest first' }));
     expect(shownLinks()[0]?.querySelector('img')).toHaveAttribute('src', '/api/images/i4');
+  });
+
+  it('shows visitors fifteen sharp images and blurs the rest behind a sign-in prompt', async () => {
+    renderExplore({ body: { images: longFeed } });
+    const links = await screen.findAllByRole('link', { name: /^Open / });
+    expect(links).toHaveLength(15);
+    expect(screen.getByText('15 of 20 images shown. Sign in to see the rest.')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
+  });
+
+  it('shows members everything with no prompt', async () => {
+    renderExplore({ body: { images: longFeed } }, { body: { user } });
+    const links = await screen.findAllByRole('link', { name: /^Open / });
+    expect(links).toHaveLength(20);
+    expect(screen.queryByText(/Sign in to see the rest/)).not.toBeInTheDocument();
   });
 
   it('keeps the site chrome in the landing position and says so when nothing is public', async () => {

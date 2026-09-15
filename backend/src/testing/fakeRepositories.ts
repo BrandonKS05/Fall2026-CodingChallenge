@@ -10,7 +10,7 @@ export function createFakeRepositories() {
   const users = new InMemoryUserRepository();
   const memberships = new InMemoryMembershipRepository(users);
   const images = new InMemoryImageRepository();
-  const items = new InMemoryItemRepository(images, users);
+  const items = new InMemoryItemRepository(images, users, memberships);
   const collections = new InMemoryCollectionRepository(users, memberships, items);
   const notifications = new InMemoryNotificationRepository(users, collections);
   return { users, memberships, images, items, collections, notifications };

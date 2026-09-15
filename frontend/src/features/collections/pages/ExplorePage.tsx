@@ -6,7 +6,12 @@
 import type { ExploreImage } from '@wumboo/shared';
 import { ChevronDownIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import {
+  JustifiedRows,
+  JustifiedRowsSkeleton,
+  type JustifiedTile,
+} from '@/components/common/JustifiedRows';
+import { StageButton } from '@/components/common/StageButton';
 import { StageChrome } from '@/components/common/StageChrome';
 import {
   DropdownMenu,
@@ -15,13 +20,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useSession } from '@/features/auth';
+import { useAuthDialog } from '@/hooks/useAuthDialog';
 import { http } from '@/lib/api';
 import { pluralize } from '@/lib/format';
-import { cn } from '@/lib/utils';
 import { useExploreImages } from '../queries';
 
 /** The API's ceiling; five seed boards fill forty of these. */
 const FEED_LIMIT = 60;
+/** How many images a visitor sees sharp before the rest blur behind a sign-in prompt. */
+const FREE_PREVIEW = 15;
 
 type Order = 'newest' | 'oldest';
 
@@ -44,6 +51,7 @@ function boardsIn(images: ExploreImage[]): BoardOption[] {
 
 export default function ExplorePage() {
   const { user } = useSession();
+  const auth = useAuthDialog();
   const feed = useExploreImages(FEED_LIMIT);
   const [boardId, setBoardId] = useState<string | null>(null);
   const [order, setOrder] = useState<Order>('newest');
@@ -55,6 +63,10 @@ export default function ExplorePage() {
     return order === 'newest' ? ofBoard : [...ofBoard].reverse();
   }, [images, boardId, order]);
   const boardLabel = boards.find((board) => board.id === boardId)?.title ?? 'All boards';
+  // Visitors get a taste; the rest waits behind the sign-in card, which opens right here.
+  const gated = user === null && shown.length > FREE_PREVIEW;
+  const sharp = gated ? shown.slice(0, FREE_PREVIEW) : shown;
+  const locked = gated ? shown.slice(FREE_PREVIEW) : [];
 
   return (
     <div className="flex min-h-svh flex-col bg-stage text-stage-ink">
@@ -74,13 +86,23 @@ export default function ExplorePage() {
         <p className="sr-only">Public boards from everyone on Wumboo, newest first.</p>
 
         {feed.isPending ? (
-          <GallerySkeleton />
+          <JustifiedRowsSkeleton label="Loading public images" className="mt-6" />
         ) : feed.isError ? (
           <Notice>Could not load the public boards. Try again in a moment.</Notice>
         ) : shown.length === 0 ? (
           <Notice>Nothing public yet. Make a board public and it will show up here.</Notice>
         ) : (
-          <Gallery images={shown} />
+          <>
+            <JustifiedRows label="Public images" tiles={toTiles(sharp)} className="mt-6" />
+            {gated && (
+              <LockedGallery
+                images={locked}
+                total={shown.length}
+                onSignIn={() => auth.open({ mode: 'login' })}
+                onSignUp={() => auth.open({ mode: 'register' })}
+              />
+            )}
+          </>
         )}
       </main>
 
@@ -111,45 +133,50 @@ export default function ExplorePage() {
  * grows in proportion to its width, so each row fills the line edge to edge.
  * The trailing spacer stops the last row from stretching.
  */
-function Gallery({ images }: { images: ExploreImage[] }) {
+function toTiles(images: ExploreImage[]): JustifiedTile[] {
+  return images.map(({ image, collection }) => ({
+    id: image.id,
+    src: http.url(`/images/${image.id}`),
+    aspect: image.width / image.height,
+    href: `/boards/${collection.id}`,
+    label: `Open ${collection.title}`,
+  }));
+}
+
+/**
+ * The rest of the feed for visitors: the same rows, blurred and inert, capped
+ * to a couple of rows and fading into the stage, with the invitation on top.
+ */
+function LockedGallery({
+  images,
+  total,
+  onSignIn,
+  onSignUp,
+}: {
+  images: ExploreImage[];
+  total: number;
+  onSignIn: () => void;
+  onSignUp: () => void;
+}) {
   return (
-    <ul
-      aria-label="Public images"
-      className="mt-6 flex flex-wrap gap-2 [--row:120px] sm:gap-3 sm:[--row:180px]"
-    >
-      {images.map(({ image, collection }) => {
-        const aspect = image.width / image.height;
-        return (
-          <li
-            key={image.id}
-            className="group relative"
-            style={{
-              flexGrow: aspect,
-              flexBasis: `calc(${aspect} * var(--row))`,
-              height: 'var(--row)',
-            }}
-          >
-            <Link
-              to={`/boards/${collection.id}`}
-              aria-label={`Open ${collection.title}`}
-              className="block h-full w-full"
-            >
-              <img
-                src={http.url(`/images/${image.id}`)}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full rounded-[2px] object-cover"
-              />
-              <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-stage/80 to-transparent px-2 pt-6 pb-1.5 text-[10px] tracking-[0.2em] text-stage-ink uppercase opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                {collection.title}
-              </span>
-            </Link>
-          </li>
-        );
-      })}
-      <li aria-hidden className="h-0" style={{ flexGrow: 1_000_000 }} />
-    </ul>
+    <div className="relative mt-2 max-h-[min(60svh,520px)] overflow-hidden sm:mt-3">
+      <JustifiedRows tiles={toTiles(images)} blurred />
+      <div className="absolute inset-0 bg-linear-to-b from-stage/20 via-stage/40 to-stage" />
+      <div className="absolute inset-0 flex items-center justify-center px-4">
+        <div className="max-w-sm border border-stage-ink/40 bg-stage/80 px-8 py-7 text-center backdrop-blur-sm">
+          <p className="font-hand text-5xl leading-none">There is more.</p>
+          <p className="mt-3 text-[11px] tracking-[0.2em] text-stage-ink/70 uppercase">
+            {FREE_PREVIEW} of {pluralize(total, 'image')} shown. Sign in to see the rest.
+          </p>
+          <div className="mt-5 flex justify-center gap-2">
+            <StageButton onClick={onSignIn}>Sign in</StageButton>
+            <StageButton variant="outline" onClick={onSignUp}>
+              Create an account
+            </StageButton>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -189,29 +216,5 @@ function Notice({ children }: { children: React.ReactNode }) {
     <p className="mt-16 text-center text-[11px] tracking-[0.2em] text-stage-ink/60 uppercase">
       {children}
     </p>
-  );
-}
-
-function GallerySkeleton() {
-  const widths = [1.5, 1, 0.8, 1.78, 1.2, 0.75, 1.5, 1, 1.33, 0.9, 1.6, 1.1];
-  return (
-    <ul
-      aria-busy
-      aria-label="Loading public images"
-      className="mt-6 flex flex-wrap gap-2 [--row:120px] sm:gap-3 sm:[--row:180px]"
-    >
-      {widths.map((aspect, index) => (
-        <li
-          key={index}
-          className={cn('animate-pulse rounded-[2px] bg-stage-ink/10')}
-          style={{
-            flexGrow: aspect,
-            flexBasis: `calc(${aspect} * var(--row))`,
-            height: 'var(--row)',
-          }}
-        />
-      ))}
-      <li aria-hidden className="h-0" style={{ flexGrow: 1_000_000 }} />
-    </ul>
   );
 }

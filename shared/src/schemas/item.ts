@@ -68,6 +68,21 @@ export const itemSchema = z.object({
 });
 export type Item = z.infer<typeof itemSchema>;
 
+/** An item in the person's own Pins view: the item plus the board it lives on. */
+export const savedItemSchema = itemSchema.extend({
+  collection: z.object({ id: idSchema, title: z.string() }),
+});
+export type SavedItem = z.infer<typeof savedItemSchema>;
+
+/** GET /api/items query. Values arrive as strings, so `limit` is coerced. */
+export const savedItemsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+});
+export type SavedItemsQuery = z.infer<typeof savedItemsQuerySchema>;
+
+export const savedItemsResponseSchema = z.object({ items: z.array(savedItemSchema) });
+export type SavedItemsResponse = z.infer<typeof savedItemsResponseSchema>;
+
 /** Returned by collection detail and by the shared-link endpoint. */
 export const collectionDetailResponseSchema = z.object({
   collection: collectionSchema,

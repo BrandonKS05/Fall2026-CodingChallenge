@@ -18,6 +18,8 @@ export interface ItemRepository {
   findDetail(id: string): Promise<ItemDetail | null>;
   /** Items with their image and adder, ordered by position then newest first. */
   listByCollection(collectionId: string): Promise<ItemDetail[]>;
+  /** Items on every board the user belongs to, newest first, capped at limit. */
+  listForUser(userId: string, limit: number): Promise<ItemDetail[]>;
   /** Throws ConflictError when the image is already in the collection. */
   create(input: NewItem): Promise<CollectionItem>;
   /** Throws NotFoundError when the id does not exist. */

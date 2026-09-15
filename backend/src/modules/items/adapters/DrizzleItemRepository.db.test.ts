@@ -60,6 +60,43 @@ describe.skipIf(!RUN_DB_TESTS)('DrizzleItemRepository (postgres)', () => {
 
   afterAll(() => database.close());
 
+  it("lists a person's saves across the boards they belong to, newest first, and no others", async () => {
+    const other = (
+      await collections.create({
+        ownerId: userId,
+        title: 'C',
+        description: '',
+        visibility: 'private',
+      })
+    ).id;
+    const strangerId = (
+      await new DrizzleUserRepository(database.db).create({
+        email: 's@x.com',
+        displayName: 'Sol',
+        passwordHash: 'h',
+      })
+    ).id;
+    const theirs = (
+      await collections.create({
+        ownerId: strangerId,
+        title: 'T',
+        description: '',
+        visibility: 'public',
+      })
+    ).id;
+    const add = (collectionId: string, imageId: string, addedById = userId) =>
+      items.create({ collectionId, imageId, addedById, caption: '', tags: [], position: 0 });
+    const first = await add(boardId, imageA);
+    const second = await add(other, imageB);
+    await add(theirs, imageA, strangerId);
+
+    const mine = await items.listForUser(userId, 10);
+    expect(mine.map((item) => item.id)).toEqual([second.id, first.id]);
+    expect(mine[0]?.image.providerImageId).toBe('b');
+    expect(await items.listForUser(userId, 1)).toHaveLength(1);
+    expect(await items.listForUser(strangerId, 10)).toHaveLength(1);
+  });
+
   const newItem = (imageId: string, position: number, collectionId = boardId) => ({
     collectionId,
     imageId,

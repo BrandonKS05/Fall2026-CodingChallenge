@@ -1,10 +1,15 @@
-import { asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import type { CollectionItem, ItemDetail } from '../../../domain/entities/CollectionItem.js';
 import { ConflictError, NotFoundError } from '../../../domain/errors/index.js';
 import type { ItemPatch, ItemRepository, NewItem } from '../ports/ItemRepository.js';
 import type { Db } from '../../../infrastructure/db/client.js';
 import { isUniqueViolation } from '../../../infrastructure/db/errors.js';
-import { collectionItems, images, users } from '../../../infrastructure/db/schema/index.js';
+import {
+  collectionItems,
+  collectionMembers,
+  images,
+  users,
+} from '../../../infrastructure/db/schema/index.js';
 import { toImage } from '../../images/adapters/DrizzleImageRepository.js';
 
 type ItemRow = typeof collectionItems.$inferSelect;
@@ -55,6 +60,21 @@ export class DrizzleItemRepository implements ItemRepository {
   async findDetail(id: string): Promise<ItemDetail | null> {
     const [row] = await this.detailQuery().where(eq(collectionItems.id, id)).limit(1);
     return row ? toDetail(row) : null;
+  }
+
+  /** Membership is the filter, so shared boards count as the person's own finds. */
+  async listForUser(userId: string, limit: number): Promise<ItemDetail[]> {
+    const rows = await this.detailQuery()
+      .innerJoin(
+        collectionMembers,
+        and(
+          eq(collectionMembers.collectionId, collectionItems.collectionId),
+          eq(collectionMembers.userId, userId),
+        ),
+      )
+      .orderBy(desc(collectionItems.createdAt), asc(collectionItems.id))
+      .limit(limit);
+    return rows.map(toDetail);
   }
 
   async listByCollection(collectionId: string): Promise<ItemDetail[]> {

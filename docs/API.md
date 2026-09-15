@@ -25,6 +25,7 @@ schemas in `shared/`. This file is updated as each route is implemented.
 | PATCH  | /api/collections/:id/items/:itemId   | done   |
 | DELETE | /api/collections/:id/items/:itemId   | done   |
 | GET    | /api/images/:id                      | done   |
+| GET    | /api/items                           | done   |
 | POST   | /api/collections/:id/share-link      | done   |
 | DELETE | /api/collections/:id/share-link      | done   |
 | GET    | /api/shared/:slug                    | done   |
@@ -188,6 +189,7 @@ An item is an image on a board:
 | `POST /api/collections/:id/items`           | editor or owner | `{ provider, providerImageId, caption?, tags? }`. Downloads the image into storage on first save, reuses it afterwards. 201 with the item. 404 if the provider has no such image, 409 if it is already on the board.                                                                                                                   |
 | `PATCH /api/collections/:id/items/:itemId`  | editor or owner | Any of `caption`, `tags`, `position`, `collectionId`. A different `collectionId` moves the item to that board (needs edit rights there too) and appends it. 409 if the destination already has the image.                                                                                                                              |
 | `DELETE /api/collections/:id/items/:itemId` | editor or owner | 204. The stored image is kept because other boards may reference it.                                                                                                                                                                                                                                                                   |
+| `GET /api/items?limit=`                     | required        | The person's own Pins view: every item on every board they belong to, newest first, each with `collection: { id, title }`. `limit` 1-200, default 100. `{ items }`                                                                                                                                                                     |
 | `GET /api/images/:id`                       | none            | Streams the stored file with `Cache-Control: public, max-age=31536000, immutable`. A file missing from storage is re-downloaded from the provider first (once, however many requests arrive), so the database stays the source of truth and storage is a cache that rebuilds itself. 404 only if the provider no longer has the image. |
 
 `GET /api/collections/:id` now returns the board's items ordered by `position`, then newest first.

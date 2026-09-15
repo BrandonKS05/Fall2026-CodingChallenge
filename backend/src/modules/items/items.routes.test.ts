@@ -1,4 +1,5 @@
 import { itemSchema } from '@wumboo/shared';
+import { savedItemsResponseSchema } from '@wumboo/shared';
 import type { Express } from 'express';
 import request, { type Response } from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -126,6 +127,37 @@ describe('items routes', () => {
     expect(
       (await request(app).get(`/api/collections/${other.id}`).set('Cookie', owner)).body.items,
     ).toEqual([]);
+  });
+
+  describe('GET /api/items', () => {
+    it("needs a session and lists the caller's saves across boards with their board titles", async () => {
+      expect((await request(app).get('/api/items')).status).toBe(401);
+
+      const other = (
+        await request(app).post('/api/collections').set('Cookie', owner).send({ title: 'Other' })
+      ).body.id;
+      await request(app)
+        .post(`/api/collections/${boardId}/items`)
+        .set('Cookie', owner)
+        .send(saveBody);
+      await request(app)
+        .post(`/api/collections/${other}/items`)
+        .set('Cookie', owner)
+        .send({ ...saveBody, providerImageId: '102' });
+
+      const res = await request(app).get('/api/items').set('Cookie', owner);
+      expect(res.status).toBe(200);
+      expect(savedItemsResponseSchema.safeParse(res.body).success).toBe(true);
+      expect(
+        res.body.items
+          .map((item: { collection: { title: string } }) => item.collection.title)
+          .sort(),
+      ).toEqual(['Board', 'Other']);
+      expect(
+        (await request(app).get('/api/items?limit=1').set('Cookie', owner)).body.items,
+      ).toHaveLength(1);
+      expect((await request(app).get('/api/items').set('Cookie', stranger)).body.items).toEqual([]);
+    });
   });
 });
 

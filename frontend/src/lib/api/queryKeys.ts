@@ -17,4 +17,9 @@ export const queryKeys = {
   exploreImages: (params: { limit: number }) => ['explore', 'images', params] as const,
   shared: (slug: string) => ['shared', slug] as const,
   notifications: ['notifications'] as const,
+  /** The person's own saves across boards; every item mutation invalidates it. */
+  savedItems: {
+    all: ['saved-items'] as const,
+    list: (params: { limit: number }) => ['saved-items', params] as const,
+  },
 };

@@ -3,4 +3,4 @@ export { EditItemDialog } from './components/EditItemDialog';
 export { ImageLightbox } from './components/ImageLightbox';
 export { ItemGrid, ItemGridSkeleton } from './components/ItemGrid';
 export { SaveToBoardDialog } from './components/SaveToBoardDialog';
-export { useAddItem, useRemoveItem, useSaveToBoard } from './queries';
+export { useAddItem, useMyItems, useRemoveItem, useSaveToBoard } from './queries';
