@@ -12,12 +12,20 @@ export function roleAtLeast(role: CollectionRole, required: CollectionRole): boo
   return ROLE_RANK[role] >= ROLE_RANK[required];
 }
 
-/** Members can always view. Non-members can view anything that is not private. */
+/**
+ * Members can always view. For everyone else the visibility decides: private is
+ * closed, follower-only opens to people who follow the owner, and unlisted and
+ * public are open to anyone holding the link.
+ */
 export function canView(
   collection: Pick<Collection, 'visibility'>,
   role: CollectionRole | null,
+  followsOwner = false,
 ): boolean {
-  return role !== null || collection.visibility !== 'private';
+  if (role !== null) return true;
+  if (collection.visibility === 'private') return false;
+  if (collection.visibility === 'followers') return followsOwner;
+  return true;
 }
 
 /** Adding, editing, and removing items requires editor or owner. */

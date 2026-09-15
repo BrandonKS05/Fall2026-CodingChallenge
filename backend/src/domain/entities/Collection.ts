@@ -2,11 +2,12 @@ import type { Image } from './Image.js';
 import type { CollectionRole } from './Membership.js';
 
 /**
- * private  - members only
- * unlisted - anyone with the share link
- * public   - anyone with the link, and listed on Explore
+ * private   - members only
+ * unlisted  - anyone with the share link
+ * followers - members, and anyone who follows the owner
+ * public    - anyone with the link, and listed on Explore
  */
-export const COLLECTION_VISIBILITIES = ['private', 'unlisted', 'public'] as const;
+export const COLLECTION_VISIBILITIES = ['private', 'unlisted', 'followers', 'public'] as const;
 export type CollectionVisibility = (typeof COLLECTION_VISIBILITIES)[number];
 
 export interface Collection {

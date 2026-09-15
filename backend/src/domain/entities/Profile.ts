@@ -16,4 +16,6 @@ export interface PublicProfile extends ProfileSummary {
   /** Public boards only. A profile shows what its owner chose to show. */
   boardCount: number;
   isViewer: boolean;
+  /** Whether the person looking may open the follower and following lists. */
+  canSeeFollowList: boolean;
 }

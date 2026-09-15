@@ -13,10 +13,12 @@ import { cn } from '@/lib/utils';
 interface StageChromeProps {
   signedIn: boolean;
   /**
-   * Sits at the start of the links. A slot rather than a fixed control, because
-   * this is a shared component and the things that go here belong to features.
+   * Sits at the start of the links, and after them. Slots rather than fixed
+   * controls, because this is a shared component and the things that go in them
+   * belong to features.
    */
   leading?: ReactNode;
+  trailing?: ReactNode;
   /** `absolute` floats over a fixed stage; `sticky` rides along a scrolling page. */
   position?: 'absolute' | 'sticky';
 }
@@ -24,7 +26,12 @@ interface StageChromeProps {
 const link = ({ isActive }: { isActive: boolean }) =>
   cn('transition-colors hover:text-stage-ink/70', isActive && 'underline underline-offset-4');
 
-export function StageChrome({ signedIn, leading, position = 'absolute' }: StageChromeProps) {
+export function StageChrome({
+  signedIn,
+  leading,
+  trailing,
+  position = 'absolute',
+}: StageChromeProps) {
   const auth = useAuthDialog();
   return (
     <header
@@ -67,6 +74,7 @@ export function StageChrome({ signedIn, leading, position = 'absolute' }: StageC
             Sign in
           </Link>
         )}
+        {trailing}
       </nav>
     </header>
   );

@@ -258,6 +258,10 @@ ignores the discovery setting — that one governs whether Explore lists a board
 | `POST /api/users/:handle/follow`   | required | Follows them and answers with the profile. Following twice is not an error; your own handle is 400.                                                                    |
 | `DELETE /api/users/:handle/follow` | required | Unfollows and answers with the profile. Unfollowing someone you never followed is not an error.                                                                        |
 
+Board visibility has four steps: `private` (members only), `unlisted` (anyone
+holding the share link), `followers` (members, and anyone who follows the owner),
+and `public` (anyone, and listed on Explore). Only `public` reaches Explore.
+
 Following someone does not create a notification: the notification table is
 about boards, and a follow has none. The profile's counts are its surface.
 

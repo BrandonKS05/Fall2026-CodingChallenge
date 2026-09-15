@@ -26,6 +26,10 @@ const mutedTagsSchema = z
   .max(20)
   .transform((tags) => [...new Set(tags)]);
 
+/** Who may see something: the same three steps everywhere they are offered. */
+export const audienceSchema = z.enum(['everyone', 'followers', 'private']);
+export type Audience = z.infer<typeof audienceSchema>;
+
 export const userPreferencesSchema = z.object({
   notifications: notificationPreferencesSchema,
   /** Pre-selected when a new board is created. */
@@ -34,6 +38,8 @@ export const userPreferencesSchema = z.object({
   mutedTags: z.array(mutedTagSchema).max(20),
   /** When false your public boards still open by link, but stay out of Explore. */
   discoverable: z.boolean(),
+  /** Who may see who follows you, and who you follow. */
+  followListsVisibleTo: audienceSchema,
 });
 export type UserPreferences = z.infer<typeof userPreferencesSchema>;
 
@@ -49,6 +55,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   defaultBoardVisibility: 'private',
   mutedTags: [],
   discoverable: true,
+  followListsVisibleTo: 'everyone',
 };
 
 /** A patch changes only the switches it names; the rest keep their stored value. */
@@ -58,6 +65,7 @@ export const userPreferencesPatchSchema = z
     defaultBoardVisibility: collectionVisibilitySchema,
     mutedTags: mutedTagsSchema,
     discoverable: z.boolean(),
+    followListsVisibleTo: audienceSchema,
   })
   .partial();
 export type UserPreferencesPatch = z.infer<typeof userPreferencesPatchSchema>;
@@ -72,6 +80,7 @@ export function mergePreferences(
     defaultBoardVisibility: patch.defaultBoardVisibility ?? base.defaultBoardVisibility,
     mutedTags: patch.mutedTags ?? base.mutedTags,
     discoverable: patch.discoverable ?? base.discoverable,
+    followListsVisibleTo: patch.followListsVisibleTo ?? base.followListsVisibleTo,
   };
 }
 

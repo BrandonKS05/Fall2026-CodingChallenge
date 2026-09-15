@@ -21,6 +21,7 @@ import type {
   NewCollection,
 } from './ports/CollectionRepository.js';
 import type { ItemRepository } from '../items/ports/ItemRepository.js';
+import type { FollowRepository } from '../social/ports/FollowRepository.js';
 import type { LikeRepository } from './ports/LikeRepository.js';
 import type { MembershipRepository } from './ports/MembershipRepository.js';
 
@@ -29,6 +30,8 @@ export interface CollectionServiceDeps {
   memberships: MembershipRepository;
   likes: LikeRepository;
   items: ItemRepository;
+  /** Only consulted for follower-only boards, which is the one rule that needs it. */
+  follows: FollowRepository;
   events: EventBus;
   logger: Logger;
 }
@@ -90,8 +93,26 @@ export class CollectionService {
   async get(collectionId: string, viewerId: string | null): Promise<CollectionSummary> {
     const summary = await this.deps.collections.findSummary(collectionId, viewerId);
     if (!summary) throw new NotFoundError('Collection', collectionId);
-    if (!canView(summary, summary.role)) throw new ForbiddenError('This board is private');
+    if (!canView(summary, summary.role, await this.followsOwner(summary, viewerId))) {
+      throw new ForbiddenError(
+        summary.visibility === 'followers'
+          ? 'This board is for the people who follow its owner'
+          : 'This board is private',
+      );
+    }
     return summary;
+  }
+
+  /**
+   * Whether the viewer follows the board's owner. Asked only for follower-only
+   * boards, so an ordinary board view still costs no extra query.
+   */
+  private async followsOwner(
+    collection: Pick<Collection, 'visibility' | 'ownerId'>,
+    viewerId: string | null,
+  ): Promise<boolean> {
+    if (viewerId === null || collection.visibility !== 'followers') return false;
+    return this.deps.follows.isFollowing(viewerId, collection.ownerId);
   }
 
   /** The board plus its items, for the board page and the shared-link page. */
@@ -166,7 +187,7 @@ export class CollectionService {
     const role = membership?.role ?? null;
 
     const allowed = {
-      view: canView(collection, role),
+      view: canView(collection, role, await this.followsOwner(collection, actorId)),
       edit: canEditItems(role),
       manage: canManage(role),
     }[level];

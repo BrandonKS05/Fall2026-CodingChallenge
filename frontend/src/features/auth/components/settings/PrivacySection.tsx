@@ -1,4 +1,9 @@
-import { collectionVisibilitySchema, type CollectionVisibility } from '@wumboo/shared';
+import {
+  audienceSchema,
+  collectionVisibilitySchema,
+  type Audience,
+  type CollectionVisibility,
+} from '@wumboo/shared';
 import { DownloadIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -12,12 +17,20 @@ import { Card, Panel, Row, Rows } from './Panel';
 const SHORT_LABEL: Record<CollectionVisibility, string> = {
   private: 'Private',
   unlisted: 'Link only',
+  followers: 'Followers',
   public: 'Public',
+};
+
+const AUDIENCE_LABEL: Record<Audience, string> = {
+  everyone: 'Everyone',
+  followers: 'Followers',
+  private: 'Only you',
 };
 
 const WHAT_IT_MEANS: Record<CollectionVisibility, string> = {
   private: 'Private: only you, and anyone you invite to that board.',
   unlisted: 'Link only: nobody finds it by browsing, but the link always opens it.',
+  followers: 'Followers: the people who follow you, and anyone you invite to the board.',
   public: 'Public: anyone can open it, and it can turn up in Explore.',
 };
 
@@ -60,6 +73,27 @@ export function PrivacySection({ handle }: { handle: string }) {
                   {collectionVisibilitySchema.options.map((option) => (
                     <SelectItem key={option} value={option}>
                       {SHORT_LABEL[option]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            }
+          />
+          <Row
+            label="Who can see your followers"
+            description="Applies to both lists: the people who follow you, and the people you follow."
+            control={
+              <Select
+                value={preferences.followListsVisibleTo}
+                onValueChange={(next) => save({ followListsVisibleTo: audienceSchema.parse(next) })}
+              >
+                <SelectTrigger className="w-40" aria-label="Who can see your followers">
+                  {AUDIENCE_LABEL[preferences.followListsVisibleTo]}
+                </SelectTrigger>
+                <SelectContent>
+                  {audienceSchema.options.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {AUDIENCE_LABEL[option]}
                     </SelectItem>
                   ))}
                 </SelectContent>

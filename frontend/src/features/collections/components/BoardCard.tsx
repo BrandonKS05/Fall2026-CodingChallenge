@@ -45,6 +45,7 @@ function CoverMosaic({ imageIds, title }: { imageIds: string[]; title: string })
 const VISIBILITY: Record<Collection['visibility'], string> = {
   private: 'Private',
   unlisted: 'Link only',
+  followers: 'Followers',
   public: 'Public',
 };
 

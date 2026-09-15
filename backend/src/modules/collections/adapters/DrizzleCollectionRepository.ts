@@ -1,6 +1,7 @@
-import { and, asc, desc, eq, lte, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, lte, sql, type SQL, inArray } from 'drizzle-orm';
 import type {
   Collection,
+  CollectionVisibility,
   CollectionSummary,
   PublicImage,
 } from '../../../domain/entities/Collection.js';
@@ -166,13 +167,17 @@ export class DrizzleCollectionRepository implements CollectionRepository {
     return rows.map(toSummary);
   }
 
-  async listPublicByOwner(ownerId: string, viewerId: string | null): Promise<CollectionSummary[]> {
+  async listByOwner(
+    ownerId: string,
+    { viewerId, visibilities }: { viewerId: string | null; visibilities: CollectionVisibility[] },
+  ): Promise<CollectionSummary[]> {
+    if (visibilities.length === 0) return [];
     const rows = await this.db
       .select(summaryColumns(viewerId))
       .from(collections)
       .innerJoin(users, eq(users.id, collections.ownerId))
       .leftJoin(collectionMembers, viewerMembership(viewerId))
-      .where(and(eq(collections.visibility, 'public'), eq(collections.ownerId, ownerId)))
+      .where(and(eq(collections.ownerId, ownerId), inArray(collections.visibility, visibilities)))
       .orderBy(desc(collections.updatedAt));
     return rows.map(toSummary);
   }

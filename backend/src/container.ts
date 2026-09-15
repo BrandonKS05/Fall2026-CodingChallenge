@@ -145,6 +145,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     memberships: repositories.memberships,
     likes: repositories.likes,
     items: repositories.items,
+    follows: repositories.follows,
     events,
     logger,
   });

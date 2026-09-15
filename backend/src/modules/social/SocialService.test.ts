@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { InvalidOperationError, NotFoundError } from '../../domain/errors/index.js';
+import { DEFAULT_USER_PREFERENCES } from '@wumboo/shared';
+import { ForbiddenError, InvalidOperationError, NotFoundError } from '../../domain/errors/index.js';
 import { silentLogger } from '../../testing/fakes/fakeAuth.js';
 import { createFakeRepositories } from '../../testing/fakeRepositories.js';
 import { SocialService } from './SocialService.js';
@@ -89,24 +90,71 @@ describe('SocialService', () => {
     expect(await service.followers('ada', ada, 1)).toHaveLength(1);
   });
 
-  it('shows only the public boards on a profile, whoever is looking', async () => {
-    await repos.collections.create({
-      ownerId: ada,
-      title: 'Open',
-      description: '',
-      visibility: 'public',
-    });
-    await repos.collections.create({
-      ownerId: ada,
-      title: 'Closed',
-      description: '',
-      visibility: 'private',
+  describe('what a profile shows', () => {
+    beforeEach(async () => {
+      for (const [title, visibility] of [
+        ['Open', 'public'],
+        ['For followers', 'followers'],
+        ['Closed', 'private'],
+      ] as const) {
+        await repos.collections.create({ ownerId: ada, title, description: '', visibility });
+      }
     });
 
-    for (const viewer of [null, sam, ada]) {
-      const { profile, boards } = await service.profile('ada', viewer);
-      expect(boards.map((board) => board.title)).toEqual(['Open']);
-      expect(profile.boardCount).toBe(1);
-    }
+    it('shows a stranger and a visitor the public boards only', async () => {
+      for (const viewer of [null, sam]) {
+        const { profile, boards } = await service.profile('ada', viewer);
+        expect(boards.map((board) => board.title)).toEqual(['Open']);
+        expect(profile.boardCount).toBe(1);
+      }
+    });
+
+    it('opens the follower-only boards to someone who follows', async () => {
+      await service.follow(sam, 'ada');
+
+      const { profile, boards } = await service.profile('ada', sam);
+      expect(boards.map((board) => board.title).toSorted()).toEqual(['For followers', 'Open']);
+      expect(profile.boardCount).toBe(2);
+
+      // Unfollowing closes them again.
+      await service.unfollow(sam, 'ada');
+      expect((await service.profile('ada', sam)).boards.map((board) => board.title)).toEqual([
+        'Open',
+      ]);
+    });
+
+    it('shows you everything on your own profile', async () => {
+      const { boards } = await service.profile('ada', ada);
+      expect(boards.map((board) => board.title).toSorted()).toEqual([
+        'Closed',
+        'For followers',
+        'Open',
+      ]);
+    });
+  });
+
+  describe('follower and following lists', () => {
+    it('is open to everyone by default, and can be closed to followers or to nobody', async () => {
+      await service.follow(sam, 'ada');
+      expect(await service.followers('ada', null, 50)).toHaveLength(1);
+
+      const setAudience = (value: 'everyone' | 'followers' | 'private') =>
+        repos.users.update(ada, {
+          preferences: { ...DEFAULT_USER_PREFERENCES, followListsVisibleTo: value },
+        });
+
+      await setAudience('followers');
+      await expect(service.followers('ada', null, 50)).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(service.followers('ada', grace, 50)).rejects.toBeInstanceOf(ForbiddenError);
+      // Sam follows Ada, so Sam may look.
+      expect(await service.followers('ada', sam, 50)).toHaveLength(1);
+
+      await setAudience('private');
+      await expect(service.following('ada', sam, 50)).rejects.toBeInstanceOf(ForbiddenError);
+      // The owner can always see their own.
+      expect(await service.followers('ada', ada, 50)).toHaveLength(1);
+      expect((await service.profile('ada', sam)).profile.canSeeFollowList).toBe(false);
+      expect((await service.profile('ada', ada)).profile.canSeeFollowList).toBe(true);
+    });
   });
 });

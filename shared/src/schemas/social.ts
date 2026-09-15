@@ -27,6 +27,8 @@ export const publicProfileSchema = profileSummarySchema.extend({
   boardCount: z.number().int().nonnegative(),
   /** True when you are looking at your own profile, so the client hides Follow. */
   isViewer: z.boolean(),
+  /** Whether this person lets you open their followers and following lists. */
+  canSeeFollowList: z.boolean(),
 });
 export type PublicProfile = z.infer<typeof publicProfileSchema>;
 

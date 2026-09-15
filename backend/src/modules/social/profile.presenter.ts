@@ -27,6 +27,7 @@ export function presentProfile(page: ProfilePage): ProfileResponse {
       followingCount: page.profile.followingCount,
       boardCount: page.profile.boardCount,
       isViewer: page.profile.isViewer,
+      canSeeFollowList: page.profile.canSeeFollowList,
     },
     boards: page.boards.map(presentCollection),
   };

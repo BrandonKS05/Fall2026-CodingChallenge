@@ -1,0 +1,1 @@
+ALTER TYPE "public"."collection_visibility" ADD VALUE 'followers' BEFORE 'public';

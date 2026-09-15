@@ -4,9 +4,9 @@
  * it: public boards only, and every "do I follow them" answered for whoever
  * is asking.
  */
-import type { CollectionSummary } from '../../domain/entities/Collection.js';
+import type { CollectionSummary, CollectionVisibility } from '../../domain/entities/Collection.js';
 import type { ProfileSummary, PublicProfile } from '../../domain/entities/Profile.js';
-import { InvalidOperationError, NotFoundError } from '../../domain/errors/index.js';
+import { ForbiddenError, InvalidOperationError, NotFoundError } from '../../domain/errors/index.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';
 import type { User } from '../../domain/entities/User.js';
 import type { UserRepository } from '../auth/ports/UserRepository.js';
@@ -37,11 +37,15 @@ export class SocialService {
     const user = await this.requireUser(handle);
     // A profile is reached by its handle, not by browsing, so it ignores the
     // discovery setting: that one governs whether Explore lists the boards.
-    const [counts, boards, followedByViewer] = await Promise.all([
+    const [counts, followedByViewer] = await Promise.all([
       this.deps.follows.counts(user.id),
-      this.deps.collections.listPublicByOwner(user.id, viewerId),
       viewerId === null ? false : this.deps.follows.isFollowing(viewerId, user.id),
     ]);
+    const isViewer = user.id === viewerId;
+    const boards = await this.deps.collections.listByOwner(user.id, {
+      viewerId,
+      visibilities: visibleTo({ isViewer, followedByViewer }),
+    });
 
     return {
       profile: {
@@ -54,7 +58,8 @@ export class SocialService {
         followingCount: counts.following,
         boardCount: boards.length,
         followedByViewer,
-        isViewer: user.id === viewerId,
+        isViewer,
+        canSeeFollowList: allowsFollowList(user, viewerId, followedByViewer),
       },
       boards,
     };
@@ -82,7 +87,7 @@ export class SocialService {
     viewerId: string | null,
     limit: number,
   ): Promise<ProfileSummary[]> {
-    const user = await this.requireUser(handle);
+    const user = await this.requireFollowListAccess(handle, viewerId);
     return this.deps.follows.listFollowers(user.id, { limit, viewerId });
   }
 
@@ -91,13 +96,49 @@ export class SocialService {
     viewerId: string | null,
     limit: number,
   ): Promise<ProfileSummary[]> {
-    const user = await this.requireUser(handle);
+    const user = await this.requireFollowListAccess(handle, viewerId);
     return this.deps.follows.listFollowing(user.id, { limit, viewerId });
+  }
+
+  /** Both lists answer to one setting, so both ask the same question first. */
+  private async requireFollowListAccess(handle: string, viewerId: string | null): Promise<User> {
+    const user = await this.requireUser(handle);
+    const followsThem =
+      viewerId === null ? false : await this.deps.follows.isFollowing(viewerId, user.id);
+    if (!allowsFollowList(user, viewerId, followsThem)) {
+      throw new ForbiddenError('This person keeps their followers to themselves');
+    }
+    return user;
   }
 
   private async requireUser(handle: string): Promise<User> {
     const user = await this.deps.users.findByHandle(handle);
     if (!user) throw new NotFoundError('User', handle);
     return user;
+  }
+}
+
+/** Which of someone's boards a viewer has earned the right to see on their profile. */
+function visibleTo({
+  isViewer,
+  followedByViewer,
+}: {
+  isViewer: boolean;
+  followedByViewer: boolean;
+}): CollectionVisibility[] {
+  if (isViewer) return ['private', 'unlisted', 'followers', 'public'];
+  return followedByViewer ? ['followers', 'public'] : ['public'];
+}
+
+/** The follower and following lists answer to their owner's setting. */
+function allowsFollowList(user: User, viewerId: string | null, followsThem: boolean): boolean {
+  if (user.id === viewerId) return true;
+  switch (user.preferences.followListsVisibleTo) {
+    case 'everyone':
+      return true;
+    case 'followers':
+      return followsThem;
+    case 'private':
+      return false;
   }
 }

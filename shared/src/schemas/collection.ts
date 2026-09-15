@@ -10,7 +10,7 @@ import { atLeastOneField, idSchema, timestampSchema, userSummarySchema } from '.
  * unlisted - anyone with the share link
  * public   - anyone with the link, and listed on Explore
  */
-export const collectionVisibilitySchema = z.enum(['private', 'unlisted', 'public']);
+export const collectionVisibilitySchema = z.enum(['private', 'unlisted', 'followers', 'public']);
 export type CollectionVisibility = z.infer<typeof collectionVisibilitySchema>;
 
 /** owner manages everything; editor changes items; viewer reads. */

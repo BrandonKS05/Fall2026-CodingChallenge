@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type {
   Collection,
   CollectionSummary,
+  CollectionVisibility,
   PublicImage,
 } from '../../domain/entities/Collection.js';
 import { ConflictError, NotFoundError } from '../../domain/errors/index.js';
@@ -60,9 +61,12 @@ export class InMemoryCollectionRepository implements CollectionRepository {
     );
   }
 
-  async listPublicByOwner(ownerId: string, viewerId: string | null): Promise<CollectionSummary[]> {
+  async listByOwner(
+    ownerId: string,
+    { viewerId, visibilities }: { viewerId: string | null; visibilities: CollectionVisibility[] },
+  ): Promise<CollectionSummary[]> {
     const theirs = this.newestFirst().filter(
-      (row) => row.visibility === 'public' && row.ownerId === ownerId,
+      (row) => row.ownerId === ownerId && visibilities.includes(row.visibility),
     );
     return Promise.all(theirs.map((collection) => this.toSummary(collection, viewerId)));
   }

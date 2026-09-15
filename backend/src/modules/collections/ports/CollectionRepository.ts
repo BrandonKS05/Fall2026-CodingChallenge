@@ -35,10 +35,14 @@ export interface CollectionRepository {
   /** Public boards for Explore, most recently updated first. */
   listPublic(options: ListPublicOptions): Promise<CollectionSummary[]>;
   /**
-   * One person's public boards, for their profile page. Unlike Explore this
-   * ignores the discovery setting: a profile is reached by handle, not browsed.
+   * One person's boards at the given visibilities, for their profile page. The
+   * caller decides which visibilities the viewer has earned; unlike Explore this
+   * ignores the discovery setting, since a profile is reached by handle.
    */
-  listPublicByOwner(ownerId: string, viewerId: string | null): Promise<CollectionSummary[]>;
+  listByOwner(
+    ownerId: string,
+    options: { viewerId: string | null; visibilities: CollectionVisibility[] },
+  ): Promise<CollectionSummary[]>;
   /**
    * Images on public boards for the landing stage: each image once (credited
    * to the most recently updated board that holds it), boards interleaved so
