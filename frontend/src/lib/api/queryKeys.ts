@@ -17,6 +17,8 @@ export const queryKeys = {
     detail: (id: string) => ['collections', 'detail', id] as const,
     members: (id: string) => ['collections', 'detail', id, 'members'] as const,
   },
+  /** Every public board, for Explore's album wall. */
+  exploreBoards: (params: { perPage: number }) => ['collections', 'explore', params] as const,
   /** Public boards matching some words, for the search surface. */
   boardSearch: (term: string) => ['collections', 'search', term] as const,
   /** People matching some words, for the search surface. */

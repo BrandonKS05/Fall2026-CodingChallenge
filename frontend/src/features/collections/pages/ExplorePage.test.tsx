@@ -1,21 +1,30 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { boardFixture, exploreImageFixture, searchResultFixture } from '@/testing/fixtures';
+import { boardFixture, searchResultFixture } from '@/testing/fixtures';
 import { renderWithProviders, stubApi, type StubRoute } from '@/testing/render';
 import ExplorePage from './ExplorePage';
 
-const kitchens = { id: 'c1', title: 'Warm kitchens' };
-const pines = { id: 'c2', title: 'Fog and pines' };
-const feed = [
-  exploreImageFixture('i1', kitchens, { width: 1600, height: 1200 }),
-  exploreImageFixture('i2', pines, { width: 900, height: 1600 }),
-  exploreImageFixture('i3', kitchens, { width: 2000, height: 1000 }),
-  exploreImageFixture('i4', pines),
-  exploreImageFixture('i5', kitchens),
-];
-
 const SEARCH_BOX = 'Search images, boards and people';
+
+/** A board as Explore sees it: public, with covers to make an album of. */
+const publicBoard = (id: string, title: string, previews = 3, itemCount = 8) =>
+  boardFixture({
+    id,
+    title,
+    visibility: 'public',
+    role: null,
+    itemCount,
+    previewImageIds: Array.from({ length: previews }, (_, index) => `${id}-img${index + 1}`),
+  });
+
+const feed = [
+  publicBoard('c1', 'Warm kitchens'),
+  publicBoard('c2', 'Fog and pines'),
+  publicBoard('c3', 'Tide pools', 1, 3),
+  publicBoard('c4', 'Neon after rain'),
+  publicBoard('c5', 'Ceramics'),
+];
 
 const user = {
   id: 'u1',
@@ -24,21 +33,21 @@ const user = {
   createdAt: '2026-09-14T12:00:00Z',
 };
 
-/** A feed long enough to trip the visitor gate, alternating boards. */
-const longFeed = Array.from({ length: 20 }, (_, index) =>
-  exploreImageFixture(`i${index + 1}`, index % 2 ? pines : kitchens),
+/** More boards than a visitor is shown, so the gate has something to hide. */
+const longFeed = Array.from({ length: 12 }, (_, index) =>
+  publicBoard(`c${index + 1}`, `Board ${index + 1}`),
 );
 
 function renderExplore(
-  route: StubRoute = { body: { images: feed } },
+  route: StubRoute = { body: { collections: feed } },
   session: StubRoute = { body: { user: null } },
 ) {
   const api = stubApi({
     'GET /api/auth/me': session,
-    'GET /api/explore/images': route,
+    'GET /api/explore': route,
     'GET /api/search': { body: { results: [], page: 1, perPage: 30, total: 0 } },
+    'GET /api/search/categories': { body: { covers: [] } },
     'GET /api/collections': { body: { collections: [] } },
-    'GET /api/explore': { body: { collections: [] } },
     'GET /api/users/search': { body: { profiles: [] } },
   });
   vi.stubGlobal('fetch', api.fetchMock);
@@ -49,21 +58,21 @@ function renderExplore(
 describe('ExplorePage', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('lays every public image out in justified rows, each linking to its board', async () => {
-    const api = renderExplore();
+  it('lays every public board out as an album: a big cover and two beside it', async () => {
+    renderExplore();
     expect(screen.getByRole('heading', { name: 'Explore' })).toBeInTheDocument();
 
-    const links = await screen.findAllByRole('link', { name: /^Open / });
+    const wall = await screen.findByRole('list', { name: 'Public boards' });
+    const links = within(wall).getAllByRole('link', { name: /^Open / });
     expect(links).toHaveLength(5);
     expect(links[0]).toHaveAttribute('href', '/boards/c1');
-    expect(links[1]).toHaveAttribute('href', '/boards/c2');
-    // A wide image grows more than a tall one, so rows fill edge to edge.
-    const wide = links[2]?.parentElement as HTMLElement;
-    const tall = links[1]?.parentElement as HTMLElement;
-    expect(Number(wide.style.flexGrow)).toBeGreaterThan(Number(tall.style.flexGrow));
-    expect(api.calls.find((call) => call.path === '/api/explore/images')?.url).toContain(
-      'limit=60',
-    );
+    expect(links[0]).toHaveTextContent('Warm kitchens');
+    expect(links[0]).toHaveTextContent('8 images · Ada');
+
+    // Three pictures make the sleeve; a board with one gives it the whole frame.
+    expect(within(links[0] as HTMLElement).getAllByRole('presentation')).toHaveLength(3);
+    const lonely = links.find((link) => link.textContent?.includes('Tide pools'));
+    expect(within(lonely as HTMLElement).getAllByRole('presentation')).toHaveLength(1);
   });
 
   it('searches the library when there is a query, and browses boards when there is not', async () => {
@@ -73,8 +82,8 @@ describe('ExplorePage', () => {
     await userEvent.type(screen.getByLabelText(SEARCH_BOX), 'tide pools');
 
     await waitFor(() => expect(api.calls.some((call) => call.path === '/api/search')).toBe(true));
-    // The board gallery steps aside while results are on screen.
-    await waitFor(() => expect(screen.queryByRole('link', { name: /^Open / })).toBeNull());
+    // The album wall steps aside while results are on screen.
+    await waitFor(() => expect(screen.queryByRole('list', { name: 'Public boards' })).toBeNull());
     // So does the category grid: it is a way in, not a thing to read past results.
     expect(screen.queryByRole('region', { name: 'Browse by category' })).toBeNull();
   });
@@ -82,7 +91,7 @@ describe('ExplorePage', () => {
   it('answers a search with people and boards as well as images', async () => {
     const api = stubApi({
       'GET /api/auth/me': { body: { user: null } },
-      'GET /api/explore/images': { body: { images: feed } },
+      'GET /api/explore': { body: { collections: feed } },
       'GET /api/search': {
         body: {
           results: [{ ...searchResultFixture('s1', { tags: ['kitchen'] }) }],
@@ -92,7 +101,6 @@ describe('ExplorePage', () => {
         },
       },
       'GET /api/collections': { body: { collections: [] } },
-      'GET /api/explore': { body: { collections: [boardFixture({ title: 'Warm kitchens' })] } },
       'GET /api/users/search': {
         body: {
           profiles: [
@@ -113,15 +121,16 @@ describe('ExplorePage', () => {
     expect(await screen.findByRole('region', { name: 'People' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Ada L/ })).toHaveAttribute('href', '/u/ada');
     const boards = await screen.findByRole('region', { name: 'Boards' });
-    expect(within(boards).getByRole('link', { name: 'Open Warm kitchens' })).toBeInTheDocument();
+    expect(within(boards).getAllByRole('link', { name: /^Open / })[0]).toHaveTextContent(
+      'Warm kitchens',
+    );
     expect(await screen.findByAltText('Kitchen')).toBeInTheDocument();
   });
 
   it('searches people alone when the words start with an @', async () => {
     const api = stubApi({
       'GET /api/auth/me': { body: { user: null } },
-      'GET /api/explore/images': { body: { images: feed } },
-      'GET /api/explore': { body: { collections: [] } },
+      'GET /api/explore': { body: { collections: feed } },
       'GET /api/users/search': { body: { profiles: [] } },
     });
     vi.stubGlobal('fetch', api.fetchMock);
@@ -145,11 +154,11 @@ describe('ExplorePage', () => {
     expect(links[0]).toHaveAttribute('href', '/c/animals');
   });
 
-  it('shows visitors fifteen sharp images and blurs the rest behind a sign-in prompt', async () => {
-    renderExplore({ body: { images: longFeed } });
+  it('shows visitors six sharp albums and softly blurs the rest behind a sign-in prompt', async () => {
+    renderExplore({ body: { collections: longFeed } });
     const links = await screen.findAllByRole('link', { name: /^Open / });
-    expect(links).toHaveLength(15);
-    expect(screen.getByText('15 of 20 images shown. Sign in to see the rest.')).toBeInTheDocument();
+    expect(links).toHaveLength(6);
+    expect(screen.getByText('6 of 12 boards shown. Sign in to see the rest.')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     const dialog = await screen.findByRole('dialog');
@@ -157,14 +166,14 @@ describe('ExplorePage', () => {
   });
 
   it('shows members everything with no prompt', async () => {
-    renderExplore({ body: { images: longFeed } }, { body: { user } });
+    renderExplore({ body: { collections: longFeed } }, { body: { user } });
     const links = await screen.findAllByRole('link', { name: /^Open / });
-    expect(links).toHaveLength(20);
+    expect(links).toHaveLength(12);
     expect(screen.queryByText(/Sign in to see the rest/)).not.toBeInTheDocument();
   });
 
   it('keeps the site chrome in the landing position and says so when nothing is public', async () => {
-    renderExplore({ body: { images: [] } });
+    renderExplore({ body: { collections: [] } });
     expect(await screen.findByText(/Nothing public yet/)).toBeInTheDocument();
     const nav = screen.getByRole('navigation', { name: 'Site' });
     expect(within(nav).getByRole('link', { name: 'Boards' })).toHaveAttribute('href', '/boards');

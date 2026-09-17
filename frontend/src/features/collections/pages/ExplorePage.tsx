@@ -4,16 +4,11 @@
  * public board. Filters live behind one button rather than spread across the
  * page, because there are now a great many of them.
  */
-import type { Collection, ExploreImage, ProfileSummary, SearchResult } from '@wumboo/shared';
+import type { Collection, ProfileSummary, SearchResult } from '@wumboo/shared';
 import { ImageOffIcon, SearchIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
-import {
-  JustifiedRows,
-  JustifiedRowsSkeleton,
-  type JustifiedTile,
-} from '@/components/common/JustifiedRows';
 import { StageButton } from '@/components/common/StageButton';
 import { StageChrome } from '@/components/common/StageChrome';
 import { MessagesLink } from '@/features/messaging';
@@ -41,16 +36,16 @@ import {
   type SearchFilters,
 } from '@/features/search';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
-import { http } from '@/lib/api';
 import { pluralize } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { BoardCard } from '../components/BoardCard';
-import { useBoards, useBoardSearch, useCreateBoard } from '../queries';
-import { useExploreImages } from '../queries';
+import { CoverMosaic } from '../components/CoverMosaic';
+import { useBoards, useBoardSearch, useCreateBoard, useExploreBoards } from '../queries';
 
-/** The API's ceiling; five seed boards fill forty of these. */
-const FEED_LIMIT = 60;
-/** How many images a visitor sees sharp before the rest blur behind a sign-in prompt. */
-const FREE_PREVIEW = 15;
+/** How many public boards the wall holds before it stops asking for more. */
+const FEED_LIMIT = 48;
+/** How many albums a visitor sees sharp before the rest blur behind a sign-in prompt. */
+const FREE_PREVIEW = 6;
 
 const SUGGESTIONS = [
   'warm kitchen',
@@ -76,10 +71,9 @@ export default function ExplorePage() {
     imageQuery.color !== undefined ||
     imageQuery.colorHex !== undefined;
   const searching = term !== '' || (wantsImages && narrowed);
-  const feed = useExploreImages(FEED_LIMIT);
+  const feed = useExploreBoards(FEED_LIMIT, !searching);
 
-  const images = useMemo(() => feed.data ?? [], [feed.data]);
-  const shown = images;
+  const shown = useMemo(() => feed.data?.collections ?? [], [feed.data]);
 
   const boardsQuery = useBoards(user !== null);
   const createBoard = useCreateBoard();
@@ -256,17 +250,17 @@ export default function ExplorePage() {
             )}
           </div>
         ) : feed.isPending ? (
-          <JustifiedRowsSkeleton label="Loading public images" className="mt-6" />
+          <AlbumWallSkeleton />
         ) : feed.isError ? (
           <Notice>Could not load the public boards. Try again in a moment.</Notice>
         ) : shown.length === 0 ? (
           <Notice>Nothing public yet. Make a board public and it will show up here.</Notice>
         ) : (
           <>
-            <JustifiedRows label="Public images" tiles={toTiles(sharp)} className="mt-6" />
+            <AlbumWall label="Public boards" boards={sharp} className="mt-8" />
             {gated && (
               <LockedGallery
-                images={locked}
+                boards={locked}
                 total={shown.length}
                 onSignIn={() => auth.open({ mode: 'login' })}
                 onSignUp={() => auth.open({ mode: 'register' })}
@@ -356,44 +350,107 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Justified rows: every tile keeps its aspect ratio at a fixed row height and
- * grows in proportion to its width, so each row fills the line edge to edge.
- * The trailing spacer stops the last row from stretching.
+ * The wall of public boards: each one an album sleeve — a big picture with two
+ * smaller ones filling the rest of the frame — with room between them, so the
+ * eye has somewhere to rest between covers.
  */
-function toTiles(images: ExploreImage[]): JustifiedTile[] {
-  return images.map(({ image, collection }) => ({
-    id: image.id,
-    src: http.url(`/images/${image.id}`),
-    aspect: image.width / image.height,
-    href: `/boards/${collection.id}`,
-    label: `Open ${collection.title}`,
-  }));
+function AlbumWall({
+  boards,
+  label,
+  blurred = false,
+  className,
+}: {
+  boards: Collection[];
+  label?: string;
+  blurred?: boolean;
+  className?: string;
+}) {
+  return (
+    <ul
+      aria-label={label}
+      aria-hidden={blurred || undefined}
+      className={cn(
+        'grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 sm:gap-x-7 sm:gap-y-11 lg:grid-cols-4',
+        blurred && 'blur-[5px] select-none',
+        className,
+      )}
+    >
+      {boards.map((board) => (
+        <li key={board.id}>
+          <Album board={board} inert={blurred} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Album({ board, inert }: { board: Collection; inert: boolean }) {
+  const cover = (
+    <>
+      <CoverMosaic
+        className="transition-transform duration-300 group-hover:-translate-y-1"
+        imageIds={board.previewImageIds}
+        title={board.title}
+      />
+      <p className="mt-3 truncate text-sm leading-tight font-medium">{board.title}</p>
+      <p className="truncate text-[11px] tracking-[0.2em] text-stage-ink/50 uppercase">
+        {pluralize(board.itemCount, 'image')} · {board.owner.displayName}
+      </p>
+    </>
+  );
+  if (inert) return <div className="group block">{cover}</div>;
+  return (
+    <Link
+      to={`/boards/${board.id}`}
+      aria-label={`Open ${board.title}`}
+      className="group block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-stage-ink"
+    >
+      {cover}
+    </Link>
+  );
+}
+
+function AlbumWallSkeleton() {
+  return (
+    <div
+      aria-busy
+      aria-label="Loading public boards"
+      className="mt-8 grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 sm:gap-x-7 sm:gap-y-11 lg:grid-cols-4"
+    >
+      {Array.from({ length: 8 }, (_, index) => (
+        <div key={index}>
+          <div className="aspect-[4/3] animate-pulse rounded-2xl bg-stage-ink/10" />
+          <div className="mt-3 h-3 w-2/3 animate-pulse rounded bg-stage-ink/10" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /**
- * The rest of the feed for visitors: the same rows, blurred and inert, capped
- * to a couple of rows and fading into the stage, with the invitation on top.
+ * The rest of the wall for visitors: the same albums, softly blurred and inert,
+ * capped to a couple of rows and fading into the stage, with the invitation on top.
  */
 function LockedGallery({
-  images,
+  boards,
   total,
   onSignIn,
   onSignUp,
 }: {
-  images: ExploreImage[];
+  boards: Collection[];
   total: number;
   onSignIn: () => void;
   onSignUp: () => void;
 }) {
   return (
-    <div className="relative mt-2 max-h-[min(60svh,520px)] overflow-hidden sm:mt-3">
-      <JustifiedRows tiles={toTiles(images)} blurred />
+    <div className="relative mt-9 max-h-[min(60svh,520px)] overflow-hidden sm:mt-11">
+      <AlbumWall boards={boards} blurred />
       <div className="absolute inset-0 bg-linear-to-b from-stage/20 via-stage/40 to-stage" />
       <div className="absolute inset-0 flex items-center justify-center px-4">
-        <div className="max-w-sm border border-stage-ink/40 bg-stage/80 px-8 py-7 text-center backdrop-blur-sm">
+        <div className="max-w-sm border border-stage-ink/40 bg-stage/80 px-8 py-7 text-center backdrop-blur-xs">
           <p className="font-hand text-5xl leading-none">There is more.</p>
           <p className="mt-3 text-[11px] tracking-[0.2em] text-stage-ink/70 uppercase">
-            {FREE_PREVIEW} of {pluralize(total, 'image')} shown. Sign in to see the rest.
+            {FREE_PREVIEW} of {pluralize(total, 'board')} shown. Sign in to see the rest.
           </p>
           <div className="mt-5 flex justify-center gap-2">
             <StageButton onClick={onSignIn}>Sign in</StageButton>

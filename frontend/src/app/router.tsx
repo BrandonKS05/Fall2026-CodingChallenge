@@ -51,9 +51,9 @@ function RouteTransition({ children }: { children: ReactNode }) {
     <AnimatePresence mode="wait">
       <motion.div
         key={transitionKey(location.pathname)}
-        initial={{ opacity: 0, filter: 'blur(14px)', scale: 1.14 }}
+        initial={{ opacity: 0, filter: 'blur(5px)', scale: 1.06 }}
         animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
-        exit={{ opacity: 0, filter: 'blur(18px)', scale: 0.96 }}
+        exit={{ opacity: 0, filter: 'blur(6px)', scale: 0.98 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         // Full height, never a scroll container: sticky chrome and filters rely on the document scrolling.
         className="min-h-svh w-full overflow-x-clip"

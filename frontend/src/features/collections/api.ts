@@ -11,8 +11,8 @@ import { http } from '@/lib/api';
 /** Adapter: the feature's slice of the API contract as typed calls, so components never see URLs. */
 export const collectionsApi = {
   list: () => http.get<CollectionListResponse>('/collections'),
-  search: (q: string) =>
-    http.get<CollectionListResponse>('/explore', { query: { q, perPage: 24 } }),
+  explore: (query: { q?: string; perPage: number }) =>
+    http.get<CollectionListResponse>('/explore', { query }),
   exploreImages: (limit: number) =>
     http.get<ExploreImagesResponse>('/explore/images', { query: { limit } }),
   get: (id: string) => http.get<CollectionDetailResponse>(`/collections/${id}`),

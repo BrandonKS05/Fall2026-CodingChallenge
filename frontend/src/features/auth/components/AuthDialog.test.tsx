@@ -50,7 +50,7 @@ describe('AuthDialog', () => {
     expect(within(dialog).getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
     // The page behind a modal is inert to role queries, but it is still there.
     expect(screen.getByText('Discover page')).toBeInTheDocument();
-    expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass('backdrop-blur-lg');
+    expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass('backdrop-blur-xs');
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create an account' }));
     expect(within(dialog).getByRole('heading', { name: 'Start your gallery' })).toBeInTheDocument();

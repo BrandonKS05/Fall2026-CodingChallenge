@@ -16,11 +16,23 @@ export function useExploreImages(limit: number) {
   });
 }
 
+/** Every public board, newest activity first: what Explore shows when nothing is searched. */
+export function useExploreBoards(perPage: number, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.exploreBoards({ perPage }),
+    queryFn: () => collectionsApi.explore({ perPage }),
+    // Nothing to fetch while a search is on screen; the wall is not shown then.
+    enabled,
+    staleTime: 60_000,
+    meta: { silentError: true },
+  });
+}
+
 /** Public boards whose title or description carries the words. */
 export function useBoardSearch(term: string, enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.boardSearch(term),
-    queryFn: () => collectionsApi.search(term),
+    queryFn: () => collectionsApi.explore({ q: term, perPage: 24 }),
     enabled: enabled && term !== '',
     staleTime: 60_000,
     meta: { silentError: true },

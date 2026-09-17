@@ -52,7 +52,7 @@ export default function ProfilePage() {
             <div
               className={cn(
                 'transition-[filter]',
-                !signedIn && 'pointer-events-none blur-md select-none',
+                !signedIn && 'pointer-events-none blur-[5px] select-none',
               )}
               aria-hidden={!signedIn}
             >
@@ -162,7 +162,7 @@ function SignInGate({ name }: { name: string }) {
   const auth = useAuthDialog();
   return (
     <div className="absolute inset-0 flex items-start justify-center pt-16">
-      <div className="max-w-sm border border-stage-ink/40 bg-stage/80 px-8 py-7 text-center backdrop-blur-sm">
+      <div className="max-w-sm border border-stage-ink/40 bg-stage/80 px-8 py-7 text-center backdrop-blur-xs">
         <p className="font-hand text-5xl leading-none">Come in first.</p>
         <p className="mt-3 text-[11px] tracking-[0.2em] text-stage-ink/70 uppercase">
           Sign in to see {name}&rsquo;s profile

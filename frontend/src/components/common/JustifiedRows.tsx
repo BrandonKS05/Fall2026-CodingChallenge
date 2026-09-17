@@ -37,7 +37,7 @@ export function JustifiedRows({ tiles, label, blurred = false, className }: Just
     <ul
       aria-label={label}
       aria-hidden={blurred || undefined}
-      className={cn(ROWS, blurred && 'blur-md select-none', className)}
+      className={cn(ROWS, blurred && 'blur-[5px] select-none', className)}
     >
       {tiles.map((tile) => {
         const picture = (

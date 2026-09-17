@@ -62,7 +62,7 @@ function AuthDialogBody({ request, onClose }: { request: AuthDialogRequest; onCl
 
   return (
     <DialogContent
-      overlayClassName="bg-background/60 backdrop-blur-lg supports-backdrop-filter:backdrop-blur-lg"
+      overlayClassName="bg-background/60 backdrop-blur-xs supports-backdrop-filter:backdrop-blur-xs"
       className="paper gap-5 bg-[#f1efe1] p-7 text-[#151515] ring-[#151515]/15 sm:max-w-md"
       style={{ backgroundImage: PAPER }}
     >
