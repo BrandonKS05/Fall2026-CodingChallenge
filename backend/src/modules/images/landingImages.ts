@@ -49,5 +49,18 @@ export const LANDING_IMAGE_IDS: readonly string[] = [
   '4021254', // Mossy rocks, Oregon coast
   '5427649', // Anemone in a tide pool
   '4419861', // Beach and blue sky
-  '4538480', // Clouds over tidal sand
+  // A second ring for the stage, which reaches well past the screen.
+  '5772125', // Tokyo streets, traffic at night
+  '4807314', // Umbrella on a Tokyo street
+  '4431082', // Night market, lit stalls
+  '1547273', // Sunbeams through fog
+  '5746604', // Foggy trees
+  '4487292', // Mountain lake and a hut
+  '8026824', // Clay on the wheel
+  '4178215', // Chinaware, stacked
+  '5641389', // Library, books to the ceiling
+  '5880148', // Concrete, brutalist
+  '6406047', // Rocks and coast
+  '7150369', // Sahara dune
+  '4538480', // Clouds over tidal sand, the one tall frame among the spares
 ];

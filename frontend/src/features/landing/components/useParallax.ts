@@ -7,8 +7,8 @@
  * - `travel` / `travelY`: how far a depth-1 layer moves at the viewport edge (px). Bigger = more
  *   map to move around in. Vertical travel is the smaller of the two because a viewport is
  *   shorter than it is wide, so the same pixels read as more movement down the screen.
- * - `stiffness` / `damping`: the spring the images follow. Lower stiffness = lazier glide;
- *   lower damping = more overshoot. 50/18 glides a long way without bouncing.
+ * - `stiffness` / `damping`: the spring the images follow. Higher stiffness = the map keeps up
+ *   with the cursor; lower damping = more overshoot. 90/18 arrives quickly and settles at once.
  * - `cursorStiffness`: the dot's spring. Keep it above `stiffness` so the dot leads the images.
  */
 import { useMotionValue, useSpring, useTransform, type MotionValue } from 'motion/react';
@@ -23,11 +23,11 @@ export interface ParallaxTuning {
 }
 
 export const DEFAULT_TUNING: ParallaxTuning = {
-  travel: 320,
-  travelY: 200,
-  stiffness: 50,
+  travel: 480,
+  travelY: 300,
+  stiffness: 90,
   damping: 18,
-  cursorStiffness: 110,
+  cursorStiffness: 170,
 };
 
 export interface Parallax {
