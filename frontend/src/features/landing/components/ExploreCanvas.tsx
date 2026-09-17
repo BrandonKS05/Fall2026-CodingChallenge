@@ -12,10 +12,14 @@
  * whole hero through a full-viewport intermediate surface every frame, which
  * left stale slivers of the moving tiles on screen.
  */
-import type { Image as LandingImage, LandingImagesResponse } from '@wumboo/shared';
+import type {
+  ExploreImagesResponse,
+  Image as LandingImage,
+  LandingImagesResponse,
+} from '@wumboo/shared';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { StageChrome } from '@/components/common/StageChrome';
 import { http, queryKeys } from '@/lib/api';
@@ -40,6 +44,10 @@ const NOISE =
 interface Tile {
   key: string;
   src: string;
+  /** The board this picture is on, when it is on one. */
+  href: string;
+  /** What the link says it opens: a board by name, or Explore. */
+  opens: string;
   /** The photographer, which is both the caption and the attribution Pixabay asks for. */
   title: string;
   /** CSS aspect-ratio, so the tile reserves its box before the image loads. */
@@ -48,22 +56,30 @@ interface Tile {
   slot: Slot;
 }
 
+/**
+ * A picture on the stage: one of the app's own public boards when there is one
+ * to show, and otherwise from the fixed curation, which belongs to nobody.
+ */
+interface StageImage extends LandingImage {
+  board?: { id: string; title: string };
+}
+
 /** Which images failed to load, and which spare now stands in each affected slot. */
 interface Placement {
   /** The feed these choices were made for; a new feed starts clean. */
-  source: LandingImage[] | undefined;
+  source: StageImage[] | undefined;
   failed: ReadonlySet<string>;
-  overrides: ReadonlyMap<number, LandingImage>;
+  overrides: ReadonlyMap<number, StageImage>;
 }
 
 const EMPTY_PLACEMENT: Placement = { source: undefined, failed: new Set(), overrides: new Map() };
 
 /**
- * Slot order is prominence order, and the curation arrives in a fixed order, so
- * the stage looks the same on every visit. A slot whose image failed shows its
+ * Slot order is prominence order, and the feed arrives in a fixed order, so the
+ * stage looks the same on every visit. A slot whose image failed shows its
  * spare, or nothing, so every other tile keeps its slot, key, and motion.
  */
-function toTiles(images: LandingImage[], placement: Placement, slots: Slot[]): Tile[] {
+function toTiles(images: StageImage[], placement: Placement, slots: Slot[]): Tile[] {
   const tiles: Tile[] = [];
   for (const [index, slot] of slots.entries()) {
     const primary = images[index];
@@ -75,6 +91,8 @@ function toTiles(images: LandingImage[], placement: Placement, slots: Slot[]): T
       key: entry.id,
       src: http.url(`/images/${entry.id}`),
       title: entry.credit.name,
+      href: entry.board ? `/boards/${entry.board.id}` : '/explore',
+      opens: entry.board ? entry.board.title : 'Explore',
       aspectRatio: `${entry.width} / ${entry.height}`,
       slotIndex: index,
       slot,
@@ -90,7 +108,7 @@ function toTiles(images: LandingImage[], placement: Placement, slots: Slot[]): T
  */
 function replaceFailed(
   previous: Placement,
-  images: LandingImage[],
+  images: StageImage[],
   slotIndex: number,
   failedId: string,
   slotLimit: number,
@@ -135,16 +153,39 @@ export function ExploreCanvas({
   const [hovering, setHovering] = useState(false);
   const feedLimit = slotLimit + spareImages;
 
-  // The curated feed, through the existing client; a failure leaves the stage empty.
-  const feed = useQuery({
+  // What people have actually made public, so a tile opens the board it is on.
+  const boards = useQuery({
+    queryKey: queryKeys.exploreImages({ limit: feedLimit }),
+    queryFn: () =>
+      http
+        .get<ExploreImagesResponse>('/explore/images', { query: { limit: feedLimit } })
+        .then((response) =>
+          response.images.map((entry): StageImage => ({ ...entry.image, board: entry.collection })),
+        ),
+    retry: false,
+    meta: { silentError: true },
+  });
+  // The fixed curation tops up the stage when there are not enough public
+  // boards to fill it, so the front of the product is never half empty.
+  const curated = useQuery({
     queryKey: queryKeys.landingImages({ limit: feedLimit }),
     queryFn: () =>
       http
         .get<LandingImagesResponse>('/landing/images', { query: { limit: feedLimit } })
-        .then((response) => response.images),
+        .then((response) => response.images as StageImage[]),
+    enabled: boards.isSuccess && boards.data.length < feedLimit,
     retry: false,
     meta: { silentError: true },
   });
+  const feed = {
+    isPending: boards.isPending,
+    data: useMemo(() => {
+      const fromBoards = boards.data ?? [];
+      if (fromBoards.length >= feedLimit) return fromBoards;
+      const seen = new Set(fromBoards.map((image) => image.id));
+      return [...fromBoards, ...(curated.data ?? []).filter((image) => !seen.has(image.id))];
+    }, [boards.data, curated.data, feedLimit]),
+  };
   // A tile whose image fails to load (gone upstream, storage outage) gives its
   // slot to a spare rather than showing a broken picture.
   const [placement, setPlacement] = useState<Placement>(EMPTY_PLACEMENT);
@@ -231,12 +272,12 @@ function StageTile({ tile, parallax, interactive, onHover, onError }: StageTileP
         y: interactive ? y : 0,
       }}
     >
-      {/* The curation belongs to no board, so every tile leads to Explore, which
-          is where the app's own boards live. The caption credits the
-          photographer, which is what Pixabay asks for in return. */}
+      {/* A picture on a public board opens that board; one from the curation,
+          which belongs to nobody, opens Explore instead. The caption credits
+          the photographer, which is what Pixabay asks for in return. */}
       <Link
-        to="/explore"
-        aria-label={`Explore — photo by ${tile.title}`}
+        to={tile.href}
+        aria-label={`${tile.opens} — photo by ${tile.title}`}
         className="group relative block"
         style={{ aspectRatio: tile.aspectRatio }}
         onPointerEnter={() => onHover(true)}

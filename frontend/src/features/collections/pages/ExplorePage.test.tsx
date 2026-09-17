@@ -154,11 +154,11 @@ describe('ExplorePage', () => {
     expect(links[0]).toHaveAttribute('href', '/c/animals');
   });
 
-  it('shows visitors six sharp albums and softly blurs the rest behind a sign-in prompt', async () => {
+  it('shows visitors two sharp rows and blurs the rest behind a sign-in prompt', async () => {
     renderExplore({ body: { collections: longFeed } });
     const links = await screen.findAllByRole('link', { name: /^Open / });
-    expect(links).toHaveLength(6);
-    expect(screen.getByText('6 of 12 boards shown. Sign in to see the rest.')).toBeInTheDocument();
+    expect(links).toHaveLength(8);
+    expect(screen.getByText('8 of 12 boards shown. Sign in to see the rest.')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     const dialog = await screen.findByRole('dialog');

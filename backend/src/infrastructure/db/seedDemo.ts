@@ -14,105 +14,22 @@
  */
 
 import type { Container } from '../../container.js';
-import type { CollectionVisibility } from '../../domain/entities/Collection.js';
 import { CATEGORY_COVER_IDS } from '../../modules/images/categoryCovers.js';
 import { LANDING_IMAGE_IDS, LANDING_PROVIDER } from '../../modules/images/landingImages.js';
+import {
+  SEED_BOARDS,
+  SEED_FOLLOWS,
+  SEED_LIKES,
+  SEED_PASSWORD,
+  SEED_PEOPLE,
+  type PersonSeed,
+} from './seedPeople.js';
 
+/** The login the README hands to a grader; the person behind it is the first seeded one. */
 export const DEMO_ACCOUNT = {
-  email: 'demo@wumboo.app',
-  handle: 'demo',
-  password: 'demo-password-123',
-  displayName: 'Demo User',
+  email: SEED_PEOPLE[0]?.email ?? 'demo@wumboo.app',
+  password: SEED_PASSWORD,
 };
-const FRIEND_ACCOUNT = {
-  email: 'sam@wumboo.app',
-  handle: 'sam',
-  password: 'demo-password-123',
-  displayName: 'Sam Rivera',
-};
-
-export interface BoardSeed {
-  owner: 'demo' | 'sam';
-  title: string;
-  description: string;
-  visibility: CollectionVisibility;
-  query: string;
-  count: number;
-  /** Creates a share link so the demo has a working /s/<slug> page. */
-  shareLink?: boolean;
-  /** Adds the other account as an editor, which also exercises notifications. */
-  shareWithOther?: boolean;
-}
-
-export const SEED_BOARDS: BoardSeed[] = [
-  {
-    owner: 'demo',
-    title: 'Warm kitchens',
-    description: 'Oak, brass, and low afternoon light.',
-    visibility: 'public',
-    query: 'kitchen interior wood',
-    count: 8,
-  },
-  {
-    owner: 'demo',
-    title: 'Fog and pines',
-    description: 'The Pacific Northwest on a slow morning.',
-    visibility: 'unlisted',
-    query: 'foggy forest pine',
-    count: 6,
-    shareLink: true,
-  },
-  {
-    owner: 'demo',
-    title: 'Brutalist libraries',
-    description: 'Concrete, light, and silence.',
-    visibility: 'private',
-    query: 'brutalist architecture concrete',
-    count: 6,
-  },
-  // Four more public boards so the landing stage has enough images to fill its slots.
-  {
-    owner: 'demo',
-    title: 'Desert light',
-    description: 'Dunes, ochre, and long shadows.',
-    visibility: 'public',
-    query: 'desert dunes sunset',
-    count: 8,
-  },
-  {
-    owner: 'demo',
-    title: 'Ceramics',
-    description: 'Glaze, grit, and thumbprints.',
-    visibility: 'public',
-    query: 'ceramic pottery handmade',
-    count: 8,
-  },
-  {
-    owner: 'demo',
-    title: 'Neon after rain',
-    description: 'Wet streets doing the lighting for free.',
-    visibility: 'public',
-    query: 'neon city night rain',
-    count: 8,
-  },
-  {
-    owner: 'demo',
-    title: 'Alpine mornings',
-    description: 'Cold lakes and first light.',
-    visibility: 'public',
-    query: 'mountain lake sunrise',
-    count: 8,
-  },
-  {
-    owner: 'sam',
-    title: 'Tide pools',
-    description: "Sam's finds, shared with the demo account as an editor.",
-    visibility: 'private',
-    query: 'tide pool',
-    count: 6,
-    shareWithOther: true,
-  },
-];
 
 interface Account {
   id: string;
@@ -126,16 +43,19 @@ export async function seedDemo(container: Container): Promise<void> {
   const curated = await ensureCuratedImages(container);
   if (curated > 0) console.log(`Stored ${curated} curated images.`);
 
-  const demo = await ensureAccount(container, DEMO_ACCOUNT);
-  const sam = await ensureAccount(container, FRIEND_ACCOUNT);
-  const accounts = { demo, sam };
+  // Everyone first, so a board can name its owner and its editor by handle.
+  const people = new Map<string, Account>();
+  for (const person of SEED_PEOPLE) {
+    people.set(person.handle, await ensurePerson(container, person));
+  }
   let boardsCreated = 0;
   let imagesSaved = 0;
   let imagesSkipped = false;
 
   for (const seedBoard of SEED_BOARDS) {
-    const owner = accounts[seedBoard.owner];
-    const other = seedBoard.owner === 'demo' ? sam : demo;
+    const owner = people.get(seedBoard.owner);
+    const editor = seedBoard.editor ? people.get(seedBoard.editor) : undefined;
+    if (!owner) continue;
 
     const existing = (await repositories.collections.listForUser(owner.id)).find(
       (candidate) => candidate.ownerId === owner.id && candidate.title === seedBoard.title,
@@ -149,8 +69,8 @@ export async function seedDemo(container: Container): Promise<void> {
       }));
     if (!existing) boardsCreated += 1;
 
-    if (seedBoard.shareWithOther && !(await repositories.memberships.find(board.id, other.id))) {
-      if (other.email) await services.share.invite(board.id, owner.id, other.email, 'editor');
+    if (editor && editor.email && !(await repositories.memberships.find(board.id, editor.id))) {
+      await services.share.invite(board.id, owner.id, editor.email, 'editor');
     }
     // Returns the existing slug when the board already has one.
     if (seedBoard.shareLink) await services.share.createLink(board.id, owner.id);
@@ -171,8 +91,8 @@ export async function seedDemo(container: Container): Promise<void> {
       for (const [index, hit] of results.entries()) {
         if (added >= missing) break;
         if (present.has(hit.providerImageId)) continue;
-        // On the shared board, both people contribute, so each side gets notifications.
-        const actor = seedBoard.shareWithOther && index % 2 === 1 ? other : owner;
+        // On a shared board both people contribute, so each side gets notifications.
+        const actor = editor && index % 2 === 1 ? editor : owner;
         await services.items.add(board.id, actor.id, {
           provider: hit.provider,
           providerImageId: hit.providerImageId,
@@ -192,8 +112,14 @@ export async function seedDemo(container: Container): Promise<void> {
     }
   }
 
+  const followed = await seedFollows(container, people);
+  const liked = await seedLikes(container, people);
+  if (followed > 0 || liked > 0) {
+    console.log(`Added ${followed} follows and ${liked} likes.`);
+  }
+
   console.log(
-    boardsCreated === 0 && imagesSaved === 0
+    boardsCreated === 0 && imagesSaved === 0 && followed === 0 && liked === 0
       ? '\nDemo data already present; nothing to add.'
       : `\nSeeded ${boardsCreated} boards and ${imagesSaved} images.`,
   );
@@ -203,7 +129,10 @@ export async function seedDemo(container: Container): Promise<void> {
     );
   }
   console.log(
-    `Log in with ${DEMO_ACCOUNT.email} / ${DEMO_ACCOUNT.password} (or ${FRIEND_ACCOUNT.email} with the same password).`,
+    `Log in with ${DEMO_ACCOUNT.email} / ${DEMO_ACCOUNT.password}.` +
+      ` Every seeded account uses that password; the others are ${SEED_PEOPLE.slice(1, 4)
+        .map((person) => person.email)
+        .join(', ')} and so on.`,
   );
 }
 
@@ -232,17 +161,59 @@ async function ensureCuratedImages(container: Container): Promise<number> {
 }
 
 /**
- * Seeded accounts skip the code: there is nobody to read the mailbox, and a
- * demo account that cannot be signed into is no demo at all.
+ * Seeded accounts skip the code: there is nobody to read the mailbox, and an
+ * account nobody can sign into is no demo at all. An account that already
+ * exists has its name, handle and bio brought up to date, so a database seeded
+ * before these people had names does not keep the old ones.
  */
-async function ensureAccount(container: Container, account: typeof DEMO_ACCOUNT): Promise<Account> {
-  const existing = await container.repositories.users.findByEmail(account.email);
-  if (existing) return existing;
-  return container.repositories.users.create({
-    email: account.email,
-    handle: account.handle,
-    displayName: account.displayName,
-    passwordHash: await container.passwordHasher.hash(account.password),
+async function ensurePerson(container: Container, person: PersonSeed): Promise<Account> {
+  const { users } = container.repositories;
+  const existing = await users.findByEmail(person.email);
+  if (existing) {
+    const stale =
+      existing.displayName !== person.displayName ||
+      existing.bio !== person.bio ||
+      (existing.handle !== person.handle && (await users.findByHandle(person.handle)) === null);
+    if (!stale) return existing;
+    return users.update(existing.id, {
+      displayName: person.displayName,
+      bio: person.bio,
+      ...(existing.handle === person.handle ? {} : { handle: person.handle }),
+    });
+  }
+  const created = await users.create({
+    email: person.email,
+    handle: person.handle,
+    displayName: person.displayName,
+    passwordHash: await container.passwordHasher.hash(SEED_PASSWORD),
     emailVerifiedAt: new Date(),
   });
+  // A bio is something a person writes, so it arrives the way one would: as an edit.
+  return users.update(created.id, { bio: person.bio });
+}
+
+/** The follow graph, added once; following twice is not an error, only a no-op. */
+async function seedFollows(container: Container, people: Map<string, Account>): Promise<number> {
+  let added = 0;
+  for (const [follower, followee] of SEED_FOLLOWS) {
+    const from = people.get(follower);
+    const to = people.get(followee);
+    if (!from || !to) continue;
+    if (await container.repositories.follows.follow(from.id, to.id)) added += 1;
+  }
+  return added;
+}
+
+/** A few likes, so no board shows a bare zero. */
+async function seedLikes(container: Container, people: Map<string, Account>): Promise<number> {
+  let added = 0;
+  for (const [handle, title] of SEED_LIKES) {
+    const liker = people.get(handle);
+    const board = (
+      await container.repositories.collections.listPublic({ limit: 200, offset: 0 })
+    ).find((candidate) => candidate.title === title);
+    if (!liker || !board || board.likedByViewer) continue;
+    if (await container.repositories.likes.like(board.id, liker.id)) added += 1;
+  }
+  return added;
 }

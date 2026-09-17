@@ -11,8 +11,12 @@ const spare = (n: number) => `/api/images/i${TILE_LIMIT + n}`;
 const heroLeft = `${SLOTS[0]?.x ?? 0}%`;
 const feed = Array.from({ length: FEED_SIZE }, (_, index) => landingImageFixture(`i${index + 1}`));
 
+/** The stage reads public boards first; the curation is what tops it up. */
 function renderCanvas(route: StubRoute = { body: { images: feed } }, props = {}) {
-  const api = stubApi({ 'GET /api/landing/images': route });
+  const api = stubApi({
+    'GET /api/explore/images': { body: { images: [] } },
+    'GET /api/landing/images': route,
+  });
   vi.stubGlobal('fetch', api.fetchMock);
   renderWithProviders(<ExploreCanvas {...props} />);
   return api;
@@ -56,8 +60,36 @@ describe('ExploreCanvas', () => {
     expect(tiles[0]).toHaveAttribute('alt', 'Photo by photographer');
     expect(links[0]).toHaveTextContent('photographer');
     expect(links[0]).toHaveStyle({ aspectRatio: '1600 / 1200' });
-    expect(api.calls[0]?.path).toBe('/api/landing/images');
-    expect(api.calls[0]?.url).toContain(`limit=${FEED_SIZE}`);
+    // Public boards are asked for first; the curation fills what is left.
+    expect(api.calls.map((call) => call.path)).toEqual([
+      '/api/explore/images',
+      '/api/landing/images',
+    ]);
+    expect(api.calls[1]?.url).toContain(`limit=${FEED_SIZE}`);
+  });
+
+  it('opens the board a picture is on, when the picture is on one', async () => {
+    const api = stubApi({
+      'GET /api/explore/images': {
+        body: {
+          images: feed.slice(0, 3).map((image, index) => ({
+            image,
+            collection: { id: `c${index + 1}`, title: `Board ${index + 1}` },
+          })),
+        },
+      },
+      // Not enough public images to fill the stage, so the curation tops it up.
+      'GET /api/landing/images': { body: { images: feed } },
+    });
+    vi.stubGlobal('fetch', api.fetchMock);
+    renderWithProviders(<ExploreCanvas />);
+
+    const onBoard = await screen.findByRole('link', { name: /^Board 1 — photo by / });
+    expect(onBoard).toHaveAttribute('href', '/boards/c1');
+    // The curated filler still leads to Explore, because it is on no board.
+    expect(
+      (await screen.findAllByRole('link', { name: /^Explore — photo by / })).length,
+    ).toBeGreaterThan(0);
   });
 
   it('renders the chrome and the custom cursor, and drops Sign in once there is a session', async () => {

@@ -1,15 +1,15 @@
 /**
- * Explore is the one place to look for anything: search the free-photo library
- * and save what you find, or, with the box empty, browse every image on every
- * public board. Filters live behind one button rather than spread across the
- * page, because there are now a great many of them.
+ * Explore is the one place to look for anything: search the free-photo library,
+ * the public boards, and the people who keep them, or — with the box empty —
+ * browse those boards as a wall of album covers. Filters live behind one
+ * button rather than spread across the page, because there are many of them.
  */
 import type { Collection, ProfileSummary, SearchResult } from '@wumboo/shared';
 import { ImageOffIcon, SearchIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
-import { StageButton } from '@/components/common/StageButton';
+import { LockedPreview } from '@/components/common/LockedPreview';
 import { StageChrome } from '@/components/common/StageChrome';
 import { MessagesLink } from '@/features/messaging';
 import { NotificationBell } from '@/features/notifications';
@@ -35,7 +35,6 @@ import {
   writeFilters,
   type SearchFilters,
 } from '@/features/search';
-import { useAuthDialog } from '@/hooks/useAuthDialog';
 import { pluralize } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { BoardCard } from '../components/BoardCard';
@@ -44,8 +43,8 @@ import { useBoards, useBoardSearch, useCreateBoard, useExploreBoards } from '../
 
 /** How many public boards the wall holds before it stops asking for more. */
 const FEED_LIMIT = 48;
-/** How many albums a visitor sees sharp before the rest blur behind a sign-in prompt. */
-const FREE_PREVIEW = 6;
+/** How many albums a visitor sees sharp — two rows — before the rest blur. */
+const FREE_PREVIEW = 8;
 
 const SUGGESTIONS = [
   'warm kitchen',
@@ -57,7 +56,6 @@ const SUGGESTIONS = [
 
 export default function ExplorePage() {
   const { user } = useSession();
-  const auth = useAuthDialog();
   const [params, setParams] = useSearchParams();
   const filters = readFilters(params);
   // Three kinds of thing can answer a search; the box and the panel decide which.
@@ -258,14 +256,7 @@ export default function ExplorePage() {
         ) : (
           <>
             <AlbumWall label="Public boards" boards={sharp} className="mt-8" />
-            {gated && (
-              <LockedGallery
-                boards={locked}
-                total={shown.length}
-                onSignIn={() => auth.open({ mode: 'login' })}
-                onSignUp={() => auth.open({ mode: 'register' })}
-              />
-            )}
+            {gated && <LockedGallery boards={locked} total={shown.length} />}
           </>
         )}
 
@@ -428,39 +419,18 @@ function AlbumWallSkeleton() {
 }
 
 /**
- * The rest of the wall for visitors: the same albums, softly blurred and inert,
- * capped to a couple of rows and fading into the stage, with the invitation on top.
+ * The rest of the wall for visitors: the same albums, blurred and inert, with
+ * the invitation on top.
  */
-function LockedGallery({
-  boards,
-  total,
-  onSignIn,
-  onSignUp,
-}: {
-  boards: Collection[];
-  total: number;
-  onSignIn: () => void;
-  onSignUp: () => void;
-}) {
+function LockedGallery({ boards, total }: { boards: Collection[]; total: number }) {
   return (
-    <div className="relative mt-9 max-h-[min(60svh,520px)] overflow-hidden sm:mt-11">
+    <LockedPreview
+      tone="stage"
+      className="mt-9 sm:mt-11"
+      message={`${FREE_PREVIEW} of ${pluralize(total, 'board')} shown. Sign in to see the rest.`}
+    >
       <AlbumWall boards={boards} blurred />
-      <div className="absolute inset-0 bg-linear-to-b from-stage/20 via-stage/40 to-stage" />
-      <div className="absolute inset-0 flex items-center justify-center px-4">
-        <div className="max-w-sm border border-stage-ink/40 bg-stage/80 px-8 py-7 text-center backdrop-blur-xs">
-          <p className="font-hand text-5xl leading-none">There is more.</p>
-          <p className="mt-3 text-[11px] tracking-[0.2em] text-stage-ink/70 uppercase">
-            {FREE_PREVIEW} of {pluralize(total, 'board')} shown. Sign in to see the rest.
-          </p>
-          <div className="mt-5 flex justify-center gap-2">
-            <StageButton onClick={onSignIn}>Sign in</StageButton>
-            <StageButton variant="outline" onClick={onSignUp}>
-              Create an account
-            </StageButton>
-          </div>
-        </div>
-      </div>
-    </div>
+    </LockedPreview>
   );
 }
 
