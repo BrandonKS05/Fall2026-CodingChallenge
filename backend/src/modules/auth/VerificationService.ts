@@ -17,7 +17,7 @@ import {
 } from '../../domain/entities/Verification.js';
 import { AuthenticationError, RateLimitError } from '../../domain/errors/index.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';
-import type { EmailSender, SmsSender } from './ports/CodeSender.js';
+import type { EmailSender } from './ports/CodeSender.js';
 import type { PasswordHasher } from './ports/PasswordHasher.js';
 import type { VerificationCodeRepository } from './ports/VerificationCodeRepository.js';
 
@@ -25,13 +25,20 @@ export interface VerificationServiceDeps {
   codes: VerificationCodeRepository;
   hasher: PasswordHasher;
   email: EmailSender;
-  sms: SmsSender;
+  /** True when the code may be handed back to the client, which only development allows. */
+  revealCodes?: boolean;
   logger: Logger;
 }
 
 export interface CodeSent {
   /** Seconds until another code may be asked for, so the client can count down. */
   resendAfterSeconds: number;
+  /**
+   * The code itself, and only when there is nowhere for it to have been sent:
+   * no mail service, and not production. It lets a fresh clone finish a
+   * sign-up; anywhere real, this is undefined and the code is in the message.
+   */
+  devCode?: string | undefined;
 }
 
 const digits = () => String(randomInt(0, 1_000_000)).padStart(6, '0');
@@ -60,18 +67,16 @@ export class VerificationService {
     });
 
     const line = `${code} is your Wumboo code. It works for ${CODE_TTL_MINUTES} minutes.`;
-    if (channel === 'email') {
-      await this.deps.email.send({
-        to: target,
-        subject: `${code} is your Wumboo code`,
-        text: `${line}\n\nYou are ${purpose}. If that was not you, ignore this message and nothing happens.`,
-      });
-    } else {
-      await this.deps.sms.send({ to: target, body: line });
-    }
-    // The code itself is never logged: the log is not a place to read it from.
+    await this.deps.email.send({
+      to: target,
+      subject: `${code} is your Wumboo code`,
+      text: `${line}\n\nYou are ${purpose}. If that was not you, ignore this message and nothing happens.`,
+    });
     this.log.info({ channel, purpose }, 'Verification code sent');
-    return { resendAfterSeconds: CODE_RESEND_SECONDS };
+    return {
+      resendAfterSeconds: CODE_RESEND_SECONDS,
+      ...(this.deps.revealCodes === true ? { devCode: code } : {}),
+    };
   }
 
   /**

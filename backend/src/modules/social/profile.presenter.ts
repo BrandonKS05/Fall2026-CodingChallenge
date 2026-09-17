@@ -8,7 +8,7 @@ import type { ProfileSummary } from '../../domain/entities/Profile.js';
 import { presentCollection } from '../collections/collection.presenter.js';
 import type { ProfilePage } from './SocialService.js';
 
-export function presentProfileSummary(profile: ProfileSummary): ProfileSummaryDto {
+function presentProfileSummary(profile: ProfileSummary): ProfileSummaryDto {
   return {
     id: profile.id,
     handle: profile.handle,

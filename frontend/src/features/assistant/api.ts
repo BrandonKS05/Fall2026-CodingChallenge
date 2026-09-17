@@ -16,7 +16,7 @@ const SESSION_KEY = 'wumbo-ai:session-id';
  * One id per browser tab, for the service's rate limiter. It is not a
  * credential and identifies nobody: it exists so one tab's budget is its own.
  */
-export function sessionId(): string {
+function sessionId(): string {
   try {
     const existing = sessionStorage.getItem(SESSION_KEY);
     if (existing) return existing;

@@ -143,13 +143,9 @@ export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
 /** The authenticated user's own profile. */
 export const userSchema = z.object({
   id: idSchema,
-  /** Null for an account that signed up by phone and has given no address. */
-  email: z.email().nullable(),
+  email: z.email(),
   /** When the address was proved by a code. Null while it is only claimed. */
   emailVerifiedAt: timestampSchema.nullable(),
-  /** The number the account signs in with, if it has one, and when it was proved. */
-  phone: z.string().nullable(),
-  phoneVerifiedAt: timestampSchema.nullable(),
   displayName: z.string(),
   /** Unique and lowercase; how other people find this account. */
   handle: z.string(),
@@ -163,32 +159,6 @@ export const userSchema = z.object({
 });
 export type User = z.infer<typeof userSchema>;
 
-export const authResponseSchema = z.object({
-  user: userSchema,
-});
-export type AuthResponse = z.infer<typeof authResponseSchema>;
-
-/**
- * A phone number as the world writes it, kept as the world reads it back:
- * E.164. A number typed without a country code is taken as +1, which is the
- * only assumption the app makes about where anyone is.
- */
-export const phoneSchema = z
-  .string()
-  .trim()
-  .transform((value) => {
-    const digits = value.replace(/[^\d+]/g, '');
-    if (digits.startsWith('+')) return `+${digits.slice(1).replace(/\D/g, '')}`;
-    const bare = digits.replace(/\D/g, '');
-    if (bare.length === 10) return `+1${bare}`;
-    if (bare.length === 11 && bare.startsWith('1')) return `+${bare}`;
-    return `+${bare}`;
-  })
-  .pipe(z.string().regex(/^\+[1-9]\d{7,14}$/, 'Use a number with its country code'));
-
-export const verificationChannelSchema = z.enum(['email', 'phone']);
-export type VerificationChannel = z.infer<typeof verificationChannelSchema>;
-
 /** Six digits, and only six digits: spaces people paste in are theirs to make. */
 export const verificationCodeSchema = z
   .string()
@@ -196,46 +166,35 @@ export const verificationCodeSchema = z
   .transform((value) => value.replace(/\s+/g, ''))
   .pipe(z.string().regex(/^\d{6}$/, 'The code is six digits'));
 
-/** POST /auth/code: send one, whether it is a resend or the start of a phone sign-in. */
-export const sendCodeRequestSchema = z.discriminatedUnion('channel', [
-  z.object({ channel: z.literal('email'), email: emailSchema }),
-  z.object({ channel: z.literal('phone'), phone: phoneSchema }),
-]);
+/** POST /auth/code: another copy of the code, for an address that has not been proved yet. */
+export const sendCodeRequestSchema = z.object({ email: emailSchema });
 export type SendCodeRequest = z.infer<typeof sendCodeRequestSchema>;
 
-/**
- * POST /auth/verify: the code, and — for a phone number nobody has used before
- * — the name and handle the account will carry, which are only asked for once
- * the code has proved the number.
- */
-export const verifyCodeRequestSchema = z.intersection(
-  sendCodeRequestSchema,
-  z.object({
-    code: verificationCodeSchema,
-    handle: handleSchema.optional(),
-    displayName: displayNameSchema.optional(),
-  }),
-);
+/** POST /auth/verify: the code, typed back, which is what opens the account. */
+export const verifyCodeRequestSchema = z.object({
+  email: emailSchema,
+  code: verificationCodeSchema,
+});
 export type VerifyCodeRequest = z.infer<typeof verifyCodeRequestSchema>;
 
 /**
- * What came of an attempt to get in. One shape for register, login, verify and
- * code, so the client switches on `status` rather than guessing from the body.
+ * What came of an attempt to get in: a session, or a code waiting to be typed
+ * back. One shape for register, login, verify and code, so the client switches
+ * on `status` rather than guessing from the body.
  */
 export const authOutcomeSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('signed-in'), user: userSchema }),
   z.object({
     status: z.literal('verification-required'),
-    channel: verificationChannelSchema,
-    /** The address or number the code went to, so the client can say it out loud. */
-    target: z.string(),
+    /** The address the code went to, so the client can say it out loud. */
+    target: z.email(),
     resendAfterSeconds: z.number().int().nonnegative(),
-  }),
-  /** The code proved a phone number nobody has claimed: it needs a name to become an account. */
-  z.object({
-    status: z.literal('profile-needed'),
-    channel: z.literal('phone'),
-    target: z.string(),
+    /**
+     * Only in development, and only while no mail service is configured: the
+     * code itself, so a local sign-up can be finished without a mailbox. It is
+     * absent in production, where the code is only ever in the message.
+     */
+    devCode: z.string().optional(),
   }),
 ]);
 export type AuthOutcome = z.infer<typeof authOutcomeSchema>;

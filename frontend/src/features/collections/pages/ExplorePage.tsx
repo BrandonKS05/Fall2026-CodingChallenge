@@ -38,6 +38,7 @@ import {
 import { pluralize } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { BoardCard } from '../components/BoardCard';
+import { BoardCarousel } from '../components/BoardCarousel';
 import { CoverMosaic } from '../components/CoverMosaic';
 import { useBoards, useBoardSearch, useCreateBoard, useExploreBoards } from '../queries';
 
@@ -78,6 +79,8 @@ export default function ExplorePage() {
   const quickSave = useSaveToBoard();
   const search = useImageSearch(imageQuery, wantsImages);
   const [picking, setPicking] = useState<SearchResult | null>(null);
+  // A board opens here, over the wall, rather than on a page of its own.
+  const [openBoard, setOpenBoard] = useState<string | null>(null);
   const [savedTo, setSavedTo] = useState<Record<string, string>>({});
   const targetBoardId = params.get('board');
   const targetBoard = boardsQuery.data?.find(
@@ -195,7 +198,7 @@ export default function ExplorePage() {
               <PeopleResults term={term} only={!wantsImages && !wantsBoards} />
             )}
             {wantsBoards && term !== '' && (
-              <BoardResults term={term} only={!wantsImages && !wantsPeople} />
+              <BoardResults term={term} only={!wantsImages && !wantsPeople} onOpen={setOpenBoard} />
             )}
             {wantsImages && (
               <section aria-label="Images" className="stage-surface text-stage-ink">
@@ -255,8 +258,13 @@ export default function ExplorePage() {
           <Notice>Nothing public yet. Make a board public and it will show up here.</Notice>
         ) : (
           <>
-            <AlbumWall label="Public boards" boards={sharp} className="mt-8" />
-            {gated && <LockedGallery boards={locked} total={shown.length} />}
+            <AlbumWall
+              label="Public boards"
+              boards={sharp}
+              className="mt-8"
+              onOpen={setOpenBoard}
+            />
+            {gated && <LockedGallery boards={locked} />}
           </>
         )}
 
@@ -268,6 +276,12 @@ export default function ExplorePage() {
           />
         )}
       </main>
+
+      <BoardCarousel
+        collectionId={openBoard}
+        signedIn={user !== null}
+        onClose={() => setOpenBoard(null)}
+      />
 
       <SaveToBoardDialog
         result={picking}
@@ -311,7 +325,15 @@ function PeopleResults({ term, only }: { term: string; only: boolean }) {
 }
 
 /** Public boards whose title or description carries the words. */
-function BoardResults({ term, only }: { term: string; only: boolean }) {
+function BoardResults({
+  term,
+  only,
+  onOpen,
+}: {
+  term: string;
+  only: boolean;
+  onOpen: (id: string) => void;
+}) {
   const boards = useBoardSearch(term, true);
   const found = boards.data?.collections ?? [];
   if (!only && (boards.isPending || found.length === 0)) return null;
@@ -324,7 +346,7 @@ function BoardResults({ term, only }: { term: string; only: boolean }) {
       ) : (
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
           {found.map((board) => (
-            <BoardCard key={board.id} board={board} />
+            <BoardCard key={board.id} board={board} onOpen={onOpen} />
           ))}
         </div>
       )}
@@ -350,11 +372,13 @@ function AlbumWall({
   label,
   blurred = false,
   className,
+  onOpen = () => undefined,
 }: {
   boards: Collection[];
   label?: string;
   blurred?: boolean;
   className?: string;
+  onOpen?: (id: string) => void;
 }) {
   return (
     <ul
@@ -368,14 +392,22 @@ function AlbumWall({
     >
       {boards.map((board) => (
         <li key={board.id}>
-          <Album board={board} inert={blurred} />
+          <Album board={board} inert={blurred} onOpen={onOpen} />
         </li>
       ))}
     </ul>
   );
 }
 
-function Album({ board, inert }: { board: Collection; inert: boolean }) {
+function Album({
+  board,
+  inert,
+  onOpen,
+}: {
+  board: Collection;
+  inert: boolean;
+  onOpen: (id: string) => void;
+}) {
   const cover = (
     <>
       <CoverMosaic
@@ -391,13 +423,14 @@ function Album({ board, inert }: { board: Collection; inert: boolean }) {
   );
   if (inert) return <div className="group block">{cover}</div>;
   return (
-    <Link
-      to={`/boards/${board.id}`}
+    <button
+      type="button"
+      onClick={() => onOpen(board.id)}
       aria-label={`Open ${board.title}`}
-      className="group block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-stage-ink"
+      className="group block w-full text-left rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-stage-ink"
     >
       {cover}
-    </Link>
+    </button>
   );
 }
 
@@ -422,13 +455,9 @@ function AlbumWallSkeleton() {
  * The rest of the wall for visitors: the same albums, blurred and inert, with
  * the invitation on top.
  */
-function LockedGallery({ boards, total }: { boards: Collection[]; total: number }) {
+function LockedGallery({ boards }: { boards: Collection[] }) {
   return (
-    <LockedPreview
-      tone="stage"
-      className="mt-9 sm:mt-11"
-      message={`${FREE_PREVIEW} of ${pluralize(total, 'board')} shown. Sign in to see the rest.`}
-    >
+    <LockedPreview tone="stage" className="mt-9 sm:mt-11" message="Sign in to see the rest.">
       <AlbumWall boards={boards} blurred />
     </LockedPreview>
   );

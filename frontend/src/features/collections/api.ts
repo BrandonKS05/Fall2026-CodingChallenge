@@ -3,7 +3,6 @@ import type {
   CollectionDetailResponse,
   CollectionListResponse,
   CreateCollectionRequest,
-  ExploreImagesResponse,
   UpdateCollectionRequest,
 } from '@wumboo/shared';
 import { http } from '@/lib/api';
@@ -13,8 +12,6 @@ export const collectionsApi = {
   list: () => http.get<CollectionListResponse>('/collections'),
   explore: (query: { q?: string; perPage: number }) =>
     http.get<CollectionListResponse>('/explore', { query }),
-  exploreImages: (limit: number) =>
-    http.get<ExploreImagesResponse>('/explore/images', { query: { limit } }),
   get: (id: string) => http.get<CollectionDetailResponse>(`/collections/${id}`),
   create: (body: CreateCollectionRequest) => http.post<Collection>('/collections', body),
   update: (id: string, body: UpdateCollectionRequest) =>

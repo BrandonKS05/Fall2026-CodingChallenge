@@ -1,6 +1,6 @@
 /** Contract-shaped fixtures for component tests. */
 import { DEFAULT_USER_PREFERENCES } from '@wumboo/shared';
-import type { Collection, ExploreImage, Item, SearchResult, User } from '@wumboo/shared';
+import type { Collection, Image, Item, SearchResult, User } from '@wumboo/shared';
 
 const now = new Date('2026-09-14T12:00:00Z').toISOString();
 
@@ -51,23 +51,8 @@ export function itemFixture(overrides: Partial<Item> = {}): Item {
   };
 }
 
-/** One row of the landing feed: an item image credited to a board. */
-export function exploreImageFixture(
-  id: string,
-  collection: { id: string; title: string },
-  overrides: Partial<ExploreImage['image']> = {},
-): ExploreImage {
-  return {
-    image: { ...itemFixture().image, id, url: `/api/images/${id}`, ...overrides },
-    collection,
-  };
-}
-
-/** One image of the landing stage's fixed curation: no board, because it has none. */
-export function landingImageFixture(
-  id: string,
-  overrides: Partial<ExploreImage['image']> = {},
-): ExploreImage['image'] {
+/** One picture on the landing stage, whether it came from a board or the curation. */
+export function landingImageFixture(id: string, overrides: Partial<Image> = {}): Image {
   return { ...itemFixture().image, id, url: `/api/images/${id}`, ...overrides };
 }
 
@@ -94,8 +79,6 @@ export function searchResultFixture(
 export const userFixture: User = {
   id: 'u1',
   emailVerifiedAt: now,
-  phone: null,
-  phoneVerifiedAt: null,
   email: 'ada@example.com',
   displayName: 'Ada',
   handle: 'ada',

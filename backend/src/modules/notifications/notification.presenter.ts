@@ -2,7 +2,7 @@ import type { Notification as NotificationDto, NotificationListResponse } from '
 import type { NotificationDetail } from '../../domain/entities/Notification.js';
 import type { Inbox } from './NotificationService.js';
 
-export function presentNotification(detail: NotificationDetail): NotificationDto {
+function presentNotification(detail: NotificationDetail): NotificationDto {
   return {
     id: detail.id,
     type: detail.type,

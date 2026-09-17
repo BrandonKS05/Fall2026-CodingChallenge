@@ -5,8 +5,9 @@
  *
  * Feel lives in `DEFAULT_TUNING`:
  * - `travel` / `travelY`: how far a depth-1 layer moves at the viewport edge (px). Bigger = more
- *   map to move around in. Vertical travel is the smaller of the two because a viewport is
- *   shorter than it is wide, so the same pixels read as more movement down the screen.
+ *   map to move around in, and also a tighter limit on how much the slots' depths may differ:
+ *   two tiles cross once the difference in their travel exceeds the gap between them. Vertical
+ *   travel is the smaller of the two because a viewport is shorter than it is wide.
  * - `stiffness` / `damping`: the spring the images follow. Higher stiffness = the map keeps up
  *   with the cursor; lower damping = more overshoot. 90/18 arrives quickly and settles at once.
  * - `cursorStiffness`: the dot's spring. Keep it above `stiffness` so the dot leads the images.
@@ -23,8 +24,8 @@ export interface ParallaxTuning {
 }
 
 export const DEFAULT_TUNING: ParallaxTuning = {
-  travel: 480,
-  travelY: 300,
+  travel: 620,
+  travelY: 390,
   stiffness: 90,
   damping: 18,
   cursorStiffness: 170,

@@ -65,7 +65,7 @@ export function useRegister() {
   });
 }
 
-/** Asks for a code: a resend, or the first step of signing in with a phone. */
+/** Another copy of the code, for an address whose sign-up is unfinished. */
 export function useSendCode() {
   return useMutation({
     mutationFn: (body: SendCodeRequest) => authApi.sendCode(body),

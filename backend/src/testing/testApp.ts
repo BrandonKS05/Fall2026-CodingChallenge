@@ -64,7 +64,6 @@ export function buildTestApp(
       imageProvider: new FakeImageProvider([]),
       fetchFn: createFakeFetch({}),
       emailSender: codes,
-      smsSender: codes,
       ...rest,
       repositories: { ...createFakeRepositories(), ...repositories },
     }),

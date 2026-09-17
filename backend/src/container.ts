@@ -13,8 +13,7 @@ import { SESSION_TTL_SECONDS } from './config/session.js';
 import { Argon2PasswordHasher } from './modules/auth/adapters/Argon2PasswordHasher.js';
 import { LoggingCodeSender } from './modules/auth/adapters/LoggingCodeSender.js';
 import { ResendEmailSender } from './modules/auth/adapters/ResendEmailSender.js';
-import { TwilioSmsSender } from './modules/auth/adapters/TwilioSmsSender.js';
-import type { EmailSender, SmsSender } from './modules/auth/ports/CodeSender.js';
+import type { EmailSender } from './modules/auth/ports/CodeSender.js';
 import { VerificationService } from './modules/auth/VerificationService.js';
 import { GoogleOAuthProvider } from './modules/auth/adapters/GoogleOAuthProvider.js';
 import { JoseTokenService } from './modules/auth/adapters/JoseTokenService.js';
@@ -92,7 +91,6 @@ export interface ContainerOverrides {
   repositories?: Partial<Repositories>;
   passwordHasher?: PasswordHasher;
   emailSender?: EmailSender;
-  smsSender?: SmsSender;
   tokens?: TokenService;
   storage?: StorageBackend;
   imageProvider?: ImageProvider;
@@ -134,22 +132,14 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     overrides.emailSender ??
     (env.RESEND_API_KEY && env.EMAIL_FROM
       ? new ResendEmailSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM, fetchFn })
-      : new LoggingCodeSender(logger, 'email'));
-  const smsSender =
-    overrides.smsSender ??
-    (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM
-      ? new TwilioSmsSender({
-          accountSid: env.TWILIO_ACCOUNT_SID,
-          authToken: env.TWILIO_AUTH_TOKEN,
-          from: env.TWILIO_FROM,
-          fetchFn,
-        })
-      : new LoggingCodeSender(logger, 'sms'));
+      : new LoggingCodeSender(logger));
   const verification = new VerificationService({
     codes: repositories.verificationCodes,
     hasher: passwordHasher,
     email: emailSender,
-    sms: smsSender,
+    // Nowhere to send it and nowhere real to be: hand the code back instead, so
+    // a local sign-up can be finished without a mailbox.
+    revealCodes: env.NODE_ENV !== 'production' && !env.RESEND_API_KEY,
     logger,
   });
 

@@ -26,6 +26,7 @@ import { http } from '@/lib/api';
 import { pluralize } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { BoardCard } from '../components/BoardCard';
+import { BoardCarousel } from '../components/BoardCarousel';
 import { CreateBoardDialog } from '../components/CreateBoardDialog';
 import { useBoards } from '../queries';
 
@@ -44,6 +45,8 @@ export default function BoardsPage() {
   const pins = useMyItems();
   const [tab, setTab] = useState<Tab>('boards');
   const [creating, setCreating] = useState(false);
+  // A board opens here, over your own wall, as it does everywhere else.
+  const [openBoard, setOpenBoard] = useState<string | null>(null);
 
   // Boards you own, and the likes they have gathered: the two numbers under the name.
   const owned = (boards.data ?? []).filter((board) => board.role === 'owner');
@@ -172,6 +175,7 @@ export default function BoardsPage() {
               boards={boards.data ?? []}
               pending={boards.isPending}
               onCreate={() => setCreating(true)}
+              onOpen={setOpenBoard}
             />
           ) : (
             <PinsTab pins={pins.data ?? []} pending={pins.isPending} />
@@ -179,6 +183,11 @@ export default function BoardsPage() {
         </section>
       </main>
 
+      <BoardCarousel
+        collectionId={openBoard}
+        signedIn={user !== null}
+        onClose={() => setOpenBoard(null)}
+      />
       <CreateBoardDialog open={creating} onOpenChange={setCreating} withTrigger={false} />
     </div>
   );
@@ -190,10 +199,12 @@ function BoardsTab({
   boards,
   pending,
   onCreate,
+  onOpen,
 }: {
   boards: Collection[];
   pending: boolean;
   onCreate: () => void;
+  onOpen: (id: string) => void;
 }) {
   if (pending) {
     return (
@@ -210,7 +221,7 @@ function BoardsTab({
   return (
     <div className={GRID}>
       {boards.map((board) => (
-        <BoardCard key={board.id} board={board} />
+        <BoardCard key={board.id} board={board} onOpen={onOpen} />
       ))}
       <CreateCard onClick={onCreate} />
     </div>

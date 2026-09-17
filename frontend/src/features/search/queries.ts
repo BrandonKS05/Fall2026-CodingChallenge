@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { searchApi } from './api';
 
-export const SEARCH_PAGE_SIZE = 30;
+const SEARCH_PAGE_SIZE = 30;
 
 /** The browse grid's covers. They are a fixed curation, so they never go stale. */
 export function useCategoryCovers() {

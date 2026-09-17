@@ -92,23 +92,12 @@ export function createAuthController({
 
     sendCode: async (_req, res) => {
       const { body } = getValidated<SendCodeRequest>(res);
-      const target = body.channel === 'email' ? body.email : body.phone;
-      answer(res, await auth.sendCode(body.channel, target), 202);
+      answer(res, await auth.sendCode(body.email), 202);
     },
 
     verifyCode: async (_req, res) => {
       const { body } = getValidated<VerifyCodeRequest>(res);
-      const target = body.channel === 'email' ? body.email : body.phone;
-      answer(
-        res,
-        await auth.verifyCode({
-          channel: body.channel,
-          target,
-          code: body.code,
-          handle: body.handle,
-          displayName: body.displayName,
-        }),
-      );
+      answer(res, await auth.verifyCode({ target: body.email, code: body.code }));
     },
 
     logout: (_req, res) => {

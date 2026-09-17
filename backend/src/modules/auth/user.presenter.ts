@@ -1,7 +1,6 @@
 /** Presenters turn domain objects into the shapes promised by @wumboo/shared. */
 import type {
   AuthOutcome as AuthOutcomeDto,
-  AuthResponse,
   SessionResponse,
   User as UserDto,
 } from '@wumboo/shared';
@@ -13,8 +12,6 @@ export function presentUser(user: PublicUser): UserDto {
     id: user.id,
     email: user.email,
     emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
-    phone: user.phone,
-    phoneVerifiedAt: user.phoneVerifiedAt?.toISOString() ?? null,
     displayName: user.displayName,
     handle: user.handle,
     handleChangedAt: user.handleChangedAt?.toISOString() ?? null,
@@ -22,10 +19,6 @@ export function presentUser(user: PublicUser): UserDto {
     preferences: user.preferences,
     createdAt: user.createdAt.toISOString(),
   };
-}
-
-export function presentAuth(user: PublicUser): AuthResponse {
-  return { user: presentUser(user) };
 }
 
 /** The outcome of a sign-in attempt, minus the token, which rides in a cookie. */

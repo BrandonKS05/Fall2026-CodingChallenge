@@ -33,7 +33,7 @@ export const DEMO_ACCOUNT = {
 
 interface Account {
   id: string;
-  email: string | null;
+  email: string;
 }
 
 export async function seedDemo(container: Container): Promise<void> {
@@ -69,7 +69,7 @@ export async function seedDemo(container: Container): Promise<void> {
       }));
     if (!existing) boardsCreated += 1;
 
-    if (editor && editor.email && !(await repositories.memberships.find(board.id, editor.id))) {
+    if (editor && !(await repositories.memberships.find(board.id, editor.id))) {
       await services.share.invite(board.id, owner.id, editor.email, 'editor');
     }
     // Returns the existing slug when the board already has one.

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { notificationsApi } from './api';
 
-export const INBOX_POLL_MS = 15_000;
+const INBOX_POLL_MS = 15_000;
 
 /** Polls while the user is signed in, so activity on shared boards shows up without a reload. */
 export function useInbox(enabled: boolean) {

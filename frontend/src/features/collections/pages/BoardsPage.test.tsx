@@ -49,12 +49,12 @@ describe('BoardsPage', () => {
 
   it('shows the profile strip and board covers with counts, visibility, and shared-with-me notes', async () => {
     renderBoards();
-    const kitchenCard = await screen.findByRole('link', { name: /open kitchen ideas/i });
+    const kitchenCard = await screen.findByRole('button', { name: /open kitchen ideas/i });
     expect(kitchenCard).toHaveTextContent('3 images');
     expect(kitchenCard).toHaveTextContent('4 likes');
     expect(kitchenCard).toHaveTextContent('Public');
     expect(kitchenCard.querySelectorAll('img')).toHaveLength(3);
-    expect(screen.getByRole('link', { name: /open fall outfits/i })).toHaveTextContent(
+    expect(screen.getByRole('button', { name: /open fall outfits/i })).toHaveTextContent(
       'Editor · Grace',
     );
     expect(screen.getByRole('heading', { name: 'Your finds' })).toBeInTheDocument();

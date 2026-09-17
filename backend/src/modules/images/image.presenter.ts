@@ -10,7 +10,7 @@ import type { ProviderImage } from '../../domain/entities/ProviderImage.js';
 import type { ImageSearchResult } from './ports/ImageProvider.js';
 
 /** Stored images are always served by our API, never by a provider URL. */
-export function imageUrl(imageId: string): string {
+function imageUrl(imageId: string): string {
   return `/api/images/${imageId}`;
 }
 
@@ -43,7 +43,7 @@ export function presentCategoryCovers(
   };
 }
 
-export function presentSearchResult(hit: ProviderImage): SearchResult {
+function presentSearchResult(hit: ProviderImage): SearchResult {
   return {
     provider: hit.provider,
     providerImageId: hit.providerImageId,

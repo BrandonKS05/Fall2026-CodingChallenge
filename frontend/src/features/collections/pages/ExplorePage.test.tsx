@@ -63,9 +63,8 @@ describe('ExplorePage', () => {
     expect(screen.getByRole('heading', { name: 'Explore' })).toBeInTheDocument();
 
     const wall = await screen.findByRole('list', { name: 'Public boards' });
-    const links = within(wall).getAllByRole('link', { name: /^Open / });
+    const links = within(wall).getAllByRole('button', { name: /^Open / });
     expect(links).toHaveLength(5);
-    expect(links[0]).toHaveAttribute('href', '/boards/c1');
     expect(links[0]).toHaveTextContent('Warm kitchens');
     expect(links[0]).toHaveTextContent('8 images · Ada');
 
@@ -77,7 +76,7 @@ describe('ExplorePage', () => {
 
   it('searches the library when there is a query, and browses boards when there is not', async () => {
     const api = renderExplore();
-    await screen.findAllByRole('link', { name: /^Open / });
+    await screen.findAllByRole('button', { name: /^Open / });
 
     await userEvent.type(screen.getByLabelText(SEARCH_BOX), 'tide pools');
 
@@ -121,7 +120,7 @@ describe('ExplorePage', () => {
     expect(await screen.findByRole('region', { name: 'People' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Ada L/ })).toHaveAttribute('href', '/u/ada');
     const boards = await screen.findByRole('region', { name: 'Boards' });
-    expect(within(boards).getAllByRole('link', { name: /^Open / })[0]).toHaveTextContent(
+    expect(within(boards).getAllByRole('button', { name: /^Open / })[0]).toHaveTextContent(
       'Warm kitchens',
     );
     expect(await screen.findByAltText('Kitchen')).toBeInTheDocument();
@@ -156,9 +155,9 @@ describe('ExplorePage', () => {
 
   it('shows visitors two sharp rows and blurs the rest behind a sign-in prompt', async () => {
     renderExplore({ body: { collections: longFeed } });
-    const links = await screen.findAllByRole('link', { name: /^Open / });
+    const links = await screen.findAllByRole('button', { name: /^Open / });
     expect(links).toHaveLength(8);
-    expect(screen.getByText('8 of 12 boards shown. Sign in to see the rest.')).toBeInTheDocument();
+    expect(screen.getByText('Sign in to see the rest.')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     const dialog = await screen.findByRole('dialog');
@@ -167,7 +166,7 @@ describe('ExplorePage', () => {
 
   it('shows members everything with no prompt', async () => {
     renderExplore({ body: { collections: longFeed } }, { body: { user } });
-    const links = await screen.findAllByRole('link', { name: /^Open / });
+    const links = await screen.findAllByRole('button', { name: /^Open / });
     expect(links).toHaveLength(12);
     expect(screen.queryByText(/Sign in to see the rest/)).not.toBeInTheDocument();
   });

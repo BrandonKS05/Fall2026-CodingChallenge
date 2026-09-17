@@ -9,13 +9,6 @@ import { collectionsApi } from './api';
  * never surfaces a 401 as an error toast.
  */
 /** Every image on every public board, interleaved by the server so no board dominates. */
-export function useExploreImages(limit: number) {
-  return useQuery({
-    queryKey: queryKeys.exploreImages({ limit }),
-    queryFn: () => collectionsApi.exploreImages(limit).then((response) => response.images),
-  });
-}
-
 /** Every public board, newest activity first: what Explore shows when nothing is searched. */
 export function useExploreBoards(perPage: number, enabled = true) {
   return useQuery({
@@ -52,6 +45,8 @@ export function useBoard(id: string) {
   return useQuery({
     queryKey: queryKeys.collections.detail(id),
     queryFn: () => collectionsApi.get(id),
+    // Nothing to fetch until a board is actually opened.
+    enabled: id !== '',
     retry: false,
     meta: { silentError: true },
   });

@@ -29,7 +29,7 @@ describe('auth routes', () => {
   beforeEach(() => {
     users = new InMemoryUserRepository();
     sender = new RecordingCodeSender();
-    app = buildTestApp({ repositories: { users }, emailSender: sender, smsSender: sender });
+    app = buildTestApp({ repositories: { users }, emailSender: sender });
   });
 
   /** Registering and then typing the code back: what having an account now takes. */
@@ -37,11 +37,7 @@ describe('auth routes', () => {
     await request(app).post('/api/auth/register').send(input);
     return request(app)
       .post('/api/auth/verify')
-      .send({
-        channel: 'email',
-        email: input.email,
-        code: sender.codeFor(input.email.trim().toLowerCase()),
-      });
+      .send({ email: input.email, code: sender.codeFor(input.email.trim().toLowerCase()) });
   }
 
   it('sends a code instead of a session, and opens the account once it comes back', async () => {
@@ -51,7 +47,6 @@ describe('auth routes', () => {
     expect(authOutcomeSchema.safeParse(pending.body).success).toBe(true);
     expect(pending.body).toMatchObject({
       status: 'verification-required',
-      channel: 'email',
       target: 'grace@example.com',
     });
     // Nothing to sign in with yet.
@@ -81,26 +76,24 @@ describe('auth routes', () => {
 
     const wrong = await request(app)
       .post('/api/auth/verify')
-      .send({ channel: 'email', email: account.email, code: '000000' });
+      .send({ email: account.email, code: '000000' });
     expect(wrong.status).toBe(401);
 
     const unknown = await request(app)
       .post('/api/auth/verify')
-      .send({ channel: 'email', email: 'nobody@example.com', code: '123456' });
+      .send({ email: 'nobody@example.com', code: '123456' });
     expect(unknown.status).toBe(401);
 
     // Six digits or it is not a code at all.
     const malformed = await request(app)
       .post('/api/auth/verify')
-      .send({ channel: 'email', email: account.email, code: '12' });
+      .send({ email: account.email, code: '12' });
     expect(malformed.status).toBe(400);
   });
 
   it('will not send a second code within the cool-off, and says how long to wait', async () => {
     await request(app).post('/api/auth/register').send(account);
-    const again = await request(app)
-      .post('/api/auth/code')
-      .send({ channel: 'email', email: account.email });
+    const again = await request(app).post('/api/auth/code').send({ email: account.email });
 
     expect(again.status).toBe(429);
     expect(Number(again.headers['retry-after'])).toBeGreaterThan(0);
@@ -108,9 +101,7 @@ describe('auth routes', () => {
   });
 
   it('says nothing about who has an account when a code is asked for', async () => {
-    const res = await request(app)
-      .post('/api/auth/code')
-      .send({ channel: 'email', email: 'stranger@example.com' });
+    const res = await request(app).post('/api/auth/code').send({ email: 'stranger@example.com' });
 
     // The same answer as for a real address, and no mail sent to a stranger.
     expect(res.status).toBe(202);
@@ -123,55 +114,6 @@ describe('auth routes', () => {
     const res = await request(app).post('/api/auth/register').send(account);
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('CONFLICT');
-  });
-
-  it('signs in by phone: a code, then a name for a number nobody has used', async () => {
-    const asked = await request(app)
-      .post('/api/auth/code')
-      .send({ channel: 'phone', phone: '(615) 555-0123' });
-    expect(asked.status).toBe(202);
-    expect(asked.body.target).toBe('+16155550123');
-
-    const code = sender.codeFor('+16155550123');
-    const needsName = await request(app)
-      .post('/api/auth/verify')
-      .send({ channel: 'phone', phone: '+1 615 555 0123', code });
-    // The code proved the number; only now is anything asked about the person.
-    expect(needsName.body).toMatchObject({ status: 'profile-needed', target: '+16155550123' });
-    expect(sessionCookie(needsName)).toBe('');
-
-    const created = await request(app).post('/api/auth/verify').send({
-      channel: 'phone',
-      phone: '+16155550123',
-      code,
-      handle: 'grace',
-      displayName: 'Grace',
-    });
-    expect(created.body).toMatchObject({ status: 'signed-in' });
-    expect(created.body.user).toMatchObject({
-      handle: 'grace',
-      email: null,
-      phone: '+16155550123',
-    });
-    expect(sessionCookie(created)).toMatch(/HttpOnly/i);
-  });
-
-  it('signs the owner of a known number straight back in, asking for no name', async () => {
-    await users.create({
-      phone: '+16155550199',
-      phoneVerifiedAt: new Date(),
-      handle: 'ada',
-      displayName: 'Ada',
-      passwordHash: null,
-    });
-
-    await request(app).post('/api/auth/code').send({ channel: 'phone', phone: '+16155550199' });
-    const res = await request(app)
-      .post('/api/auth/verify')
-      .send({ channel: 'phone', phone: '+16155550199', code: sender.codeFor('+16155550199') });
-
-    expect(res.body).toMatchObject({ status: 'signed-in', user: { handle: 'ada' } });
-    expect(sessionCookie(res)).toMatch(/HttpOnly/i);
   });
 
   it('rejects an invalid body with field-level details', async () => {

@@ -8,7 +8,8 @@ import { buttonVariants } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
 import { pluralize } from '@/lib/format';
 import { useSharedBoard } from '../queries';
-import { ImageLightbox, ItemGrid } from '@/features/items';
+import { ImageLightbox } from '@/components/common/ImageLightbox';
+import { ItemGrid } from '@/features/items';
 
 /** The public side of a share link: read-only, with a way in for members. */
 export default function SharedBoardPage() {

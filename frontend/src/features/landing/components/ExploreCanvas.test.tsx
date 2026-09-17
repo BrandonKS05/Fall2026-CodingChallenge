@@ -86,8 +86,8 @@ describe('ExploreCanvas', () => {
     vi.stubGlobal('fetch', api.fetchMock);
     renderWithProviders(<ExploreCanvas />);
 
-    const onBoard = await screen.findByRole('link', { name: /^Board 1 — photo by / });
-    expect(onBoard).toHaveAttribute('href', '/boards/c1');
+    // A picture on a board opens that board where the visitor is standing.
+    expect(await screen.findByRole('button', { name: /^Board 1 — photo by / })).toBeInTheDocument();
     // The curated filler still leads to Explore, because it is on no board.
     expect(
       (await screen.findAllByRole('link', { name: /^Explore — photo by / })).length,

@@ -11,7 +11,7 @@ import { useParams } from 'react-router';
 import { StageButton } from '@/components/common/StageButton';
 import { StageChrome } from '@/components/common/StageChrome';
 import { useSession } from '@/features/auth';
-import { BoardCard } from '@/features/collections';
+import { BoardCard, BoardCarousel } from '@/features/collections';
 import { MessagesLink, useStartConversation } from '@/features/messaging';
 import { NotificationBell } from '@/features/notifications';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
@@ -27,6 +27,7 @@ export default function ProfilePage() {
   const signedIn = user !== null;
   const profile = useProfile(handle);
   const [openList, setOpenList] = useState<'followers' | 'following' | null>(null);
+  const [openBoard, setOpenBoard] = useState<string | null>(null);
 
   return (
     <div className="flex min-h-svh flex-col bg-stage text-stage-ink">
@@ -124,7 +125,7 @@ export default function ProfilePage() {
                 ) : (
                   <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     {profile.data.boards.map((board) => (
-                      <BoardCard key={board.id} board={board} />
+                      <BoardCard key={board.id} board={board} onOpen={setOpenBoard} />
                     ))}
                   </div>
                 )}
@@ -135,6 +136,12 @@ export default function ProfilePage() {
           </div>
         )}
       </main>
+
+      <BoardCarousel
+        collectionId={openBoard}
+        signedIn={signedIn}
+        onClose={() => setOpenBoard(null)}
+      />
     </div>
   );
 }

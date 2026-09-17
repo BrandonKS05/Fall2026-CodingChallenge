@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { EmptyState } from '@/components/common/EmptyState';
+import { ImageLightbox } from '@/components/common/ImageLightbox';
 import { LockedPreview } from '@/components/common/LockedPreview';
+import { freeCount } from '../freeCount';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
@@ -19,7 +21,6 @@ import { useSession } from '@/features/auth';
 import { ProfileLink } from '@/components/common/ProfileLink';
 import {
   EditItemDialog,
-  ImageLightbox,
   UploadButton,
   ItemGrid,
   ItemGridSkeleton,
@@ -27,9 +28,6 @@ import {
   useRemoveItem,
 } from '@/features/items';
 import { SharePanel } from '@/features/sharing';
-
-/** How many saves a visitor sees before the board asks them to sign in. */
-const FREE_ITEMS = 6;
 
 export default function BoardPage() {
   const { id = '' } = useParams();
@@ -81,9 +79,11 @@ export default function BoardPage() {
   const { collection, items } = board.data;
   const canEdit = collection.role === 'owner' || collection.role === 'editor';
   // A visitor gets a look at the board, not the board. The rest is behind the gate.
-  const gated = user === null && items.length > FREE_ITEMS;
-  const visible = gated ? items.slice(0, FREE_ITEMS) : items;
-  const locked = gated ? items.slice(FREE_ITEMS, FREE_ITEMS + 8) : [];
+  // The same quarter as the carousel, since it is the same board either way.
+  const free = freeCount(items.length);
+  const gated = user === null && items.length > free;
+  const visible = gated ? items.slice(0, free) : items;
+  const locked = gated ? items.slice(free, free + 8) : [];
   const destinations = (myBoards.data ?? []).filter(
     (candidate) =>
       candidate.id !== collection.id && (candidate.role === 'owner' || candidate.role === 'editor'),
@@ -178,10 +178,7 @@ export default function BoardPage() {
             onRemove={remove}
           />
           {locked.length > 0 && (
-            <LockedPreview
-              className="mt-4"
-              message={`${FREE_ITEMS} of ${pluralize(items.length, 'image')} shown. Sign in to see the board.`}
-            >
+            <LockedPreview className="mt-4" message="Sign in to see the rest of this board.">
               <ItemGrid
                 items={locked}
                 canEdit={false}

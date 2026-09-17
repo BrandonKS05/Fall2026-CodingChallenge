@@ -34,7 +34,6 @@ describe('AuthService', () => {
         codes: new InMemoryVerificationCodeRepository(),
         hasher,
         email: sender,
-        sms: sender,
         logger: silentLogger,
       }),
       logger: silentLogger,
@@ -54,13 +53,8 @@ describe('AuthService', () => {
     return signIn('email', input.email);
   };
 
-  const signIn = async (channel: 'email' | 'phone', target: string, profile = {}) => {
-    const outcome = await service.verifyCode({
-      channel,
-      target,
-      code: sender.codeFor(target),
-      ...profile,
-    });
+  const signIn = async (_channel: 'email', target: string) => {
+    const outcome = await service.verifyCode({ target, code: sender.codeFor(target) });
     if (outcome.status !== 'signed-in') {
       throw new Error(`Expected a session, got ${outcome.status}`);
     }
@@ -72,7 +66,6 @@ describe('AuthService', () => {
 
     expect(pending).toMatchObject({
       status: 'verification-required',
-      channel: 'email',
       target: 'ada@example.com',
     });
     const stored = await users.findByEmail('ada@example.com');
@@ -89,8 +82,7 @@ describe('AuthService', () => {
 
   it('refuses the wrong code, and burns one that has been guessed at too often', async () => {
     await service.register(credentials);
-    const wrong = () =>
-      service.verifyCode({ channel: 'email', target: credentials.email, code: '000000' });
+    const wrong = () => service.verifyCode({ target: credentials.email, code: '000000' });
 
     for (let attempt = 0; attempt < 4; attempt += 1) {
       await expect(wrong()).rejects.toBeInstanceOf(AuthenticationError);
@@ -99,7 +91,6 @@ describe('AuthService', () => {
     await expect(wrong()).rejects.toBeInstanceOf(AuthenticationError);
     await expect(
       service.verifyCode({
-        channel: 'email',
         target: credentials.email,
         code: sender.codeFor(credentials.email),
       }),
@@ -310,7 +301,6 @@ describe('AuthService with Google', () => {
         codes: new InMemoryVerificationCodeRepository(),
         hasher,
         email: sender,
-        sms: sender,
         logger: silentLogger,
       }),
       logger: silentLogger,

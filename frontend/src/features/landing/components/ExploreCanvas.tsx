@@ -48,7 +48,7 @@ interface Tile {
   key: string;
   src: string;
   /** The board this picture is on, when it is on one. */
-  href: string;
+  boardId: string | null;
   /** What the link says it opens: a board by name, or Explore. */
   opens: string;
   /** The photographer, which is both the caption and the attribution Pixabay asks for. */
@@ -94,7 +94,7 @@ function toTiles(images: StageImage[], placement: Placement, slots: Slot[]): Til
       key: entry.id,
       src: http.url(`/images/${entry.id}`),
       title: entry.credit.name,
-      href: entry.board ? `/boards/${entry.board.id}` : '/explore',
+      boardId: entry.board?.id ?? null,
       opens: entry.board ? entry.board.title : 'Explore',
       // The slot's shape, not the picture's: the map's spacing depends on it.
       aspectRatio: String(slot.aspect),
@@ -134,6 +134,12 @@ export interface ExploreCanvasProps {
   signedIn?: boolean;
   /** Goes at the start of the chrome's links. Passed in, because this is a feature component. */
   chromeLeading?: ReactNode;
+  /**
+   * Opens a board where the visitor is, rather than sending them to a page.
+   * Passed in, because a picture belongs to a board and this is a feature
+   * component: whoever renders the stage owns that relationship.
+   */
+  onOpenBoard?: (id: string) => void;
   tuning?: ParallaxTuning;
   slots?: Slot[];
   slotLimit?: number;
@@ -144,6 +150,7 @@ export interface ExploreCanvasProps {
 export function ExploreCanvas({
   signedIn = false,
   chromeLeading,
+  onOpenBoard,
   tuning = DEFAULT_TUNING,
   slots = SLOTS,
   slotLimit = TILE_LIMIT,
@@ -227,6 +234,7 @@ export function ExploreCanvas({
             tile={tile}
             parallax={parallax}
             interactive={interactive}
+            onOpenBoard={onOpenBoard}
             onHover={setHovering}
             onError={() =>
               setPlacement((previous) =>
@@ -258,11 +266,12 @@ interface StageTileProps {
   tile: Tile;
   parallax: Parallax;
   interactive: boolean;
+  onOpenBoard?: ((id: string) => void) | undefined;
   onHover: (hovering: boolean) => void;
   onError: () => void;
 }
 
-function StageTile({ tile, parallax, interactive, onHover, onError }: StageTileProps) {
+function StageTile({ tile, parallax, interactive, onOpenBoard, onHover, onError }: StageTileProps) {
   const { x, y } = useLayerOffset(parallax, tile.slot.depth);
   return (
     <motion.div
@@ -283,27 +292,52 @@ function StageTile({ tile, parallax, interactive, onHover, onError }: StageTileP
       {/* A picture on a public board opens that board; one from the curation,
           which belongs to nobody, opens Explore instead. The caption credits
           the photographer, which is what Pixabay asks for in return. */}
-      <Link
-        to={tile.href}
-        aria-label={`${tile.opens} — photo by ${tile.title}`}
-        className="group relative block"
-        style={{ aspectRatio: tile.aspectRatio }}
-        onPointerEnter={() => onHover(true)}
-        onPointerLeave={() => onHover(false)}
-      >
-        <img
-          data-testid="stage-tile"
-          src={tile.src}
-          alt={`Photo by ${tile.title}`}
-          draggable={false}
-          decoding="async"
-          onError={onError}
-          className="block h-full w-full rounded-[2px] object-cover"
-        />
-        <span className="pointer-events-none absolute -bottom-6 left-0 text-[11px] tracking-[0.2em] text-transparent uppercase transition-colors group-hover:text-stage-ink/70">
-          {tile.title}
-        </span>
-      </Link>
+      {tile.boardId ? (
+        <button
+          type="button"
+          onClick={() => onOpenBoard?.(tile.boardId ?? '')}
+          aria-label={`${tile.opens} — photo by ${tile.title}`}
+          className="group relative block w-full"
+          style={{ aspectRatio: tile.aspectRatio }}
+          onPointerEnter={() => onHover(true)}
+          onPointerLeave={() => onHover(false)}
+        >
+          <img
+            data-testid="stage-tile"
+            src={tile.src}
+            alt={`Photo by ${tile.title}`}
+            draggable={false}
+            decoding="async"
+            onError={onError}
+            className="block h-full w-full rounded-[2px] object-cover"
+          />
+          <span className="pointer-events-none absolute -bottom-6 left-0 text-[11px] tracking-[0.2em] text-transparent uppercase transition-colors group-hover:text-stage-ink/70">
+            {tile.title}
+          </span>
+        </button>
+      ) : (
+        <Link
+          to="/explore"
+          aria-label={`${tile.opens} — photo by ${tile.title}`}
+          className="group relative block"
+          style={{ aspectRatio: tile.aspectRatio }}
+          onPointerEnter={() => onHover(true)}
+          onPointerLeave={() => onHover(false)}
+        >
+          <img
+            data-testid="stage-tile"
+            src={tile.src}
+            alt={`Photo by ${tile.title}`}
+            draggable={false}
+            decoding="async"
+            onError={onError}
+            className="block h-full w-full rounded-[2px] object-cover"
+          />
+          <span className="pointer-events-none absolute -bottom-6 left-0 text-[11px] tracking-[0.2em] text-transparent uppercase transition-colors group-hover:text-stage-ink/70">
+            {tile.title}
+          </span>
+        </Link>
+      )}
     </motion.div>
   );
 }

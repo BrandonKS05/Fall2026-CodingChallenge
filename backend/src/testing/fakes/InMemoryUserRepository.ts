@@ -33,14 +33,7 @@ export class InMemoryUserRepository implements UserRepository {
     return [...this.rows.values()].find((user) => user.handle === handle) ?? null;
   }
 
-  async findByPhone(phone: string): Promise<User | null> {
-    return [...this.rows.values()].find((user) => user.phone === phone) ?? null;
-  }
-
-  async markVerified(
-    userId: string,
-    patch: { emailVerifiedAt?: Date; phoneVerifiedAt?: Date },
-  ): Promise<User> {
+  async markVerified(userId: string, patch: { emailVerifiedAt: Date }): Promise<User> {
     const user = this.rows.get(userId);
     if (!user) throw new NotFoundError('User', userId);
     const next = { ...user, ...patch, updatedAt: new Date() };
@@ -49,17 +42,15 @@ export class InMemoryUserRepository implements UserRepository {
   }
 
   async create(input: NewUser): Promise<User> {
-    if (input.email && (await this.findByEmail(input.email))) {
+    if (await this.findByEmail(input.email)) {
       throw new ConflictError('An account with this email already exists');
     }
     const handle = await this.claimHandle(input);
     const now = new Date();
     const user: User = {
       id: randomUUID(),
-      email: input.email ?? null,
+      email: input.email,
       emailVerifiedAt: input.emailVerifiedAt ?? null,
-      phone: input.phone ?? null,
-      phoneVerifiedAt: input.phoneVerifiedAt ?? null,
       displayName: input.displayName,
       handle,
       handleChangedAt: null,
@@ -82,7 +73,7 @@ export class InMemoryUserRepository implements UserRepository {
         throw new ConflictError('That handle is already taken');
       return input.handle;
     }
-    const base = handleFromSeed(input.email ?? input.displayName);
+    const base = handleFromSeed(input.email);
     for (let n = 1; ; n += 1) {
       const candidate = n === 1 ? base : `${base}${n}`;
       if (!(await this.findByHandle(candidate))) return candidate;

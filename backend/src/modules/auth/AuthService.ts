@@ -13,7 +13,6 @@ import {
   RateLimitError,
 } from '../../domain/errors/index.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';
-import type { VerificationChannel } from '../../domain/entities/Verification.js';
 import type { OAuthProfile } from './ports/OAuthProvider.js';
 import type { PasswordHasher } from './ports/PasswordHasher.js';
 import type { UserPatch, UserRepository } from './ports/UserRepository.js';
@@ -67,19 +66,15 @@ export type AuthOutcome =
   | ({ status: 'signed-in' } & AuthResult)
   | {
       status: 'verification-required';
-      channel: VerificationChannel;
       target: string;
       resendAfterSeconds: number;
-    }
-  | { status: 'profile-needed'; channel: 'phone'; target: string };
+      /** Development only, and only with no mail service: the code itself. */
+      devCode?: string;
+    };
 
 export interface VerifyInput {
-  channel: VerificationChannel;
   target: string;
   code: string;
-  /** Only read when the code proves a phone number that has no account yet. */
-  handle?: string | undefined;
-  displayName?: string | undefined;
 }
 
 export class AuthService {
@@ -102,7 +97,7 @@ export class AuthService {
       // An address claimed but never proved is not really taken: whoever can
       // read it can still finish the sign-up, so send them a code instead.
       if (existing.emailVerifiedAt === null && existing.passwordHash !== null) {
-        return this.sendCode('email', input.email, 'finishing your Wumboo sign-up', true);
+        return this.sendCode(input.email, 'finishing your Wumboo sign-up', true);
       }
       throw new ConflictError('An account with this email already exists');
     }
@@ -114,35 +109,32 @@ export class AuthService {
       passwordHash,
     });
     this.log.info({ userId: user.id }, 'User registered, awaiting verification');
-    return this.sendCode('email', input.email, 'signing up for Wumboo', true);
+    return this.sendCode(input.email, 'signing up for Wumboo', true);
   }
 
   /**
-   * Sends a code. For an email that is a resend for an account that has not
-   * proved its address yet — and an address with no such account gets nothing,
-   * while the answer stays the same either way, so this cannot be used to ask
-   * whether someone has an account. A phone number always gets one: that is
-   * how signing in by phone begins.
+   * Sends a code to an address whose sign-up is unfinished. An address with
+   * no such account gets nothing, and the answer is the same either way, so
+   * this cannot be used to ask whether someone has an account.
    */
   async sendCode(
-    channel: VerificationChannel,
     target: string,
     purpose = 'signing in to Wumboo',
     /** True when the code was implied rather than asked for, as on sign-up. */
     implied = false,
   ): Promise<AuthOutcome> {
-    const pending =
-      channel === 'phone' || (await this.deps.users.findByEmail(target))?.emailVerifiedAt === null;
-
+    // An address that is already proved gets no code, and the answer is the
+    // same either way, so this cannot be used to ask who has an account.
+    const pending = (await this.deps.users.findByEmail(target))?.emailVerifiedAt === null;
     const sent = pending
-      ? await this.trySend(channel, target, purpose, implied)
-      : { resendAfterSeconds: CODE_RESEND_SECONDS };
+      ? await this.trySend(target, purpose, implied)
+      : { resendAfterSeconds: CODE_RESEND_SECONDS, devCode: undefined };
 
     return {
       status: 'verification-required',
-      channel,
       target,
       resendAfterSeconds: sent.resendAfterSeconds,
+      ...(sent.devCode === undefined ? {} : { devCode: sent.devCode }),
     };
   }
 
@@ -152,13 +144,12 @@ export class AuthService {
    * code already in their inbox is the answer, and the wait is all they need.
    */
   private async trySend(
-    channel: VerificationChannel,
     target: string,
     purpose: string,
     implied: boolean,
-  ): Promise<{ resendAfterSeconds: number }> {
+  ): Promise<{ resendAfterSeconds: number; devCode?: string | undefined }> {
     try {
-      return await this.deps.verification.send(channel, target, purpose);
+      return await this.deps.verification.send('email', target, purpose);
     } catch (error) {
       if (implied && error instanceof RateLimitError) {
         return { resendAfterSeconds: error.retryAfterSeconds };
@@ -167,57 +158,18 @@ export class AuthService {
     }
   }
 
-  /**
-   * The code, typed back. For an email it finishes a sign-up; for a phone it
-   * either signs the owner in or, if the number is new here, asks for the name
-   * the account will carry — but only after the code has proved the number.
-   */
+  /** The code, typed back: what turns a claimed address into an account. */
   async verifyCode(input: VerifyInput): Promise<AuthOutcome> {
-    // A number nobody has used needs a name before it can become an account, and
-    // that answer comes in a second request — so the code is checked but not yet
-    // spent, or the person would be asked for a name and then for a new code.
-    const nameStillNeeded =
-      input.channel === 'phone' &&
-      (input.handle === undefined || input.displayName === undefined) &&
-      (await this.deps.users.findByPhone(input.target)) === null;
+    await this.deps.verification.check('email', input.target, input.code);
 
-    await this.deps.verification.check(input.channel, input.target, input.code, {
-      consume: !nameStillNeeded,
-    });
-    if (nameStillNeeded) {
-      return { status: 'profile-needed', channel: 'phone', target: input.target };
-    }
-
-    if (input.channel === 'email') {
-      const user = await this.deps.users.findByEmail(input.target);
-      if (!user) throw new AuthenticationError('That code is not right.');
-      const verified =
-        user.emailVerifiedAt === null
-          ? await this.deps.users.markVerified(user.id, { emailVerifiedAt: new Date() })
-          : user;
-      this.log.info({ userId: verified.id }, 'Email verified');
-      return { status: 'signed-in', ...(await this.startSession(verified)) };
-    }
-
-    const byPhone = await this.deps.users.findByPhone(input.target);
-    if (byPhone) {
-      const verified =
-        byPhone.phoneVerifiedAt === null
-          ? await this.deps.users.markVerified(byPhone.id, { phoneVerifiedAt: new Date() })
-          : byPhone;
-      return { status: 'signed-in', ...(await this.startSession(verified)) };
-    }
-
-    // Both are present: nameStillNeeded above is exactly their absence.
-    const created = await this.deps.users.create({
-      phone: input.target,
-      phoneVerifiedAt: new Date(),
-      handle: input.handle ?? '',
-      displayName: input.displayName ?? '',
-      passwordHash: null,
-    });
-    this.log.info({ userId: created.id }, 'User registered by phone');
-    return { status: 'signed-in', ...(await this.startSession(created)) };
+    const user = await this.deps.users.findByEmail(input.target);
+    if (!user) throw new AuthenticationError('That code is not right.');
+    const verified =
+      user.emailVerifiedAt === null
+        ? await this.deps.users.markVerified(user.id, { emailVerifiedAt: new Date() })
+        : user;
+    this.log.info({ userId: verified.id }, 'Email verified');
+    return { status: 'signed-in', ...(await this.startSession(verified)) };
   }
 
   /**
@@ -295,7 +247,7 @@ export class AuthService {
 
     // The password is right, but the address was never proved. Finish that first.
     if (user.email !== null && user.emailVerifiedAt === null) {
-      return this.sendCode('email', user.email, 'signing in to Wumboo', true);
+      return this.sendCode(user.email, 'signing in to Wumboo', true);
     }
     this.log.info({ userId: user.id }, 'User logged in');
     return { status: 'signed-in', ...(await this.startSession(user)) };

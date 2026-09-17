@@ -67,6 +67,31 @@ describe('the landing map', () => {
     }
   });
 
+  it('cannot let one tile overtake another, however far the map is moved', () => {
+    // Two tiles cross only if the difference in how far they travel closes the
+    // gap between them on both axes at once, so the spread of depths is capped
+    // by the tightest gap in the scatter.
+    for (const [aspect, width, height] of [
+      [4 / 3, 1024, 768],
+      [16 / 10, 1440, 900],
+      [21 / 9, 2560, 1100],
+    ] as const) {
+      const acrossShare = (DEFAULT_TUNING.travel / width) * 100;
+      const downShare = (DEFAULT_TUNING.travelY / height) * 100;
+      for (let i = 0; i < SLOTS.length; i += 1) {
+        for (let j = i + 1; j < SLOTS.length; j += 1) {
+          const a = restBox(i, aspect);
+          const b = restBox(j, aspect);
+          const gapAcross = Math.max(0, Math.max(a.left - b.right, b.left - a.right));
+          const gapDown = Math.max(0, Math.max(a.top - b.bottom, b.top - a.bottom));
+          const drift = Math.abs(a.depth - b.depth);
+          const clearance = Math.max(gapAcross / acrossShare, gapDown / downShare);
+          expect(drift).toBeLessThan(clearance);
+        }
+      }
+    }
+  });
+
   it('keeps a ring of tiles off the edges, each near enough to be swept into view', () => {
     const offscreen = SLOTS.map((_, index) => restBox(index)).filter(
       (box) => box.right < 0 || box.left > 100 || box.bottom < 0 || box.top > 100,
