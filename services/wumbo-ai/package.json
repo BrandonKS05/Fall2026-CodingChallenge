@@ -1,0 +1,9 @@
+{
+  "name": "@wumboo/wumbo-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dev-server hook only: the service itself is Python, see README.md",
+  "scripts": {
+    "dev": "test -x .venv/bin/uvicorn && exec .venv/bin/uvicorn app.main:app --reload --port 8000 || echo 'wumbo-ai: no .venv yet — see services/wumbo-ai/README.md'"
+  }
+}

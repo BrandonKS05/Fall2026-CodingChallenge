@@ -1,17 +1,13 @@
-import { followListResponseSchema, handleFromSeed, profileResponseSchema } from '@wumboo/shared';
+import { followListResponseSchema, profileResponseSchema } from '@wumboo/shared';
 import type { Express } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { signUpVia } from '../../testing/signUp.js';
 import { buildTestApp } from '../../testing/testApp.js';
 
 async function signUp(app: Express, email: string): Promise<{ cookie: string; handle: string }> {
-  const handle = handleFromSeed(email);
-  const res = await request(app)
-    .post('/api/auth/register')
-    .send({ email, handle, password: 'password-123', displayName: email.split('@')[0] });
-  const header = res.headers['set-cookie'];
-  const cookies = Array.isArray(header) ? header : [header ?? ''];
-  return { cookie: cookies.find((cookie) => cookie.startsWith('wumboo_session=')) ?? '', handle };
+  const { cookie, handle } = await signUpVia(app, email);
+  return { cookie, handle };
 }
 
 describe('user routes', () => {

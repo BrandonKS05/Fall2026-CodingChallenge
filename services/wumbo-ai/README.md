@@ -16,6 +16,10 @@ cp .env.example .env          # then put your key in it
 .venv/bin/uvicorn app.main:app --reload --port 8000
 ```
 
+Once the venv exists, `pnpm dev` at the repository root starts this service
+alongside the app — the widget is dead weight without it, so it should not be a
+separate thing to remember.
+
 `GET /api/health` reports whether a key is configured. Without one the service
 still runs: every reply is the fallback sentence, so the widget degrades instead
 of the page breaking.

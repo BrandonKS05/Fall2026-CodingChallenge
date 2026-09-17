@@ -1,10 +1,12 @@
 import type {
+  AuthOutcome,
   AuthProvidersResponse,
-  AuthResponse,
   ChangePasswordRequest,
   HandleAvailabilityResponse,
   LoginRequest,
   RegisterRequest,
+  SendCodeRequest,
+  VerifyCodeRequest,
   SessionResponse,
   UpdateProfileRequest,
   User,
@@ -15,8 +17,10 @@ import { http } from '@/lib/api';
 /** Adapter: the feature's slice of the API contract as typed calls, so components never see URLs. */
 export const authApi = {
   me: () => http.get<SessionResponse>('/auth/me'),
-  login: (body: LoginRequest) => http.post<AuthResponse>('/auth/login', body),
-  register: (body: RegisterRequest) => http.post<AuthResponse>('/auth/register', body),
+  login: (body: LoginRequest) => http.post<AuthOutcome>('/auth/login', body),
+  register: (body: RegisterRequest) => http.post<AuthOutcome>('/auth/register', body),
+  sendCode: (body: SendCodeRequest) => http.post<AuthOutcome>('/auth/code', body),
+  verifyCode: (body: VerifyCodeRequest) => http.post<AuthOutcome>('/auth/verify', body),
   logout: () => http.post<void>('/auth/logout'),
   providers: () => http.get<AuthProvidersResponse>('/auth/providers'),
   handleAvailability: (handle: string) =>

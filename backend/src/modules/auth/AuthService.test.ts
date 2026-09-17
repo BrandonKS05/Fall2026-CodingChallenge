@@ -12,19 +12,31 @@ import {
   silentLogger,
 } from '../../testing/fakes/fakeAuth.js';
 import { InMemoryUserRepository } from '../../testing/fakes/InMemoryUserRepository.js';
+import { InMemoryVerificationCodeRepository } from '../../testing/fakes/InMemoryVerificationCodeRepository.js';
+import { RecordingCodeSender } from '../../testing/fakes/RecordingCodeSender.js';
+import { VerificationService } from './VerificationService.js';
 
 describe('AuthService', () => {
   let users: InMemoryUserRepository;
   let hasher: FakePasswordHasher;
+  let sender: RecordingCodeSender;
   let service: AuthService;
 
   beforeEach(() => {
     users = new InMemoryUserRepository();
     hasher = new FakePasswordHasher();
+    sender = new RecordingCodeSender();
     service = new AuthService({
       users,
       passwordHasher: hasher,
       tokens: new FakeTokenService(),
+      verification: new VerificationService({
+        codes: new InMemoryVerificationCodeRepository(),
+        hasher,
+        email: sender,
+        sms: sender,
+        logger: silentLogger,
+      }),
       logger: silentLogger,
     });
   });
@@ -36,25 +48,90 @@ describe('AuthService', () => {
     displayName: 'Ada',
   };
 
-  it('registers a user, stores only the hash, and starts a session', async () => {
-    const result = await service.register(credentials);
+  /** Signing up now takes two steps: claim the address, then prove you can read it. */
+  const signUp = async (input = credentials) => {
+    await service.register(input);
+    return signIn('email', input.email);
+  };
 
-    expect(result.user).not.toHaveProperty('passwordHash');
-    expect(result.user.email).toBe('ada@example.com');
-    expect(result.token).toBe(`token:${result.user.id}`);
+  const signIn = async (channel: 'email' | 'phone', target: string, profile = {}) => {
+    const outcome = await service.verifyCode({
+      channel,
+      target,
+      code: sender.codeFor(target),
+      ...profile,
+    });
+    if (outcome.status !== 'signed-in') {
+      throw new Error(`Expected a session, got ${outcome.status}`);
+    }
+    return outcome;
+  };
+
+  it('registers a user, stores only the hash, and waits for the code before any session', async () => {
+    const pending = await service.register(credentials);
+
+    expect(pending).toMatchObject({
+      status: 'verification-required',
+      channel: 'email',
+      target: 'ada@example.com',
+    });
     const stored = await users.findByEmail('ada@example.com');
     expect(stored?.passwordHash).toBe('hashed:correct horse');
+    // The account exists but is not yet anyone's: no session until the code comes back.
+    expect(stored?.emailVerifiedAt).toBeNull();
+    expect(sender.codeFor('ada@example.com')).toMatch(/^\d{6}$/);
+
+    const result = await signIn('email', 'ada@example.com');
+    expect(result.user).not.toHaveProperty('passwordHash');
+    expect(result.token).toBe(`token:${result.user.id}`);
+    expect((await users.findByEmail('ada@example.com'))?.emailVerifiedAt).toBeInstanceOf(Date);
   });
 
-  it('rejects a duplicate email with ConflictError', async () => {
+  it('refuses the wrong code, and burns one that has been guessed at too often', async () => {
     await service.register(credentials);
+    const wrong = () =>
+      service.verifyCode({ channel: 'email', target: credentials.email, code: '000000' });
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await expect(wrong()).rejects.toBeInstanceOf(AuthenticationError);
+    }
+    // The fifth wrong guess spends the code, so the right one no longer works either.
+    await expect(wrong()).rejects.toBeInstanceOf(AuthenticationError);
+    await expect(
+      service.verifyCode({
+        channel: 'email',
+        target: credentials.email,
+        code: sender.codeFor(credentials.email),
+      }),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+  });
+
+  it('rejects a duplicate email with ConflictError once the first one is proved', async () => {
+    await signUp();
     await expect(service.register(credentials)).rejects.toBeInstanceOf(ConflictError);
   });
 
-  it('logs in with the right password and rejects the wrong one', async () => {
+  it('lets a sign-up nobody finished be finished by whoever can read the address', async () => {
     await service.register(credentials);
+    // Submitting the form again is not a taken address; it is the same person.
+    await expect(service.register(credentials)).resolves.toMatchObject({
+      status: 'verification-required',
+    });
+    // And it does not send a second code straight away.
+    expect(sender.countFor(credentials.email)).toBe(1);
+  });
+
+  it('will not let a password alone in while the address is unproved', async () => {
+    await service.register(credentials);
+    await expect(
+      service.login({ email: credentials.email, password: credentials.password }),
+    ).resolves.toMatchObject({ status: 'verification-required' });
+  });
+
+  it('logs in with the right password and rejects the wrong one', async () => {
+    await signUp();
     const ok = await service.login({ email: credentials.email, password: credentials.password });
-    expect(ok.user.displayName).toBe('Ada');
+    expect(ok).toMatchObject({ status: 'signed-in', user: { displayName: 'Ada' } });
 
     await expect(
       service.login({ email: credentials.email, password: 'nope' }),
@@ -69,13 +146,13 @@ describe('AuthService', () => {
   });
 
   it('treats a session for a deleted user as unauthenticated', async () => {
-    const { user } = await service.register(credentials);
+    const { user } = await signUp();
     users.delete(user.id);
     await expect(service.getUser(user.id)).rejects.toBeInstanceOf(AuthenticationError);
   });
 
   it('lets a person change their name and bio, and delete their account', async () => {
-    const { user } = await service.register(credentials);
+    const { user } = await signUp();
     const updated = await service.updateProfile(user.id, { bio: 'Collector of quiet kitchens.' });
     expect(updated).toMatchObject({ displayName: 'Ada', bio: 'Collector of quiet kitchens.' });
     expect((await users.findById(user.id))?.bio).toBe('Collector of quiet kitchens.');
@@ -89,7 +166,7 @@ describe('AuthService', () => {
 
   describe('handles', () => {
     it('keeps handles unique, and refuses one that is taken', async () => {
-      await service.register(credentials);
+      await signUp();
       expect((await users.findByHandle('ada'))?.email).toBe('ada@example.com');
       expect(await service.isHandleAvailable('ada')).toBe(false);
       expect(await service.isHandleAvailable('nobody')).toBe(true);
@@ -105,7 +182,7 @@ describe('AuthService', () => {
     });
 
     it('names a Google account after its email, varying it when that is taken', async () => {
-      await service.register({ ...credentials, email: 'ada@other.com', handle: 'ada' });
+      await signUp({ ...credentials, email: 'ada@other.com', handle: 'ada' });
 
       const arrived = await service.loginWithOAuth({
         providerId: 'g-1',
@@ -118,7 +195,7 @@ describe('AuthService', () => {
     });
 
     it('lets the first handle change through, then settles for two weeks', async () => {
-      const { user } = await service.register(credentials);
+      const { user } = await signUp();
       expect(user.handleChangedAt).toBeNull();
 
       const renamed = await service.updateProfile(user.id, { handle: 'ada_l' });
@@ -143,7 +220,7 @@ describe('AuthService', () => {
 
   describe('settings', () => {
     it('merges a preference patch into what is stored, leaving the other switches alone', async () => {
-      const { user } = await service.register(credentials);
+      const { user } = await signUp();
 
       const once = await service.updateProfile(user.id, {
         preferences: { notifications: { itemAdded: false }, mutedTags: ['neon'] },
@@ -163,7 +240,7 @@ describe('AuthService', () => {
     });
 
     it('changes the password, retires the old tokens, and keeps the caller signed in', async () => {
-      const { user, token } = await service.register(credentials);
+      const { user, token } = await signUp();
 
       const fresh = await service.changePassword(user.id, {
         currentPassword: credentials.password,
@@ -180,7 +257,7 @@ describe('AuthService', () => {
     });
 
     it('refuses a password change without the current password, or on a Google account', async () => {
-      const { user } = await service.register(credentials);
+      const { user } = await signUp();
       await expect(
         service.changePassword(user.id, { currentPassword: 'wrong', newPassword: 'another one' }),
       ).rejects.toBeInstanceOf(AuthenticationError);
@@ -201,7 +278,7 @@ describe('AuthService', () => {
     });
 
     it('revoking sessions raises the version, so an older token no longer matches', async () => {
-      const { user } = await service.register(credentials);
+      const { user } = await signUp();
       const revoked = await service.revokeOtherSessions(user.id);
       expect(revoked).toBe(`token:${user.id}.1`);
       expect((await users.findById(user.id))?.sessionVersion).toBe(1);
@@ -219,12 +296,23 @@ describe('AuthService with Google', () => {
     displayName: 'Ada',
   };
 
+  let sender: RecordingCodeSender;
+
   beforeEach(() => {
     users = new InMemoryUserRepository();
+    sender = new RecordingCodeSender();
+    const hasher = new FakePasswordHasher();
     service = new AuthService({
       users,
-      passwordHasher: new FakePasswordHasher(),
+      passwordHasher: hasher,
       tokens: new FakeTokenService(),
+      verification: new VerificationService({
+        codes: new InMemoryVerificationCodeRepository(),
+        hasher,
+        email: sender,
+        sms: sender,
+        logger: silentLogger,
+      }),
       logger: silentLogger,
     });
   });
@@ -239,15 +327,16 @@ describe('AuthService with Google', () => {
   });
 
   it('links Google to an existing password account with the same verified email', async () => {
-    const registered = await service.register({
+    await service.register({
       email: 'ada@example.com',
       handle: 'reg',
       password: 'correct horse',
       displayName: 'Ada',
     });
+    const registered = await users.findByEmail('ada@example.com');
     const viaGoogle = await service.loginWithOAuth(profile);
-    expect(viaGoogle.user.id).toBe(registered.user.id);
-    expect((await users.findById(registered.user.id))?.googleId).toBe('g-1');
+    expect(viaGoogle.user.id).toBe(registered?.id);
+    expect((await users.findById(viaGoogle.user.id))?.googleId).toBe('g-1');
     // The password still works after linking.
     await expect(
       service.login({ email: 'ada@example.com', password: 'correct horse' }),

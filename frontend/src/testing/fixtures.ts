@@ -93,6 +93,9 @@ export function searchResultFixture(
 
 export const userFixture: User = {
   id: 'u1',
+  emailVerifiedAt: now,
+  phone: null,
+  phoneVerifiedAt: null,
   email: 'ada@example.com',
   displayName: 'Ada',
   handle: 'ada',

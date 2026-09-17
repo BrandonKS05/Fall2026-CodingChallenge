@@ -116,7 +116,7 @@ export const SEED_BOARDS: BoardSeed[] = [
 
 interface Account {
   id: string;
-  email: string;
+  email: string | null;
 }
 
 export async function seedDemo(container: Container): Promise<void> {
@@ -150,7 +150,7 @@ export async function seedDemo(container: Container): Promise<void> {
     if (!existing) boardsCreated += 1;
 
     if (seedBoard.shareWithOther && !(await repositories.memberships.find(board.id, other.id))) {
-      await services.share.invite(board.id, owner.id, other.email, 'editor');
+      if (other.email) await services.share.invite(board.id, owner.id, other.email, 'editor');
     }
     // Returns the existing slug when the board already has one.
     if (seedBoard.shareLink) await services.share.createLink(board.id, owner.id);
@@ -231,8 +231,18 @@ async function ensureCuratedImages(container: Container): Promise<number> {
   return stored;
 }
 
+/**
+ * Seeded accounts skip the code: there is nobody to read the mailbox, and a
+ * demo account that cannot be signed into is no demo at all.
+ */
 async function ensureAccount(container: Container, account: typeof DEMO_ACCOUNT): Promise<Account> {
   const existing = await container.repositories.users.findByEmail(account.email);
   if (existing) return existing;
-  return (await container.services.auth.register(account)).user;
+  return container.repositories.users.create({
+    email: account.email,
+    handle: account.handle,
+    displayName: account.displayName,
+    passwordHash: await container.passwordHasher.hash(account.password),
+    emailVerifiedAt: new Date(),
+  });
 }

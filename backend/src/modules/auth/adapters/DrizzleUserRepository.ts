@@ -18,6 +18,9 @@ type UserRow = typeof users.$inferSelect;
 const toUser = (row: UserRow): User => ({
   id: row.id,
   email: row.email,
+  emailVerifiedAt: row.emailVerifiedAt,
+  phone: row.phone,
+  phoneVerifiedAt: row.phoneVerifiedAt,
   displayName: row.displayName,
   handle: row.handle,
   handleChangedAt: row.handleChangedAt,
@@ -64,9 +67,28 @@ export class DrizzleUserRepository implements UserRepository {
    * from their email is ours to vary, so a Google sign-in never fails on a
    * name the person never saw.
    */
+  async findByPhone(phone: string): Promise<User | null> {
+    const row = await this.db.query.users.findFirst({ where: eq(users.phone, phone) });
+    return row ? toUser(row) : null;
+  }
+
+  async markVerified(
+    userId: string,
+    patch: { emailVerifiedAt?: Date; phoneVerifiedAt?: Date },
+  ): Promise<User> {
+    const [row] = await this.db
+      .update(users)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    if (!row) throw new NotFoundError('User', userId);
+    return toUser(row);
+  }
+
   async create(input: NewUser): Promise<User> {
     const chosen = input.handle !== undefined;
-    let handle = input.handle ?? handleFromSeed(input.email);
+    const seed = input.email ?? input.displayName;
+    let handle = input.handle ?? handleFromSeed(seed);
 
     for (let attempt = 0; ; attempt += 1) {
       try {
@@ -84,7 +106,7 @@ export class DrizzleUserRepository implements UserRepository {
           throw new ConflictError('That Google account is already linked to a user');
         }
         if (isUniqueViolation(error, 'users_handle_unique') && !chosen && attempt < 5) {
-          handle = withSuffix(handleFromSeed(input.email), attempt + 2);
+          handle = withSuffix(handleFromSeed(seed), attempt + 2);
           continue;
         }
         if (isUniqueViolation(error, 'users_handle_unique')) {

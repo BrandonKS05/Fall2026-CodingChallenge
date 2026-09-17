@@ -8,6 +8,7 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import {
   handleFromSeed,
   loginRequestSchema,
+  phoneSchema,
   registerRequestSchema,
   type LoginRequest,
   type RegisterRequest,
@@ -20,12 +21,19 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import type { AuthMode } from '@/hooks/useAuthDialog';
 import { ApiError } from '@/lib/api';
-import { useAuthProviders, useHandleAvailability, useLogin, useRegister } from '../queries';
+import {
+  useAuthProviders,
+  useHandleAvailability,
+  useLogin,
+  useRegister,
+  useSendCode,
+} from '../queries';
 import { FormField } from '@/components/common/FormField';
 import { PasswordField } from '@/components/common/PasswordField';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 import { PASSWORD_RULES } from '../passwordRules';
+import { CodeStep, type PendingCode } from './CodeStep';
 import { GoogleButton } from './GoogleButton';
 
 /** Reasons the Google callback can send the browser back with. */
@@ -94,8 +102,13 @@ export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
   const providers = useAuthProviders();
   const oauthError = OAUTH_ERRORS[params.get('error') ?? ''] ?? null;
   const [serverError, setServerError] = useState<string | null>(oauthError);
+  // Once a code is out, it is the only thing on screen: the form has done its part.
+  const [awaitingCode, setAwaitingCode] = useState<PendingCode | null>(null);
+  const [byPhone, setByPhone] = useState(false);
+  const [phone, setPhone] = useState('');
+  const sendCode = useSendCode();
   const text = copy[mode];
-  const pending = login.isPending || register.isPending;
+  const pending = login.isPending || register.isPending || sendCode.isPending;
 
   const form = useForm<FormValues>({
     resolver: resolvers[mode],
@@ -123,22 +136,56 @@ export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
 
   const destination = (location.state as { from?: string } | null)?.from ?? '/boards';
 
+  const finish = async () => {
+    if (onSuccess) onSuccess();
+    else await navigate(destination, { replace: true });
+  };
+
+  /** The phone path: a number, a code, and — for a new number — a name. */
+  const startPhone = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setServerError(null);
+    const parsed = phoneSchema.safeParse(phone);
+    if (!parsed.success) {
+      setServerError(parsed.error.issues[0]?.message ?? 'That does not look like a phone number.');
+      return;
+    }
+    try {
+      const outcome = await sendCode.mutateAsync({ channel: 'phone', phone: parsed.data });
+      if (outcome.status === 'verification-required') {
+        setAwaitingCode({
+          channel: 'phone',
+          target: outcome.target,
+          resendAfterSeconds: outcome.resendAfterSeconds,
+        });
+      }
+    } catch (error) {
+      setServerError(error instanceof ApiError ? error.message : 'Could not send a code just now.');
+    }
+  };
+
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null);
     try {
-      if (mode === 'login') {
-        const body: LoginRequest = { email: values.email, password: values.password };
-        await login.mutateAsync(body);
-      } else {
-        await register.mutateAsync({
-          email: values.email,
-          handle: values.handle,
-          displayName: values.displayName,
-          password: values.password,
+      const body: LoginRequest = { email: values.email, password: values.password };
+      const outcome =
+        mode === 'login'
+          ? await login.mutateAsync(body)
+          : await register.mutateAsync({
+              email: values.email,
+              handle: values.handle,
+              displayName: values.displayName,
+              password: values.password,
+            });
+      if (outcome.status === 'verification-required') {
+        setAwaitingCode({
+          channel: outcome.channel,
+          target: outcome.target,
+          resendAfterSeconds: outcome.resendAfterSeconds,
         });
+        return;
       }
-      if (onSuccess) onSuccess();
-      else await navigate(destination, { replace: true });
+      await finish();
     } catch (error) {
       setServerError(
         error instanceof ApiError ? error.message : 'Something went wrong. Please try again.',
@@ -147,6 +194,60 @@ export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
   });
 
   const switchClassName = 'font-medium text-foreground underline-offset-4 hover:underline';
+
+  if (awaitingCode) {
+    return (
+      <CodeStep
+        pending={awaitingCode}
+        onPending={setAwaitingCode}
+        onSignedIn={() => void finish()}
+        onBack={() => setAwaitingCode(null)}
+      />
+    );
+  }
+
+  if (byPhone) {
+    return (
+      <form onSubmit={(event) => void startPhone(event)} noValidate className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          We will text you a code. No password to remember, and no email needed.
+        </p>
+        <FormField
+          id="phone"
+          label="Phone number"
+          type="tel"
+          autoComplete="tel"
+          placeholder="(615) 555-0123"
+          hint="With a country code, or we will read it as a US number."
+          value={phone}
+          onChange={(event) => setPhone(event.target.value)}
+        />
+        {serverError && (
+          <p
+            role="alert"
+            className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            {serverError}
+          </p>
+        )}
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? 'Sending…' : 'Text me a code'}
+        </Button>
+        <p className="text-center text-sm text-muted-foreground">
+          <button
+            type="button"
+            className={switchClassName}
+            onClick={() => {
+              setByPhone(false);
+              setServerError(null);
+            }}
+          >
+            Use an email address instead
+          </button>
+        </p>
+      </form>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -230,6 +331,18 @@ export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? 'One moment…' : text.submit}
         </Button>
+        <p className="text-center text-sm text-muted-foreground">
+          <button
+            type="button"
+            className={switchClassName}
+            onClick={() => {
+              setByPhone(true);
+              setServerError(null);
+            }}
+          >
+            {signingUp ? 'Sign up with a phone number' : 'Sign in with a phone number'}
+          </button>
+        </p>
         <p className="text-center text-sm text-muted-foreground">
           {text.switchText}{' '}
           {onSwitchMode ? (

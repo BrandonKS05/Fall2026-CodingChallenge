@@ -11,6 +11,11 @@ import pkg from '../package.json' with { type: 'json' };
 import type { Env } from './config/env.js';
 import { SESSION_TTL_SECONDS } from './config/session.js';
 import { Argon2PasswordHasher } from './modules/auth/adapters/Argon2PasswordHasher.js';
+import { LoggingCodeSender } from './modules/auth/adapters/LoggingCodeSender.js';
+import { ResendEmailSender } from './modules/auth/adapters/ResendEmailSender.js';
+import { TwilioSmsSender } from './modules/auth/adapters/TwilioSmsSender.js';
+import type { EmailSender, SmsSender } from './modules/auth/ports/CodeSender.js';
+import { VerificationService } from './modules/auth/VerificationService.js';
 import { GoogleOAuthProvider } from './modules/auth/adapters/GoogleOAuthProvider.js';
 import { JoseTokenService } from './modules/auth/adapters/JoseTokenService.js';
 import { createDatabase, type Database } from './infrastructure/db/client.js';
@@ -86,6 +91,8 @@ export interface ContainerOverrides {
   healthIndicators?: HealthIndicator[];
   repositories?: Partial<Repositories>;
   passwordHasher?: PasswordHasher;
+  emailSender?: EmailSender;
+  smsSender?: SmsSender;
   tokens?: TokenService;
   storage?: StorageBackend;
   imageProvider?: ImageProvider;
@@ -121,6 +128,31 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
           }),
         }
       : {});
+  // Codes go out through whichever delivery is configured; with none, they go
+  // to the log, which is a development convenience and nothing more.
+  const emailSender =
+    overrides.emailSender ??
+    (env.RESEND_API_KEY && env.EMAIL_FROM
+      ? new ResendEmailSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM, fetchFn })
+      : new LoggingCodeSender(logger, 'email'));
+  const smsSender =
+    overrides.smsSender ??
+    (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM
+      ? new TwilioSmsSender({
+          accountSid: env.TWILIO_ACCOUNT_SID,
+          authToken: env.TWILIO_AUTH_TOKEN,
+          from: env.TWILIO_FROM,
+          fetchFn,
+        })
+      : new LoggingCodeSender(logger, 'sms'));
+  const verification = new VerificationService({
+    codes: repositories.verificationCodes,
+    hasher: passwordHasher,
+    email: emailSender,
+    sms: smsSender,
+    logger,
+  });
+
   const storage = overrides.storage ?? createStorage(env, BACKEND_ROOT);
   // Decorator: every provider call goes through the 24-hour cache Pixabay's terms require.
   const imageProvider =
@@ -166,7 +198,13 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     logger,
   });
   const services: Services = {
-    auth: new AuthService({ users: repositories.users, passwordHasher, tokens, logger }),
+    auth: new AuthService({
+      users: repositories.users,
+      passwordHasher,
+      tokens,
+      verification,
+      logger,
+    }),
     accountExport: new AccountExportService({
       users: repositories.users,
       collections: repositories.collections,

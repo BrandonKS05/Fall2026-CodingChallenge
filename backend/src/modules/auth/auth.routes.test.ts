@@ -1,10 +1,11 @@
 /** Route tests with the real argon2 and jose adapters and an in-memory user repository. */
-import { authResponseSchema } from '@wumboo/shared';
+import { authOutcomeSchema } from '@wumboo/shared';
 import type { Express } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { FakeOAuthProvider } from '../../testing/fakes/FakeOAuthProvider.js';
 import { InMemoryUserRepository } from '../../testing/fakes/InMemoryUserRepository.js';
+import { RecordingCodeSender } from '../../testing/fakes/RecordingCodeSender.js';
 import { buildTestApp } from '../../testing/testApp.js';
 
 const account = {
@@ -23,17 +24,49 @@ function sessionCookie(res: request.Response): string {
 describe('auth routes', () => {
   let app: Express;
   let users: InMemoryUserRepository;
+  let sender: RecordingCodeSender;
 
   beforeEach(() => {
     users = new InMemoryUserRepository();
-    app = buildTestApp({ repositories: { users } });
+    sender = new RecordingCodeSender();
+    app = buildTestApp({ repositories: { users }, emailSender: sender, smsSender: sender });
   });
 
-  it('registers, sets an httpOnly session cookie, and returns the contract shape', async () => {
-    const res = await request(app).post('/api/auth/register').send(account);
+  /** Registering and then typing the code back: what having an account now takes. */
+  async function signUp(input = account): Promise<request.Response> {
+    await request(app).post('/api/auth/register').send(input);
+    return request(app)
+      .post('/api/auth/verify')
+      .send({
+        channel: 'email',
+        email: input.email,
+        code: sender.codeFor(input.email.trim().toLowerCase()),
+      });
+  }
 
-    expect(res.status).toBe(201);
-    expect(authResponseSchema.safeParse(res.body).success).toBe(true);
+  it('sends a code instead of a session, and opens the account once it comes back', async () => {
+    const pending = await request(app).post('/api/auth/register').send(account);
+
+    expect(pending.status).toBe(202);
+    expect(authOutcomeSchema.safeParse(pending.body).success).toBe(true);
+    expect(pending.body).toMatchObject({
+      status: 'verification-required',
+      channel: 'email',
+      target: 'grace@example.com',
+    });
+    // Nothing to sign in with yet.
+    expect(sessionCookie(pending)).toBe('');
+
+    const res = await request(app)
+      .post('/api/auth/verify')
+      .send({
+        channel: 'email',
+        email: account.email,
+        code: sender.codeFor('grace@example.com'),
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ status: 'signed-in' });
     expect(res.body.user.email).toBe('grace@example.com');
     expect(res.body.user).not.toHaveProperty('passwordHash');
 
@@ -43,11 +76,102 @@ describe('auth routes', () => {
     expect(cookie).not.toMatch(/Secure/i);
   });
 
-  it('rejects a duplicate email with 409', async () => {
+  it('refuses a code that is wrong, stale, or for the wrong address', async () => {
     await request(app).post('/api/auth/register').send(account);
+
+    const wrong = await request(app)
+      .post('/api/auth/verify')
+      .send({ channel: 'email', email: account.email, code: '000000' });
+    expect(wrong.status).toBe(401);
+
+    const unknown = await request(app)
+      .post('/api/auth/verify')
+      .send({ channel: 'email', email: 'nobody@example.com', code: '123456' });
+    expect(unknown.status).toBe(401);
+
+    // Six digits or it is not a code at all.
+    const malformed = await request(app)
+      .post('/api/auth/verify')
+      .send({ channel: 'email', email: account.email, code: '12' });
+    expect(malformed.status).toBe(400);
+  });
+
+  it('will not send a second code within the cool-off, and says how long to wait', async () => {
+    await request(app).post('/api/auth/register').send(account);
+    const again = await request(app)
+      .post('/api/auth/code')
+      .send({ channel: 'email', email: account.email });
+
+    expect(again.status).toBe(429);
+    expect(Number(again.headers['retry-after'])).toBeGreaterThan(0);
+    expect(sender.countFor('grace@example.com')).toBe(1);
+  });
+
+  it('says nothing about who has an account when a code is asked for', async () => {
+    const res = await request(app)
+      .post('/api/auth/code')
+      .send({ channel: 'email', email: 'stranger@example.com' });
+
+    // The same answer as for a real address, and no mail sent to a stranger.
+    expect(res.status).toBe(202);
+    expect(res.body).toMatchObject({ status: 'verification-required' });
+    expect(sender.countFor('stranger@example.com')).toBe(0);
+  });
+
+  it('rejects a duplicate email with 409 once the first account is proved', async () => {
+    await signUp();
     const res = await request(app).post('/api/auth/register').send(account);
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('CONFLICT');
+  });
+
+  it('signs in by phone: a code, then a name for a number nobody has used', async () => {
+    const asked = await request(app)
+      .post('/api/auth/code')
+      .send({ channel: 'phone', phone: '(615) 555-0123' });
+    expect(asked.status).toBe(202);
+    expect(asked.body.target).toBe('+16155550123');
+
+    const code = sender.codeFor('+16155550123');
+    const needsName = await request(app)
+      .post('/api/auth/verify')
+      .send({ channel: 'phone', phone: '+1 615 555 0123', code });
+    // The code proved the number; only now is anything asked about the person.
+    expect(needsName.body).toMatchObject({ status: 'profile-needed', target: '+16155550123' });
+    expect(sessionCookie(needsName)).toBe('');
+
+    const created = await request(app).post('/api/auth/verify').send({
+      channel: 'phone',
+      phone: '+16155550123',
+      code,
+      handle: 'grace',
+      displayName: 'Grace',
+    });
+    expect(created.body).toMatchObject({ status: 'signed-in' });
+    expect(created.body.user).toMatchObject({
+      handle: 'grace',
+      email: null,
+      phone: '+16155550123',
+    });
+    expect(sessionCookie(created)).toMatch(/HttpOnly/i);
+  });
+
+  it('signs the owner of a known number straight back in, asking for no name', async () => {
+    await users.create({
+      phone: '+16155550199',
+      phoneVerifiedAt: new Date(),
+      handle: 'ada',
+      displayName: 'Ada',
+      passwordHash: null,
+    });
+
+    await request(app).post('/api/auth/code').send({ channel: 'phone', phone: '+16155550199' });
+    const res = await request(app)
+      .post('/api/auth/verify')
+      .send({ channel: 'phone', phone: '+16155550199', code: sender.codeFor('+16155550199') });
+
+    expect(res.body).toMatchObject({ status: 'signed-in', user: { handle: 'ada' } });
+    expect(sessionCookie(res)).toMatch(/HttpOnly/i);
   });
 
   it('rejects an invalid body with field-level details', async () => {
@@ -62,13 +186,13 @@ describe('auth routes', () => {
   });
 
   it('logs in with normalized email and rejects a wrong password with 401', async () => {
-    await request(app).post('/api/auth/register').send(account);
+    await signUp();
 
     const ok = await request(app)
       .post('/api/auth/login')
       .send({ email: '  GRACE@example.com ', password: account.password });
     expect(ok.status).toBe(200);
-    expect(ok.body.user.displayName).toBe('Grace');
+    expect(ok.body).toMatchObject({ status: 'signed-in', user: { displayName: 'Grace' } });
 
     const bad = await request(app)
       .post('/api/auth/login')
@@ -82,7 +206,7 @@ describe('auth routes', () => {
     expect(anonymous.status).toBe(200);
     expect(anonymous.body).toEqual({ user: null });
 
-    const registered = await request(app).post('/api/auth/register').send(account);
+    const registered = await signUp();
     const me = await request(app).get('/api/auth/me').set('Cookie', sessionCookie(registered));
     expect(me.status).toBe(200);
     expect(me.body.user.id).toBe(registered.body.user.id);
@@ -94,7 +218,7 @@ describe('auth routes', () => {
   });
 
   it('logs out by clearing the cookie', async () => {
-    const registered = await request(app).post('/api/auth/register').send(account);
+    const registered = await signUp();
     const logout = await request(app)
       .post('/api/auth/logout')
       .set('Cookie', sessionCookie(registered));
@@ -103,14 +227,14 @@ describe('auth routes', () => {
   });
 
   it('locks out a session whose user was deleted', async () => {
-    const registered = await request(app).post('/api/auth/register').send(account);
+    const registered = await signUp();
     users.delete(registered.body.user.id);
     const me = await request(app).get('/api/auth/me').set('Cookie', sessionCookie(registered));
     expect(me.body).toEqual({ user: null });
   });
 
   it('updates the profile and deletes the account through /me', async () => {
-    const registered = await request(app).post('/api/auth/register').send({
+    const registered = await signUp({
       email: 'ada@example.com',
       handle: 'ada',
       password: 'lovelace-1815',
@@ -146,7 +270,7 @@ describe('auth routes', () => {
       .send({ ...account, handle: 'settings' });
     expect(reserved.status).toBe(400);
 
-    const registered = await request(app).post('/api/auth/register').send(account);
+    const registered = await signUp();
     expect(registered.body.user).toMatchObject({ handle: 'grace', handleChangedAt: null });
 
     const taken = await request(app)
@@ -175,7 +299,7 @@ describe('auth routes', () => {
   });
 
   it('patches preferences without disturbing the rest, and keeps them out of other views', async () => {
-    const registered = await request(app).post('/api/auth/register').send(account);
+    const registered = await signUp();
     const cookie = sessionCookie(registered);
     expect(registered.body.user.preferences.notifications.itemAdded).toBe(true);
 
@@ -201,7 +325,7 @@ describe('auth routes', () => {
   });
 
   it('changes the password, which signs the other devices out but not this one', async () => {
-    const registered = await request(app).post('/api/auth/register').send(account);
+    const registered = await signUp();
     const oldCookie = sessionCookie(registered);
 
     const wrong = await request(app)
@@ -231,7 +355,7 @@ describe('auth routes', () => {
   });
 
   it('signs out other sessions on request', async () => {
-    const registered = await request(app).post('/api/auth/register').send(account);
+    const registered = await signUp();
     const oldCookie = sessionCookie(registered);
 
     const revoked = await request(app)

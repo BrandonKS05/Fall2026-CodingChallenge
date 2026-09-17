@@ -68,9 +68,9 @@ export function WumboAI() {
     if (event.key === 'Escape') setOpen(false);
   };
 
-  const send = async (event: FormEvent) => {
-    event.preventDefault();
-    const question = draft.trim();
+  /** One way in for a question, whether it was typed or tapped from a suggestion. */
+  const ask = async (text: string) => {
+    const question = text.trim();
     if (question === '' || thinking) return;
 
     const asked: Bubble = { id: crypto.randomUUID(), role: 'user', content: question };
@@ -104,6 +104,11 @@ export function WumboAI() {
     } finally {
       setThinking(false);
     }
+  };
+
+  const send = (event: FormEvent) => {
+    event.preventDefault();
+    void ask(draft);
   };
 
   return (
@@ -168,7 +173,7 @@ export function WumboAI() {
                     <li key={suggestion}>
                       <button
                         type="button"
-                        onClick={() => setDraft(suggestion)}
+                        onClick={() => void ask(suggestion)}
                         className="w-full rounded-xl border border-border px-3 py-2 text-left text-xs transition-colors hover:border-violet-400/60 hover:bg-accent"
                       >
                         {suggestion}

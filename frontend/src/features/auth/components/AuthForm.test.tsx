@@ -14,7 +14,25 @@ function renderForm(routes: Record<string, StubRoute> = {}) {
         available: !url.includes('handle=taken'),
       },
     }),
-    'POST /api/auth/register': { status: 201, body: { user: userFixture } },
+    'POST /api/auth/register': {
+      status: 202,
+      body: {
+        status: 'verification-required',
+        channel: 'email',
+        target: 'ada@example.com',
+        resendAfterSeconds: 30,
+      },
+    },
+    'POST /api/auth/verify': { body: { status: 'signed-in', user: userFixture } },
+    'POST /api/auth/code': {
+      status: 202,
+      body: {
+        status: 'verification-required',
+        channel: 'phone',
+        target: '+16155550123',
+        resendAfterSeconds: 30,
+      },
+    },
     ...routes,
   });
   vi.stubGlobal('fetch', api.fetchMock);
@@ -95,5 +113,86 @@ describe('AuthForm, signing up', () => {
     // The second copy is the form's business and never leaves it.
     const posted = api.calls.find((call) => call.method === 'POST')?.body as object;
     expect(posted).not.toHaveProperty('confirmPassword');
+  });
+});
+
+describe('AuthForm, proving who you are', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  async function fillAndSubmit() {
+    await userEvent.type(screen.getByLabelText('Name'), 'Ada');
+    await userEvent.type(screen.getByLabelText('Email'), 'ada@example.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'lovelace-1815');
+    await userEvent.type(screen.getByLabelText('Confirm password'), 'lovelace-1815');
+    await userEvent.click(screen.getByRole('button', { name: 'Sign up' }));
+  }
+
+  it('asks for the emailed code before it lets anyone in', async () => {
+    const api = renderForm();
+    await fillAndSubmit();
+
+    // Signing up is not being signed in: the form gives way to the code.
+    expect(await screen.findByText(/We emailed a code to/)).toBeInTheDocument();
+    expect(screen.getByText('ada@example.com')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Code'), '123456');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() =>
+      expect(api.calls.find((call) => call.path === '/api/auth/verify')?.body).toMatchObject({
+        channel: 'email',
+        email: 'ada@example.com',
+        code: '123456',
+      }),
+    );
+  });
+
+  it('counts down before another code can be asked for', async () => {
+    renderForm();
+    await fillAndSubmit();
+
+    const resend = await screen.findByRole('button', { name: /Send another in \d+s/ });
+    expect(resend).toBeDisabled();
+  });
+
+  it('signs up by phone: a number, a code, then a name for a new number', async () => {
+    const api = renderForm({
+      'POST /api/auth/verify': ({ body }) =>
+        (body as { handle?: string }).handle === undefined
+          ? { body: { status: 'profile-needed', channel: 'phone', target: '+16155550123' } }
+          : { body: { status: 'signed-in', user: userFixture } },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign up with a phone number' }));
+    await userEvent.type(screen.getByLabelText('Phone number'), '(615) 555-0123');
+    await userEvent.click(screen.getByRole('button', { name: 'Text me a code' }));
+
+    // The number is sent in the shape the world writes it back in.
+    await waitFor(() =>
+      expect(api.calls.find((call) => call.path === '/api/auth/code')?.body).toMatchObject({
+        channel: 'phone',
+        phone: '+16155550123',
+      }),
+    );
+
+    expect(await screen.findByText(/We texted a code to/)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Code'), '123456');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    // Only now, with the number proved, is anything asked about the person.
+    expect(await screen.findByLabelText('Name')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Name'), 'Ada');
+    await userEvent.type(screen.getByLabelText('Handle'), 'ada');
+    await userEvent.click(screen.getByRole('button', { name: 'Create my account' }));
+
+    await waitFor(() =>
+      expect(api.calls.filter((call) => call.path === '/api/auth/verify')[1]?.body).toMatchObject({
+        channel: 'phone',
+        phone: '+16155550123',
+        handle: 'ada',
+        displayName: 'Ada',
+      }),
+    );
   });
 });

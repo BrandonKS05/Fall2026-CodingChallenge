@@ -11,7 +11,8 @@ export interface Membership {
 
 /** Read model for the members panel. */
 export interface MemberDetail extends Membership {
-  email: string;
+  /** Null for a member who signed up by phone; the handle is how they are named then. */
+  email: string | null;
   handle: string;
   displayName: string;
 }

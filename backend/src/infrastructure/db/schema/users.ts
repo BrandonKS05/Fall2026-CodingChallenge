@@ -4,8 +4,16 @@ import { id, timestamps } from './_helpers.js';
 
 export const users = pgTable('users', {
   id: id(),
-  /** Stored lowercased; the API contract normalizes before it gets here. */
-  email: text().notNull().unique(),
+  /**
+   * Stored lowercased; the API contract normalizes before it gets here. Null
+   * for an account that signed up with a phone number and has no email yet.
+   */
+  email: text().unique(),
+  /** When the address was proved by a code. Null while it is only claimed. */
+  emailVerifiedAt: timestamp({ withTimezone: true }),
+  /** E.164, and unique: one account per number. Null unless one was given. */
+  phone: text().unique('users_phone_unique'),
+  phoneVerifiedAt: timestamp({ withTimezone: true }),
   displayName: text().notNull(),
   /** The name people are found by: lowercase and unique. */
   handle: text().notNull().unique('users_handle_unique'),

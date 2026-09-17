@@ -1,26 +1,16 @@
 import { collectionSchema, exploreImagesResponseSchema } from '@wumboo/shared';
 import type { Express } from 'express';
-import { handleFromSeed } from '@wumboo/shared';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { FakePasswordHasher } from '../../testing/fakes/fakeAuth.js';
 import { createFakeFetch, FAKE_JPEG } from '../../testing/fakes/fakeFetch.js';
 import { FakeImageProvider, fakeProviderImage } from '../../testing/fakes/FakeImageProvider.js';
 import { createFakeRepositories } from '../../testing/fakeRepositories.js';
+import { signUpVia } from '../../testing/signUp.js';
 import { buildTestApp } from '../../testing/testApp.js';
 
 async function signUp(app: Express, email: string): Promise<string> {
-  const res = await request(app)
-    .post('/api/auth/register')
-    .send({
-      email,
-      handle: handleFromSeed(email),
-      password: 'password-123',
-      displayName: email.split('@')[0],
-    });
-  const header = res.headers['set-cookie'];
-  const cookies = Array.isArray(header) ? header : [header ?? ''];
-  return cookies.find((cookie) => cookie.startsWith('wumboo_session=')) ?? '';
+  return (await signUpVia(app, email)).cookie;
 }
 
 describe('collections routes', () => {

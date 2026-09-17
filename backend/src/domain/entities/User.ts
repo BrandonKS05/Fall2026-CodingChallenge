@@ -2,7 +2,13 @@ import type { UserPreferences } from '@wumboo/shared';
 
 export interface User {
   id: string;
-  email: string;
+  /** Null for an account that signed up by phone and has given no address. */
+  email: string | null;
+  /** When the address was proved by a code; null while it is only claimed. */
+  emailVerifiedAt: Date | null;
+  /** E.164, null unless a number was given. */
+  phone: string | null;
+  phoneVerifiedAt: Date | null;
   displayName: string;
   /** Null for accounts that only sign in through an identity provider. */
   passwordHash: string | null;
@@ -30,6 +36,9 @@ export function toPublicUser(user: User): PublicUser {
   return {
     id: user.id,
     email: user.email,
+    emailVerifiedAt: user.emailVerifiedAt,
+    phone: user.phone,
+    phoneVerifiedAt: user.phoneVerifiedAt,
     displayName: user.displayName,
     handle: user.handle,
     handleChangedAt: user.handleChangedAt,

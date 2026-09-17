@@ -15,6 +15,7 @@ import { createFakeRepositories } from './fakeRepositories.js';
 import { createFakeFetch } from './fakes/fakeFetch.js';
 import { FakeImageProvider } from './fakes/FakeImageProvider.js';
 import { InMemoryStorage } from './fakes/InMemoryStorage.js';
+import { RecordingCodeSender } from './fakes/RecordingCodeSender.js';
 
 export const TEST_ENV: Record<string, string> = {
   NODE_ENV: 'test',
@@ -49,15 +50,30 @@ export function buildTestApp(
   overrides: ContainerOverrides = {},
   env: Env = buildTestEnv(),
 ): Express {
-  return createApp(
+  // Repositories merge rather than replace: a test that wants to hold on to one
+  // of them should not lose the rest to the database proxy.
+  const { repositories, ...rest } = overrides;
+  // Codes have to go somewhere a test can read them; the recorder is that
+  // somewhere, and `codesOf` hands it back to whoever needs to type one in.
+  const codes = new RecordingCodeSender();
+  const app = createApp(
     createContainer(env, {
       database: noDatabase,
-      repositories: createFakeRepositories(),
       healthIndicators: [passingIndicator],
       storage: new InMemoryStorage(),
       imageProvider: new FakeImageProvider([]),
       fetchFn: createFakeFetch({}),
-      ...overrides,
+      emailSender: codes,
+      smsSender: codes,
+      ...rest,
+      repositories: { ...createFakeRepositories(), ...repositories },
     }),
   );
+  app.locals.codes = overrides.emailSender ?? codes;
+  return app;
+}
+
+/** The messages this app "sent", so a test can read a code back out of one. */
+export function codesOf(app: Express): RecordingCodeSender {
+  return app.locals.codes as RecordingCodeSender;
 }

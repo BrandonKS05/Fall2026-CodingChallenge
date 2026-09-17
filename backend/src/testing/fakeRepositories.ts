@@ -9,9 +9,11 @@ import { InMemoryMessageRepository } from './fakes/InMemoryMessageRepository.js'
 import { InMemoryFollowRepository } from './fakes/InMemoryFollowRepository.js';
 import { InMemoryNotificationRepository } from './fakes/InMemoryNotificationRepository.js';
 import { InMemoryUserRepository } from './fakes/InMemoryUserRepository.js';
+import { InMemoryVerificationCodeRepository } from './fakes/InMemoryVerificationCodeRepository.js';
 
 export function createFakeRepositories() {
   const users = new InMemoryUserRepository();
+  const verificationCodes = new InMemoryVerificationCodeRepository();
   const memberships = new InMemoryMembershipRepository(users);
   const images = new InMemoryImageRepository();
   const items = new InMemoryItemRepository(images, users, memberships);
@@ -23,6 +25,7 @@ export function createFakeRepositories() {
   const conversations = new InMemoryConversationRepository(users, messages);
   return {
     users,
+    verificationCodes,
     memberships,
     likes,
     images,

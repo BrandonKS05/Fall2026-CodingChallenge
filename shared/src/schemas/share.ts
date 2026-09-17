@@ -24,7 +24,8 @@ export type UpdateMemberRequest = z.infer<typeof updateMemberRequestSchema>;
 
 export const memberSchema = z.object({
   userId: idSchema,
-  email: z.email(),
+  /** Null for a member who signed up by phone. */
+  email: z.email().nullable(),
   displayName: z.string(),
   role: collectionRoleSchema,
   joinedAt: timestampSchema,

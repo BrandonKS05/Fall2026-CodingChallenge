@@ -8,7 +8,7 @@
  */
 import type { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
-import { DomainError } from '../../domain/errors/index.js';
+import { DomainError, RateLimitError } from '../../domain/errors/index.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';
 import { ApiError } from '../ApiError.js';
 import { toValidationDetails } from '../validationDetails.js';
@@ -42,6 +42,11 @@ export function createErrorHandler(
       );
     }
 
+    // The one piece of an error that belongs in a header rather than the body.
+    if (error instanceof RateLimitError) {
+      res.setHeader('Retry-After', String(error.retryAfterSeconds));
+    }
+
     const body = apiError.toBody();
     if (apiError.status >= 500 && !options.exposeInternals) {
       body.error.message = 'Internal server error';
@@ -71,6 +76,8 @@ function fromDomainError(error: DomainError): ApiError {
       return ApiError.validation(undefined, error.message);
     case 'unauthenticated':
       return ApiError.unauthorized(error.message);
+    case 'rate_limited':
+      return ApiError.rateLimited(error.message);
     case 'upstream':
       return ApiError.upstream(error.message);
   }

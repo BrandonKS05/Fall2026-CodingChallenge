@@ -1,9 +1,12 @@
 import { handleSchema } from '@wumboo/shared';
 import type {
+  AuthOutcome,
   ChangePasswordRequest,
   LoginRequest,
   RegisterRequest,
+  SendCodeRequest,
   UpdateProfileRequest,
+  VerifyCodeRequest,
   User,
 } from '@wumboo/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -31,20 +34,51 @@ function useSessionSetter() {
   };
 }
 
-export function useLogin() {
+/**
+ * Every way in answers with the same shape, and only one of them carries a
+ * user: the rest are a code still to be typed. So the session is set when, and
+ * only when, an outcome says someone is actually signed in.
+ */
+function useOutcomeSetter() {
   const setSession = useSessionSetter();
+  return (outcome: AuthOutcome) => {
+    if (outcome.status === 'signed-in') setSession(outcome.user);
+    return outcome;
+  };
+}
+
+export function useLogin() {
+  const settle = useOutcomeSetter();
   return useMutation({
     mutationFn: (body: LoginRequest) => authApi.login(body),
-    onSuccess: (response) => setSession(response.user),
+    onSuccess: settle,
     meta: { silentError: true },
   });
 }
 
 export function useRegister() {
-  const setSession = useSessionSetter();
+  const settle = useOutcomeSetter();
   return useMutation({
     mutationFn: (body: RegisterRequest) => authApi.register(body),
-    onSuccess: (response) => setSession(response.user),
+    onSuccess: settle,
+    meta: { silentError: true },
+  });
+}
+
+/** Asks for a code: a resend, or the first step of signing in with a phone. */
+export function useSendCode() {
+  return useMutation({
+    mutationFn: (body: SendCodeRequest) => authApi.sendCode(body),
+    meta: { silentError: true },
+  });
+}
+
+/** The code, typed back. Signs in when it can, and asks for a name when it must. */
+export function useVerifyCode() {
+  const settle = useOutcomeSetter();
+  return useMutation({
+    mutationFn: (body: VerifyCodeRequest) => authApi.verifyCode(body),
+    onSuccess: settle,
     meta: { silentError: true },
   });
 }

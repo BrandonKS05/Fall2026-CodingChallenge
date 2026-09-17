@@ -4,6 +4,8 @@
  * this file only groups them so the composition root wires them in one go.
  */
 import type { UserRepository } from '../../modules/auth/ports/UserRepository.js';
+import type { VerificationCodeRepository } from '../../modules/auth/ports/VerificationCodeRepository.js';
+import { DrizzleVerificationCodeRepository } from '../../modules/auth/adapters/DrizzleVerificationCodeRepository.js';
 import { DrizzleUserRepository } from '../../modules/auth/adapters/DrizzleUserRepository.js';
 import type { CollectionRepository } from '../../modules/collections/ports/CollectionRepository.js';
 import type { LikeRepository } from '../../modules/collections/ports/LikeRepository.js';
@@ -27,6 +29,7 @@ import type { Db } from './client.js';
 
 export interface Repositories {
   users: UserRepository;
+  verificationCodes: VerificationCodeRepository;
   collections: CollectionRepository;
   memberships: MembershipRepository;
   likes: LikeRepository;
@@ -41,6 +44,7 @@ export interface Repositories {
 export function createDrizzleRepositories(db: Db): Repositories {
   return {
     users: new DrizzleUserRepository(db),
+    verificationCodes: new DrizzleVerificationCodeRepository(db),
     collections: new DrizzleCollectionRepository(db),
     memberships: new DrizzleMembershipRepository(db),
     likes: new DrizzleLikeRepository(db),

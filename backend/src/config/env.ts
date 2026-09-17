@@ -48,6 +48,19 @@ const envSchema = z
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
 
+    /**
+     * Delivery for verification codes. With none of these set the codes are
+     * written to the log instead, which is how a fresh clone signs up without
+     * an account anywhere — and is refused in production by the check below.
+     */
+    RESEND_API_KEY: z.string().optional(),
+    /** The verified sender, e.g. "Wumboo <hello@wumboo.app>". */
+    EMAIL_FROM: z.string().optional(),
+    TWILIO_ACCOUNT_SID: z.string().optional(),
+    TWILIO_AUTH_TOKEN: z.string().optional(),
+    /** The sending number in E.164, or a messaging service SID. */
+    TWILIO_FROM: z.string().optional(),
+
     /** Selects the StorageBackend strategy. See infrastructure/storage. */
     STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
     STORAGE_LOCAL_DIR: z.string().default('./storage'),
@@ -58,6 +71,21 @@ const envSchema = z
     S3_SECRET_ACCESS_KEY: z.string().optional(),
   })
   .superRefine((env, ctx) => {
+    if (Boolean(env.RESEND_API_KEY) !== Boolean(env.EMAIL_FROM)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['RESEND_API_KEY'],
+        message: 'RESEND_API_KEY and EMAIL_FROM must be set together',
+      });
+    }
+    const twilio = [env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN, env.TWILIO_FROM];
+    if (twilio.some(Boolean) && !twilio.every(Boolean)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['TWILIO_ACCOUNT_SID'],
+        message: 'TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM must be set together',
+      });
+    }
     if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
       ctx.addIssue({
         code: 'custom',

@@ -3,3 +3,6 @@ packages:
   - frontend
   - backend
   - shared
+  # Python, and no JavaScript in it: the manifest exists so `pnpm dev` starts
+  # the assistant alongside the app instead of leaving the widget unanswered.
+  - services/wumbo-ai

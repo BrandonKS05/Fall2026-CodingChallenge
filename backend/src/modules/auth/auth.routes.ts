@@ -3,7 +3,9 @@ import {
   handleAvailabilityQuerySchema,
   loginRequestSchema,
   registerRequestSchema,
+  sendCodeRequestSchema,
   updateProfileRequestSchema,
+  verifyCodeRequestSchema,
 } from '@wumboo/shared';
 import { Router } from 'express';
 import type { Container } from '../../container.js';
@@ -39,6 +41,20 @@ export function createAuthRouter(container: Container): Router {
     credentialLimiter,
     validate({ body: loginRequestSchema }),
     controller.login,
+  );
+  // Codes: asking for one and typing it back. The per-target limits live in the
+  // service; this one only keeps a single client from hammering the endpoint.
+  router.post(
+    '/code',
+    credentialLimiter,
+    validate({ body: sendCodeRequestSchema }),
+    controller.sendCode,
+  );
+  router.post(
+    '/verify',
+    credentialLimiter,
+    validate({ body: verifyCodeRequestSchema }),
+    controller.verifyCode,
   );
   router.post('/logout', controller.logout);
   // Visitors get { user: null } rather than a 401, so the client can probe the session quietly.

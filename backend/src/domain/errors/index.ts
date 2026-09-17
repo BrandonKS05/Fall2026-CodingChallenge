@@ -4,7 +4,13 @@
  * the api layer, so these carry a `kind` rather than a status code.
  */
 export type DomainErrorKind =
-  'not_found' | 'forbidden' | 'conflict' | 'invalid' | 'unauthenticated' | 'upstream';
+  | 'not_found'
+  | 'forbidden'
+  | 'conflict'
+  | 'invalid'
+  | 'unauthenticated'
+  | 'rate_limited'
+  | 'upstream';
 
 export abstract class DomainError extends Error {
   abstract readonly kind: DomainErrorKind;
@@ -46,6 +52,18 @@ export class AuthenticationError extends DomainError {
   readonly kind = 'unauthenticated';
 
   constructor(message = 'Invalid email or password') {
+    super(message);
+  }
+}
+
+/** Asked for too often. Carries how long to wait, which the edge turns into Retry-After. */
+export class RateLimitError extends DomainError {
+  readonly kind = 'rate_limited';
+
+  constructor(
+    message: string,
+    readonly retryAfterSeconds: number,
+  ) {
     super(message);
   }
 }

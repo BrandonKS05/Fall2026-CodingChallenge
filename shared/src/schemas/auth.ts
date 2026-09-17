@@ -143,7 +143,13 @@ export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
 /** The authenticated user's own profile. */
 export const userSchema = z.object({
   id: idSchema,
-  email: z.email(),
+  /** Null for an account that signed up by phone and has given no address. */
+  email: z.email().nullable(),
+  /** When the address was proved by a code. Null while it is only claimed. */
+  emailVerifiedAt: timestampSchema.nullable(),
+  /** The number the account signs in with, if it has one, and when it was proved. */
+  phone: z.string().nullable(),
+  phoneVerifiedAt: timestampSchema.nullable(),
   displayName: z.string(),
   /** Unique and lowercase; how other people find this account. */
   handle: z.string(),
@@ -161,6 +167,78 @@ export const authResponseSchema = z.object({
   user: userSchema,
 });
 export type AuthResponse = z.infer<typeof authResponseSchema>;
+
+/**
+ * A phone number as the world writes it, kept as the world reads it back:
+ * E.164. A number typed without a country code is taken as +1, which is the
+ * only assumption the app makes about where anyone is.
+ */
+export const phoneSchema = z
+  .string()
+  .trim()
+  .transform((value) => {
+    const digits = value.replace(/[^\d+]/g, '');
+    if (digits.startsWith('+')) return `+${digits.slice(1).replace(/\D/g, '')}`;
+    const bare = digits.replace(/\D/g, '');
+    if (bare.length === 10) return `+1${bare}`;
+    if (bare.length === 11 && bare.startsWith('1')) return `+${bare}`;
+    return `+${bare}`;
+  })
+  .pipe(z.string().regex(/^\+[1-9]\d{7,14}$/, 'Use a number with its country code'));
+
+export const verificationChannelSchema = z.enum(['email', 'phone']);
+export type VerificationChannel = z.infer<typeof verificationChannelSchema>;
+
+/** Six digits, and only six digits: spaces people paste in are theirs to make. */
+export const verificationCodeSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/\s+/g, ''))
+  .pipe(z.string().regex(/^\d{6}$/, 'The code is six digits'));
+
+/** POST /auth/code: send one, whether it is a resend or the start of a phone sign-in. */
+export const sendCodeRequestSchema = z.discriminatedUnion('channel', [
+  z.object({ channel: z.literal('email'), email: emailSchema }),
+  z.object({ channel: z.literal('phone'), phone: phoneSchema }),
+]);
+export type SendCodeRequest = z.infer<typeof sendCodeRequestSchema>;
+
+/**
+ * POST /auth/verify: the code, and — for a phone number nobody has used before
+ * — the name and handle the account will carry, which are only asked for once
+ * the code has proved the number.
+ */
+export const verifyCodeRequestSchema = z.intersection(
+  sendCodeRequestSchema,
+  z.object({
+    code: verificationCodeSchema,
+    handle: handleSchema.optional(),
+    displayName: displayNameSchema.optional(),
+  }),
+);
+export type VerifyCodeRequest = z.infer<typeof verifyCodeRequestSchema>;
+
+/**
+ * What came of an attempt to get in. One shape for register, login, verify and
+ * code, so the client switches on `status` rather than guessing from the body.
+ */
+export const authOutcomeSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('signed-in'), user: userSchema }),
+  z.object({
+    status: z.literal('verification-required'),
+    channel: verificationChannelSchema,
+    /** The address or number the code went to, so the client can say it out loud. */
+    target: z.string(),
+    resendAfterSeconds: z.number().int().nonnegative(),
+  }),
+  /** The code proved a phone number nobody has claimed: it needs a name to become an account. */
+  z.object({
+    status: z.literal('profile-needed'),
+    channel: z.literal('phone'),
+    target: z.string(),
+  }),
+]);
+export type AuthOutcome = z.infer<typeof authOutcomeSchema>;
 
 /** GET /auth/me: a visitor is a normal answer, not an error, so `user` is null rather than a 401. */
 export const sessionResponseSchema = z.object({

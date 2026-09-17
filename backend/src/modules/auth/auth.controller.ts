@@ -10,14 +10,16 @@ import type {
   HandleAvailabilityResponse,
   LoginRequest,
   RegisterRequest,
+  SendCodeRequest,
+  VerifyCodeRequest,
   UpdateProfileRequest,
 } from '@wumboo/shared';
-import type { RequestHandler } from 'express';
+import type { RequestHandler, Response } from 'express';
 import { z } from 'zod';
 import type { Env } from '../../config/env.js';
 import type { OAuthProvider } from './ports/OAuthProvider.js';
 import type { AccountExportService } from './AccountExportService.js';
-import type { AuthService } from './AuthService.js';
+import type { AuthOutcome, AuthService } from './AuthService.js';
 import {
   clearOAuthStateCookie,
   clearSessionCookie,
@@ -27,7 +29,7 @@ import {
 } from '../../http/session.js';
 import { currentUser, optionalUser } from '../../http/middleware/authenticate.js';
 import { getValidated } from '../../http/middleware/validate.js';
-import { presentAuth, presentSession, presentUser } from './user.presenter.js';
+import { presentOutcome, presentSession, presentUser } from './user.presenter.js';
 
 export interface AuthControllerDeps {
   auth: AuthService;
@@ -38,6 +40,8 @@ export interface AuthControllerDeps {
 
 export interface AuthController {
   handleAvailability: RequestHandler;
+  sendCode: RequestHandler;
+  verifyCode: RequestHandler;
   exportAccount: RequestHandler;
   changePassword: RequestHandler;
   revokeSessions: RequestHandler;
@@ -66,21 +70,45 @@ export function createAuthController({
   google,
 }: AuthControllerDeps): AuthController {
   const redirectUri = `${env.APP_URL}/api/auth/google/callback`;
+  /** The one place a session cookie is attached: wherever an outcome carries a token. */
+  const answer = (res: Response, outcome: AuthOutcome, status = 200): void => {
+    if (outcome.status === 'signed-in') setSessionCookie(res, outcome.token, env);
+    res.status(status).json(presentOutcome(outcome));
+  };
   const backToLogin = (reason: string) => `${env.APP_URL}/login?error=${reason}`;
 
   return {
     register: async (_req, res) => {
       const { body } = getValidated<RegisterRequest>(res);
-      const result = await auth.register(body);
-      setSessionCookie(res, result.token, env);
-      res.status(201).json(presentAuth(result.user));
+      // 201 only when an account is really open; a code still to be typed is a 202.
+      const outcome = await auth.register(body);
+      answer(res, outcome, outcome.status === 'signed-in' ? 201 : 202);
     },
 
     login: async (_req, res) => {
       const { body } = getValidated<LoginRequest>(res);
-      const result = await auth.login(body);
-      setSessionCookie(res, result.token, env);
-      res.json(presentAuth(result.user));
+      answer(res, await auth.login(body));
+    },
+
+    sendCode: async (_req, res) => {
+      const { body } = getValidated<SendCodeRequest>(res);
+      const target = body.channel === 'email' ? body.email : body.phone;
+      answer(res, await auth.sendCode(body.channel, target), 202);
+    },
+
+    verifyCode: async (_req, res) => {
+      const { body } = getValidated<VerifyCodeRequest>(res);
+      const target = body.channel === 'email' ? body.email : body.phone;
+      answer(
+        res,
+        await auth.verifyCode({
+          channel: body.channel,
+          target,
+          code: body.code,
+          handle: body.handle,
+          displayName: body.displayName,
+        }),
+      );
     },
 
     logout: (_req, res) => {
