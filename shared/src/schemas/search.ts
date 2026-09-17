@@ -79,8 +79,12 @@ function rgbOf(hex: string): [number, number, number] {
   ];
 }
 
-/** Pixabay's own categories, in its own order. */
-export const searchCategorySchema = z.enum([
+/**
+ * Pixabay's own categories, in its own order. Exported as a plain list too:
+ * the database derives an enum from it, and the interest profile seeds one
+ * embedding per category, so all three have to read from the same source.
+ */
+export const SEARCH_CATEGORIES = [
   'backgrounds',
   'fashion',
   'nature',
@@ -101,7 +105,9 @@ export const searchCategorySchema = z.enum([
   'buildings',
   'business',
   'music',
-]);
+] as const;
+
+export const searchCategorySchema = z.enum(SEARCH_CATEGORIES);
 export type SearchCategory = z.infer<typeof searchCategorySchema>;
 
 export const imageTypeSchema = z.enum(['all', 'photo', 'illustration', 'vector']);

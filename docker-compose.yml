@@ -1,8 +1,12 @@
 # Local development database only. The app itself runs with `pnpm dev`.
 # Host port defaults to 5434 so it does not clash with a Postgres already on 5432.
+#
+# pgvector's own image rather than the plain one: recommendations store vectors
+# in Postgres, and `CREATE EXTENSION vector` needs the extension to be present
+# in the image. It is the official postgres:17 with the extension compiled in.
 services:
   db:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     container_name: wumboo-db
     restart: unless-stopped
     environment:
