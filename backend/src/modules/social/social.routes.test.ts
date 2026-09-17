@@ -59,6 +59,13 @@ describe('user routes', () => {
     expect((await request(app).get('/api/users/search?q=ada')).body.profiles[0].handle).toBe('ada');
   });
 
+  it('leaves you out of your own search', async () => {
+    const mine = await request(app).get('/api/users/search?q=ada').set('Cookie', ada.cookie);
+    expect(mine.body.profiles).toEqual([]);
+    // Signed out there is no self to leave out.
+    expect((await request(app).get('/api/users/search?q=ada')).body.profiles).toHaveLength(1);
+  });
+
   it('says whether the viewer already follows the people it finds', async () => {
     await request(app).post(`/api/users/${ada.handle}/follow`).set('Cookie', sam.cookie);
 

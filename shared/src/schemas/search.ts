@@ -153,6 +153,20 @@ export const searchQuerySchema = paginationQuerySchema
   });
 export type SearchQuery = z.infer<typeof searchQuerySchema>;
 
+/** One stored picture standing for a category on the browse grid. */
+export const categoryCoverSchema = z.object({
+  category: searchCategorySchema,
+  imageId: z.uuid(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+});
+export type CategoryCover = z.infer<typeof categoryCoverSchema>;
+
+export const categoryCoversResponseSchema = z.object({
+  covers: z.array(categoryCoverSchema),
+});
+export type CategoryCoversResponse = z.infer<typeof categoryCoversResponseSchema>;
+
 /** Attribution shown wherever an image appears. Required by Pixabay's terms. */
 export const imageCreditSchema = z.object({
   name: z.string(),

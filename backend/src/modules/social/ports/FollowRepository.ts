@@ -18,9 +18,10 @@ export interface FollowRepository {
   /** People this user follows, most recent first. */
   listFollowing(userId: string, options: FollowListOptions): Promise<ProfileSummary[]>;
   /**
-   * People whose handle or display name contains the words, handles first.
-   * It lives here because every profile summary carries the viewer's own
-   * "do I follow them", which is this repository's to answer.
+   * People whose handle or display name contains the words, handles first, and
+   * never the viewer: searching is for finding other people. It lives here
+   * because every profile summary carries the viewer's own "do I follow them",
+   * which is this repository's to answer.
    */
   searchProfiles(term: string, options: FollowListOptions): Promise<ProfileSummary[]>;
 }

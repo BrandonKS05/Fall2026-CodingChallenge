@@ -21,6 +21,8 @@ export function createSearchRouter(container: Container): Router {
   });
 
   const router = Router();
+  // The browse grid's covers: stored images, so no provider call and no limiter.
+  router.get('/categories', controller.categories);
   router.get(
     '/',
     limiter,

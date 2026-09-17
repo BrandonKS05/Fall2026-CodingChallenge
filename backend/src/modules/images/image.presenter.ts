@@ -1,4 +1,10 @@
-import type { Image as ImageDto, SearchResponse, SearchResult } from '@wumboo/shared';
+import type {
+  CategoryCoversResponse,
+  Image as ImageDto,
+  SearchCategory,
+  SearchResponse,
+  SearchResult,
+} from '@wumboo/shared';
 import type { Image } from '../../domain/entities/Image.js';
 import type { ProviderImage } from '../../domain/entities/ProviderImage.js';
 import type { ImageSearchResult } from './ports/ImageProvider.js';
@@ -21,6 +27,19 @@ export function presentImage(image: Image): ImageDto {
     sourceUrl: image.sourceUrl,
     provider: image.provider,
     providerImageId: image.providerImageId,
+  };
+}
+
+export function presentCategoryCovers(
+  covers: { category: SearchCategory; image: Image }[],
+): CategoryCoversResponse {
+  return {
+    covers: covers.map(({ category, image }) => ({
+      category,
+      imageId: image.id,
+      width: image.width,
+      height: image.height,
+    })),
   };
 }
 

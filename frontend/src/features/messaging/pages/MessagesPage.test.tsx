@@ -116,6 +116,21 @@ describe('MessagesPage', () => {
     expect(await screen.findByLabelText('Message Sam Rivera')).toBeInTheDocument();
   });
 
+  it('says across the whole conversation that it is waiting to be accepted', async () => {
+    const sent = { ...conversation, canSend: false };
+    renderMessages('/messages/c1', {
+      'GET /api/conversations': ({ url }) =>
+        url.includes('box=requests')
+          ? { body: { conversations: [], unreadTotal: 0, requestCount: 0 } }
+          : { body: { conversations: [sent], unreadTotal: 0, requestCount: 0 } },
+    });
+
+    expect(await screen.findByText('Waiting for Sam Rivera to accept.')).toBeInTheDocument();
+    // Not a greyed-out line inside a box you cannot type in — there is no box.
+    expect(screen.queryByLabelText('Message Sam Rivera')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument();
+  });
+
   it('keeps a request out of the messages until it is accepted', async () => {
     const pending = { ...conversation, state: 'pending' as const, canSend: false };
     const api = renderMessages('/messages/c1', {

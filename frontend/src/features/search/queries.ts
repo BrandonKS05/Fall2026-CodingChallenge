@@ -1,9 +1,19 @@
 import { isSearchable, type SearchQuery } from '@wumboo/shared';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/api';
 import { searchApi } from './api';
 
 export const SEARCH_PAGE_SIZE = 30;
+
+/** The browse grid's covers. They are a fixed curation, so they never go stale. */
+export function useCategoryCovers() {
+  return useQuery({
+    queryKey: queryKeys.categoryCovers,
+    queryFn: () => searchApi.categoryCovers(),
+    staleTime: Infinity,
+    meta: { silentError: true },
+  });
+}
 
 export type SearchParams = Omit<SearchQuery, 'page' | 'perPage'>;
 

@@ -16,4 +16,4 @@ export {
   type SearchFilters,
   type SearchScope,
 } from './filters';
-export { useImageSearch } from './queries';
+export { useCategoryCovers, useImageSearch } from './queries';

@@ -1,4 +1,4 @@
-import { searchResponseSchema } from '@wumboo/shared';
+import { categoryCoversResponseSchema, searchResponseSchema } from '@wumboo/shared';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { FakeImageProvider, fakeProviderImage } from '../../testing/fakes/FakeImageProvider.js';
@@ -25,6 +25,16 @@ describe('GET /api/search', () => {
       name: 'photographer',
       profileUrl: 'https://fake.test/users/photographer',
     });
+  });
+
+  it('serves the browse grid its covers from stored images alone', async () => {
+    const res = await request(app).get('/api/search/categories');
+
+    expect(res.status).toBe(200);
+    expect(categoryCoversResponseSchema.safeParse(res.body).success).toBe(true);
+    // Nothing is stored in this app, so the grid falls back to its colours and
+    // the provider was never asked — covers must not cost a search.
+    expect(res.body.covers).toEqual([]);
   });
 
   it('validates the query', async () => {

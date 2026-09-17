@@ -15,6 +15,7 @@
 
 import type { Container } from '../../container.js';
 import type { CollectionVisibility } from '../../domain/entities/Collection.js';
+import { CATEGORY_COVER_IDS } from '../../modules/images/categoryCovers.js';
 import { LANDING_IMAGE_IDS, LANDING_PROVIDER } from '../../modules/images/landingImages.js';
 
 export const DEMO_ACCOUNT = {
@@ -122,8 +123,8 @@ export async function seedDemo(container: Container): Promise<void> {
   const { services, repositories, logger } = container;
   const log = logger.child({ script: 'seed' });
 
-  const landingStored = await ensureLandingImages(container);
-  if (landingStored > 0) console.log(`Stored ${landingStored} landing images.`);
+  const curated = await ensureCuratedImages(container);
+  if (curated > 0) console.log(`Stored ${curated} curated images.`);
 
   const demo = await ensureAccount(container, DEMO_ACCOUNT);
   const sam = await ensureAccount(container, FRIEND_ACCOUNT);
@@ -207,12 +208,14 @@ export async function seedDemo(container: Container): Promise<void> {
 }
 
 /**
- * The landing stage's curation. Downloaded like any other image, but owned by
- * nobody: it belongs to no board, so nothing a person saves can change the hero.
+ * The two fixed curations — the landing stage and the category covers.
+ * Downloaded like any other image, but owned by nobody: they belong to no
+ * board, so nothing a person saves can change the front of the product.
  */
-async function ensureLandingImages(container: Container): Promise<number> {
+async function ensureCuratedImages(container: Container): Promise<number> {
   let stored = 0;
-  for (const providerImageId of LANDING_IMAGE_IDS) {
+  const wanted = [...LANDING_IMAGE_IDS, ...Object.values(CATEGORY_COVER_IDS)];
+  for (const providerImageId of wanted) {
     const existing = await container.repositories.images.findByProviderId(
       LANDING_PROVIDER,
       providerImageId,

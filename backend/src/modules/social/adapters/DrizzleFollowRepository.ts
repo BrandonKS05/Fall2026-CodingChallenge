@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, ilike, ne, or, sql, type SQL } from 'drizzle-orm';
 import type { ProfileSummary } from '../../../domain/entities/Profile.js';
 import type { Db } from '../../../infrastructure/db/client.js';
 import { follows, users } from '../../../infrastructure/db/schema/index.js';
@@ -76,7 +76,13 @@ export class DrizzleFollowRepository implements FollowRepository {
         followedByViewer: followedByViewer(viewerId),
       })
       .from(users)
-      .where(or(ilike(users.handle, `%${escaped}%`), ilike(users.displayName, `%${escaped}%`)))
+      .where(
+        and(
+          or(ilike(users.handle, `%${escaped}%`), ilike(users.displayName, `%${escaped}%`)),
+          // You already know where to find yourself.
+          viewerId === null ? undefined : ne(users.id, viewerId),
+        ),
+      )
       .orderBy(
         sql`case
           when ${users.handle} ilike ${`${escaped}%`} then 0

@@ -9,6 +9,8 @@ export const queryKeys = {
   /** Whether a handle is free. Its own key per handle, so typing back and forth is free. */
   handleAvailability: (handle: string) => ['handle-availability', handle] as const,
   search: (params: Partial<SearchQuery>) => ['search', params] as const,
+  /** One stored picture per category, for the browse grid. Fixed, so it is cached hard. */
+  categoryCovers: ['search', 'categories'] as const,
   collections: {
     all: ['collections'] as const,
     list: () => ['collections', 'list'] as const,

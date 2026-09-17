@@ -21,6 +21,7 @@ import { timeAgo } from '@/lib/format';
 import { Composer } from '../components/Composer';
 import { MessagesLink } from '../components/MessagesLink';
 import { NewMessageDialog } from '../components/NewMessageDialog';
+import { AwaitingAccept } from '../components/AwaitingAccept';
 import { RequestNotice } from '../components/RequestNotice';
 import { Thread } from '../components/Thread';
 import { useInbox, useMarkRead } from '../queries';
@@ -255,6 +256,8 @@ function OpenConversation({
 
   const other = conversation?.participants[0];
   const pending = conversation?.state === 'pending';
+  // The other side of a request: sent, and nothing more to do until they accept.
+  const waiting = !pending && conversation?.canSend === false;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-stage-ink/15">
@@ -266,7 +269,7 @@ function OpenConversation({
         >
           Back
         </button>
-        <div className="min-w-0">
+        <div className={cn('min-w-0', waiting && 'opacity-45')}>
           <p className="truncate font-medium">{other?.displayName ?? 'Conversation'}</p>
           {other && (
             <p className="truncate text-sm text-stage-ink/50">
@@ -276,16 +279,22 @@ function OpenConversation({
         </div>
       </header>
 
-      <Thread conversationId={id} viewerId={user?.id} />
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          className={cn(
+            'flex min-h-0 flex-1 flex-col',
+            waiting && 'pointer-events-none opacity-30 grayscale',
+          )}
+        >
+          <Thread conversationId={id} viewerId={user?.id} />
+        </div>
+        {waiting && <AwaitingAccept name={other?.displayName} />}
+      </div>
 
       {pending ? (
         <RequestNotice conversationId={id} from={other?.displayName} onAccepted={onAccepted} />
-      ) : (
-        <Composer
-          conversationId={id}
-          to={other?.displayName}
-          disabled={conversation?.canSend === false}
-        />
+      ) : waiting ? null : (
+        <Composer conversationId={id} to={other?.displayName} />
       )}
     </div>
   );

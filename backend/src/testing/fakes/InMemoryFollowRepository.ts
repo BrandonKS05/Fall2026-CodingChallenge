@@ -52,8 +52,9 @@ export class InMemoryFollowRepository implements FollowRepository {
       .all()
       .filter(
         (user) =>
-          user.handle.toLowerCase().includes(needle) ||
-          user.displayName.toLowerCase().includes(needle),
+          user.id !== options.viewerId &&
+          (user.handle.toLowerCase().includes(needle) ||
+            user.displayName.toLowerCase().includes(needle)),
       );
     const rank = (handle: string) =>
       handle.toLowerCase().startsWith(needle) ? 0 : handle.toLowerCase().includes(needle) ? 1 : 2;

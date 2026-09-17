@@ -6,6 +6,8 @@
 import { randomUUID } from 'node:crypto';
 import type { Image, ImageProviderName } from '../../domain/entities/Image.js';
 import { contentTypeForKey, extensionForContentType } from '../../domain/entities/ImageFile.js';
+import type { SearchCategory } from '@wumboo/shared';
+import { CATEGORY_COVER_IDS, COVER_PROVIDER } from './categoryCovers.js';
 import { LANDING_IMAGE_IDS, LANDING_PROVIDER } from './landingImages.js';
 import {
   ConflictError,
@@ -61,6 +63,24 @@ export class ImageService {
     return wanted.flatMap((providerImageId) => {
       const image = byProviderId.get(providerImageId);
       return image ? [image] : [];
+    });
+  }
+
+  /**
+   * The browse grid's covers: one stored picture per category, in the order the
+   * categories are written down. A category whose cover has not been stored yet
+   * is simply left out, and its tile falls back to its colour.
+   */
+  async categoryCovers(): Promise<{ category: SearchCategory; image: Image }[]> {
+    const wanted = Object.entries(CATEGORY_COVER_IDS) as [SearchCategory, string][];
+    const stored = await this.deps.images.listByProviderIds(
+      COVER_PROVIDER,
+      wanted.map(([, providerImageId]) => providerImageId),
+    );
+    const byProviderId = new Map(stored.map((image) => [image.providerImageId, image]));
+    return wanted.flatMap(([category, providerImageId]) => {
+      const image = byProviderId.get(providerImageId);
+      return image ? [{ category, image }] : [];
     });
   }
 

@@ -3,10 +3,11 @@ import type { RequestHandler } from 'express';
 import type { ImageService } from './ImageService.js';
 import { optionalUser } from '../../http/middleware/authenticate.js';
 import { getValidated } from '../../http/middleware/validate.js';
-import { presentSearch } from './image.presenter.js';
+import { presentCategoryCovers, presentSearch } from './image.presenter.js';
 
 export interface SearchController {
   search: RequestHandler;
+  categories: RequestHandler;
 }
 
 export function createSearchController(images: ImageService): SearchController {
@@ -17,6 +18,10 @@ export function createSearchController(images: ImageService): SearchController {
         mutedTags: optionalUser(res)?.preferences.mutedTags,
       });
       res.json(presentSearch(result));
+    },
+
+    categories: async (_req, res) => {
+      res.json(presentCategoryCovers(await images.categoryCovers()));
     },
   };
 }
