@@ -14,12 +14,15 @@ import { createEvent } from '../../domain/events/index.js';
 import type { EventBus } from '../../infrastructure/events/EventBus.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';
 import type { CollectionRepository } from '../collections/ports/CollectionRepository.js';
+import type { UserRepository } from '../auth/ports/UserRepository.js';
 import type { ItemPatch, ItemRepository } from './ports/ItemRepository.js';
 import type { CollectionService } from '../collections/CollectionService.js';
 import type { ImageService } from '../images/ImageService.js';
 
 export interface ItemServiceDeps {
   items: ItemRepository;
+  /** Only to name the person in an uploaded picture's credit line. */
+  users: UserRepository;
   collectionRepository: CollectionRepository;
   collectionService: CollectionService;
   imageService: ImageService;
@@ -80,6 +83,40 @@ export class ItemService {
     });
     await this.deps.collectionRepository.touch(collectionId);
     this.log.info({ collectionId, itemId: item.id, actorId }, 'Item added');
+    await this.deps.events.publish(
+      createEvent('item.added', { collectionId, actorId, itemId: item.id, imageId: image.id }),
+    );
+    return this.detailOf(item.id);
+  }
+
+  /**
+   * A picture of your own, put on a board. The same walk as saving a found
+   * one — authorize, store, place, tell the board — with the storing being an
+   * upload rather than a download.
+   */
+  async upload(
+    collectionId: string,
+    actorId: string,
+    input: { bytes: Uint8Array; caption: string; tags: string[] },
+  ): Promise<ItemDetail> {
+    await this.deps.collectionService.authorize(collectionId, actorId, 'edit');
+    const uploader = await this.deps.users.findById(actorId);
+    const image = await this.deps.imageService.storeUpload({
+      bytes: input.bytes,
+      credit: uploader?.displayName ?? 'A member',
+      tags: input.tags,
+    });
+    const position = await this.deps.items.nextPosition(collectionId);
+    const item = await this.deps.items.create({
+      collectionId,
+      imageId: image.id,
+      addedById: actorId,
+      caption: input.caption.trim() || imageTitle(image.tags),
+      tags: input.tags,
+      position,
+    });
+    await this.deps.collectionRepository.touch(collectionId);
+    this.log.info({ collectionId, itemId: item.id, actorId }, 'Image uploaded');
     await this.deps.events.publish(
       createEvent('item.added', { collectionId, actorId, itemId: item.id, imageId: image.id }),
     );

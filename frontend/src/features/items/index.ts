@@ -2,5 +2,6 @@
 export { EditItemDialog } from './components/EditItemDialog';
 export { ImageLightbox } from './components/ImageLightbox';
 export { ItemGrid, ItemGridSkeleton } from './components/ItemGrid';
+export { UploadButton } from './components/UploadButton';
 export { SaveToBoardDialog } from './components/SaveToBoardDialog';
 export { useAddItem, useMyItems, useRemoveItem, useSaveToBoard } from './queries';

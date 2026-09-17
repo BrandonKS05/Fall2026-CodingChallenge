@@ -25,6 +25,26 @@ export function imageTitle(tags: readonly string[]): string {
   return phrase.charAt(0).toUpperCase() + phrase.slice(1);
 }
 
+/**
+ * POST /collections/:id/items/upload — the picture is the body, so its caption
+ * and tags ride in the query string.
+ */
+export const uploadItemQuerySchema = z.object({
+  caption: z.string().trim().max(500).default(''),
+  /** Comma-separated, because a query string has no arrays worth the trouble. */
+  tags: z
+    .string()
+    .default('')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((tag) => tag.trim().toLowerCase())
+        .filter((tag) => tag.length > 0)
+        .slice(0, 10),
+    ),
+});
+export type UploadItemQuery = z.infer<typeof uploadItemQuerySchema>;
+
 export const imageSchema = z.object({
   id: idSchema,
   /** Path served by our API, e.g. /api/images/<id>. Never a provider URL. */
@@ -37,7 +57,8 @@ export const imageSchema = z.object({
   palette: z.array(hexColorSchema).max(5),
   tags: z.array(z.string()),
   credit: imageCreditSchema,
-  sourceUrl: z.url(),
+  /** The page the picture came from. Null for one somebody uploaded themselves. */
+  sourceUrl: z.url().nullable(),
   provider: imageProviderSchema,
   providerImageId: z.string(),
 });

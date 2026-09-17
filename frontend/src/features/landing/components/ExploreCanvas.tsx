@@ -34,6 +34,9 @@ import {
   type ParallaxTuning,
 } from './useParallax';
 
+/** The viewport shape the slot table was laid out against: 16:10. */
+const DESIGN_ASPECT = 1.6;
+
 /** Custom cursor dot, in px, and how much it grows over an image. */
 const DOT_SIZE = 12;
 const DOT_HOVER_SCALE = 1.6;
@@ -50,7 +53,7 @@ interface Tile {
   opens: string;
   /** The photographer, which is both the caption and the attribution Pixabay asks for. */
   title: string;
-  /** CSS aspect-ratio, so the tile reserves its box before the image loads. */
+  /** CSS aspect-ratio of the slot, so the box is the same before and after loading. */
   aspectRatio: string;
   slotIndex: number;
   slot: Slot;
@@ -93,7 +96,8 @@ function toTiles(images: StageImage[], placement: Placement, slots: Slot[]): Til
       title: entry.credit.name,
       href: entry.board ? `/boards/${entry.board.id}` : '/explore',
       opens: entry.board ? entry.board.title : 'Explore',
-      aspectRatio: `${entry.width} / ${entry.height}`,
+      // The slot's shape, not the picture's: the map's spacing depends on it.
+      aspectRatio: String(slot.aspect),
       slotIndex: index,
       slot,
     });
@@ -266,7 +270,11 @@ function StageTile({ tile, parallax, interactive, onHover, onError }: StageTileP
       style={{
         left: `${tile.slot.x}%`,
         top: `${tile.slot.y}%`,
-        width: `${tile.slot.width}vw`,
+        // A tile's width is capped by the viewport's height as well as its
+        // width, so on a wide screen the tiles shrink instead of growing
+        // taller and walking into each other. The vh figure is the vw one at
+        // the 16:10 the map was laid out against.
+        width: `min(${tile.slot.width}vw, ${(tile.slot.width * DESIGN_ASPECT).toFixed(1)}vh)`,
         zIndex: Math.round(tile.slot.depth * 10),
         x: interactive ? x : 0,
         y: interactive ? y : 0,

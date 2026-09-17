@@ -1,4 +1,3 @@
-import type { Item } from '@wumboo/shared';
 import { LinkIcon, LockIcon, SearchXIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
@@ -15,7 +14,7 @@ import { ImageLightbox, ItemGrid } from '@/features/items';
 export default function SharedBoardPage() {
   const { slug = '' } = useParams();
   const shared = useSharedBoard(slug);
-  const [opened, setOpened] = useState<Item | null>(null);
+  const [opened, setOpened] = useState<number | null>(null);
 
   if (shared.isPending) return <PageSkeleton />;
   if (shared.error) {
@@ -67,9 +66,20 @@ export default function SharedBoardPage() {
           description="The owner has not saved anything to this board."
         />
       ) : (
-        <ItemGrid items={items} canEdit={false} onOpen={setOpened} onEdit={noop} onRemove={noop} />
+        <ItemGrid
+          items={items}
+          canEdit={false}
+          onOpen={(item) => setOpened(items.indexOf(item))}
+          onEdit={noop}
+          onRemove={noop}
+        />
       )}
-      <ImageLightbox item={opened} onClose={() => setOpened(null)} />
+      <ImageLightbox
+        items={items}
+        index={opened}
+        onIndex={setOpened}
+        onClose={() => setOpened(null)}
+      />
     </>
   );
 }

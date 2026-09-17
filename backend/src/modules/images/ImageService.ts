@@ -8,6 +8,7 @@ import type { Image, ImageProviderName } from '../../domain/entities/Image.js';
 import { contentTypeForKey, extensionForContentType } from '../../domain/entities/ImageFile.js';
 import type { SearchCategory } from '@wumboo/shared';
 import { CATEGORY_COVER_IDS, COVER_PROVIDER } from './categoryCovers.js';
+import { readImageMeta } from './imageMeta.js';
 import { LANDING_IMAGE_IDS, LANDING_PROVIDER } from './landingImages.js';
 import {
   ConflictError,
@@ -37,6 +38,9 @@ export interface ImageServiceDeps {
 
 const DEFAULT_PROVIDER: ImageProviderName = 'pixabay';
 const INSECURE_HOSTS_ALLOWED = new Set(['localhost', '127.0.0.1']);
+
+/** What a phone camera produces, with room to spare. */
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 export class ImageService {
   private readonly log: Logger;
@@ -100,6 +104,44 @@ export class ImageService {
       ...found,
       results: found.results.filter((hit) => !hit.tags.some((tag) => muted.has(tag.toLowerCase()))),
     };
+  }
+
+  /**
+   * A picture somebody sent us rather than one we fetched. It is stored the
+   * same way and read back the same way; all that differs is that nobody but
+   * the person who uploaded it can say where it came from.
+   */
+  async storeUpload(input: {
+    bytes: Uint8Array;
+    /** Whose picture it is, for the credit line. */
+    credit: string;
+    tags?: string[];
+  }): Promise<Image> {
+    if (input.bytes.byteLength > MAX_UPLOAD_BYTES) {
+      throw new InvalidOperationError('That image is larger than 8 MB');
+    }
+    const meta = readImageMeta(input.bytes);
+    const providerImageId = randomUUID();
+    const key = `images/${providerImageId}.${meta.extension}`;
+    await this.deps.storage.put(key, input.bytes, meta.contentType);
+
+    try {
+      return await this.deps.images.create({
+        provider: 'upload',
+        providerImageId,
+        storageKey: key,
+        width: meta.width,
+        height: meta.height,
+        blurhash: null,
+        palette: [],
+        tags: input.tags ?? [],
+        credit: { name: input.credit, url: null },
+        sourceUrl: null,
+      });
+    } catch (error) {
+      await this.deps.storage.delete(key).catch(() => undefined);
+      throw error;
+    }
   }
 
   /** Returns the stored copy of a provider image, downloading it on first use. */

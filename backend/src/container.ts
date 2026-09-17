@@ -191,6 +191,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
   notifications.register(events);
   const items = new ItemService({
     items: repositories.items,
+    users: repositories.users,
     collectionRepository: repositories.collections,
     collectionService: collections,
     imageService: images,

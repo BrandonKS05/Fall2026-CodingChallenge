@@ -16,10 +16,11 @@ import { LikeButton } from '../components/LikeButton';
 import { VisibilityBadge } from '../components/VisibilityBadge';
 import { useBoard, useBoards } from '../queries';
 import { useSession } from '@/features/auth';
-import { ProfileLink } from '@/features/social';
+import { ProfileLink } from '@/components/common/ProfileLink';
 import {
   EditItemDialog,
   ImageLightbox,
+  UploadButton,
   ItemGrid,
   ItemGridSkeleton,
   useAddItem,
@@ -39,7 +40,7 @@ export default function BoardPage() {
   const myBoards = useBoards(user !== null);
   const addItem = useAddItem(id);
   const removeItem = useRemoveItem(id);
-  const [opened, setOpened] = useState<Item | null>(null);
+  const [opened, setOpened] = useState<number | null>(null);
   const [editing, setEditing] = useState<Item | null>(null);
 
   if (board.isPending) return <PageSkeleton />;
@@ -133,12 +134,15 @@ export default function BoardPage() {
         <div className="flex items-center gap-2">
           <LikeButton board={collection} signedIn={user !== null} />
           {canEdit && (
-            <Link
-              to={`/explore?board=${collection.id}`}
-              className={buttonVariants({ variant: 'outline' })}
-            >
-              <ImagePlusIcon /> Add images
-            </Link>
+            <>
+              <UploadButton collectionId={collection.id} />
+              <Link
+                to={`/explore?board=${collection.id}`}
+                className={buttonVariants({ variant: 'outline' })}
+              >
+                <ImagePlusIcon /> Add images
+              </Link>
+            </>
           )}
           {user && collection.role && <SharePanel board={collection} currentUserId={user.id} />}
           {collection.role === 'owner' && <BoardSettingsDialog board={collection} />}
@@ -169,7 +173,7 @@ export default function BoardPage() {
           <ItemGrid
             items={visible}
             canEdit={canEdit}
-            onOpen={setOpened}
+            onOpen={(item) => setOpened(visible.indexOf(item))}
             onEdit={setEditing}
             onRemove={remove}
           />
@@ -190,7 +194,12 @@ export default function BoardPage() {
         </>
       )}
 
-      <ImageLightbox item={opened} onClose={() => setOpened(null)} />
+      <ImageLightbox
+        items={visible}
+        index={opened}
+        onIndex={setOpened}
+        onClose={() => setOpened(null)}
+      />
       <EditItemDialog
         collectionId={collection.id}
         item={editing}

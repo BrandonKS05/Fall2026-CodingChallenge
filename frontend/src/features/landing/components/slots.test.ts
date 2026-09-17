@@ -7,20 +7,26 @@ const VIEW = { width: 1440, height: 900 };
 const SPAN = 100 + 2 * STAGE_OVERHANG;
 /** The clear space every tile keeps from its neighbours, in viewport units. */
 const MARGIN = 3;
+/** The viewport shape the table was laid out against, as the component uses it. */
+const DESIGN_ASPECT = 1.6;
+/** Every shape a screen comes in, since the map has to hold on all of them. */
+const ASPECTS = [4 / 3, 16 / 10, 16 / 9, 21 / 9];
 /**
- * The curation is portrait first, then landscape, and slots take it in order.
- * The narrowest landscape stands for all of them: a wider one is only shorter,
- * so spacing that holds here holds for every picture.
+ * The slot's own shape. Pictures are cropped to it, so the geometry here is
+ * the geometry on screen whatever arrives from the feed.
  */
-const aspectOf = (index: number) => (index < 8 ? 0.7 : 1.33);
+const aspectOf = (index: number) => SLOTS[index]?.aspect ?? 1.33;
 
 /** Where a slot's tile sits at rest, in percent of the viewport. */
-function restBox(index: number) {
+function restBox(index: number, aspect = VIEW.width / VIEW.height) {
   const slot = SLOTS[index]!;
   const left = -STAGE_OVERHANG + (slot.x * SPAN) / 100;
   const top = -STAGE_OVERHANG + (slot.y * SPAN) / 100;
-  const heightVh = ((slot.width / 100) * VIEW.width) / aspectOf(index) / (VIEW.height / 100);
-  return { left, top, right: left + slot.width, bottom: top + heightVh, depth: slot.depth };
+  // `min(Xvw, Yvh)`, as the component renders it: what keeps a wide screen
+  // from stretching the tiles into one another.
+  const widthVw = Math.min(slot.width, (slot.width * DESIGN_ASPECT) / aspect);
+  const heightVh = (widthVw * aspect) / aspectOf(index);
+  return { left, top, right: left + widthVw, bottom: top + heightVh, depth: slot.depth };
 }
 
 describe('the landing map', () => {
@@ -43,6 +49,22 @@ describe('the landing map', () => {
       }
     }
     expect(piled).toEqual([]);
+  });
+
+  it('holds its spacing on every shape of screen, wide ones included', () => {
+    for (const aspect of ASPECTS) {
+      const overlapping: string[] = [];
+      for (let i = 0; i < SLOTS.length; i += 1) {
+        for (let j = i + 1; j < SLOTS.length; j += 1) {
+          const a = restBox(i, aspect);
+          const b = restBox(j, aspect);
+          const across = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          const down = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          if (across > 0 && down > 0) overlapping.push(`${aspect.toFixed(2)}: ${i}/${j}`);
+        }
+      }
+      expect(overlapping).toEqual([]);
+    }
   });
 
   it('keeps a ring of tiles off the edges, each near enough to be swept into view', () => {

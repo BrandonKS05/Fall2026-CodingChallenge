@@ -24,7 +24,7 @@ export const images = pgTable(
       .default(sql`'{}'::text[]`),
     creditName: text().notNull(),
     creditUrl: text(),
-    sourceUrl: text().notNull(),
+    sourceUrl: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   // One row per provider image, so saving the same photo twice reuses the download.

@@ -59,7 +59,9 @@ describe('ExploreCanvas', () => {
     expect(links[0]).toHaveAttribute('href', '/explore');
     expect(tiles[0]).toHaveAttribute('alt', 'Photo by photographer');
     expect(links[0]).toHaveTextContent('photographer');
-    expect(links[0]).toHaveStyle({ aspectRatio: '1600 / 1200' });
+    // The box is the slot's shape, not the picture's, so the map cannot be
+    // rearranged by whatever the feed happens to contain.
+    expect(links[0]).toHaveStyle({ aspectRatio: String(SLOTS[0]?.aspect) });
     // Public boards are asked for first; the curation fills what is left.
     expect(api.calls.map((call) => call.path)).toEqual([
       '/api/explore/images',

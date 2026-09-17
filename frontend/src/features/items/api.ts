@@ -12,6 +12,11 @@ export const itemsApi = {
   listMine: (limit: number) => http.get<SavedItemsResponse>('/items', { query: { limit } }),
   add: (collectionId: string, body: CreateItemRequest) =>
     http.post<Item>(`/collections/${collectionId}/items`, body),
+  /** A picture of the person's own, sent as the request body. */
+  upload: (collectionId: string, file: File, caption = '') =>
+    http.postFile<Item>(`/collections/${collectionId}/items/upload`, file, {
+      query: { caption },
+    }),
   update: (collectionId: string, itemId: string, body: UpdateItemRequest) =>
     http.patch<Item>(`/collections/${collectionId}/items/${itemId}`, body),
   remove: (collectionId: string, itemId: string) =>

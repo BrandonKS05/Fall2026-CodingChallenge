@@ -39,6 +39,56 @@ describe('items routes', () => {
     ).body.id;
   });
 
+  /** A 2x3 PNG header: enough for the size reader, and nothing more. */
+  function pngBytes(width = 2, height = 3): Buffer {
+    const bytes = Buffer.alloc(24);
+    bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    bytes.writeUInt32BE(width, 16);
+    bytes.writeUInt32BE(height, 20);
+    return bytes;
+  }
+
+  it('takes a picture of your own, and keeps who sent it', async () => {
+    const res = await request(app)
+      .post(`/api/collections/${boardId}/items/upload?caption=My%20kitchen&tags=wood,warm`)
+      .set('Cookie', owner)
+      .set('Content-Type', 'image/png')
+      .send(pngBytes(1600, 1200));
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      caption: 'My kitchen',
+      tags: ['wood', 'warm'],
+      image: { width: 1600, height: 1200, provider: 'upload', sourceUrl: null },
+    });
+    // The picture came from a person, so the credit says so.
+    expect(res.body.image.credit.name).toBeTruthy();
+    // And it is served from our own storage like any other.
+    expect((await request(app).get(res.body.image.url.replace('/api', '/api'))).status).toBe(200);
+  });
+
+  it('refuses an upload that is not an image, and one with nothing in it', async () => {
+    const notAnImage = await request(app)
+      .post(`/api/collections/${boardId}/items/upload`)
+      .set('Cookie', owner)
+      .set('Content-Type', 'image/png')
+      .send(Buffer.from('%PDF-1.7 this is not a picture'));
+    expect(notAnImage.status).toBe(400);
+
+    const empty = await request(app)
+      .post(`/api/collections/${boardId}/items/upload`)
+      .set('Cookie', owner)
+      .set('Content-Type', 'image/png');
+    expect(empty.status).toBe(400);
+
+    // A viewer may look at a board; they may not add to it.
+    const asStranger = await request(app)
+      .post(`/api/collections/${boardId}/items/upload`)
+      .set('Content-Type', 'image/png')
+      .send(pngBytes());
+    expect(asStranger.status).toBe(401);
+  });
+
   it('saves an image, shows it on the board, and serves the stored file', async () => {
     const created = await request(app)
       .post(`/api/collections/${boardId}/items`)

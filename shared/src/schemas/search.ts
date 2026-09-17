@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { paginationQuerySchema } from './common.js';
 
 /** Extension point: add a provider here and implement its ImageProvider strategy on the backend. */
-export const imageProviderSchema = z.enum(['pixabay']);
+export const imageProviderSchema = z.enum(['pixabay', 'upload']);
 export type ImageProvider = z.infer<typeof imageProviderSchema>;
 
 export const imageOrientationSchema = z.enum(['all', 'horizontal', 'vertical']);

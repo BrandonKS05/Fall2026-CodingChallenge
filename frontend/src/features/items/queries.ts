@@ -33,6 +33,20 @@ export function useAddItem(collectionId: string) {
   });
 }
 
+/** A picture of your own, put on this board. Invalidates what an added one does. */
+export function useUploadItem(collectionId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => itemsApi.upload(collectionId, file),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.detail(collectionId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.list() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.savedItems.all });
+    },
+    meta: { silentError: true },
+  });
+}
+
 export function useUpdateItem(collectionId: string) {
   const queryClient = useQueryClient();
   const detailKey = queryKeys.collections.detail(collectionId);

@@ -43,6 +43,7 @@ describe('ItemService', () => {
     });
     service = new ItemService({
       items: repos.items,
+      users: repos.users,
       collectionRepository: repos.collections,
       collectionService: collections,
       imageService,

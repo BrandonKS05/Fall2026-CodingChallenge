@@ -1,5 +1,6 @@
 /** Extension point: add a provider here and implement its ImageProvider strategy. */
-export const IMAGE_PROVIDERS = ['pixabay'] as const;
+/** 'upload' is not a provider so much as its absence: the picture came from a person. */
+export const IMAGE_PROVIDERS = ['pixabay', 'upload'] as const;
 export type ImageProviderName = (typeof IMAGE_PROVIDERS)[number];
 
 export interface ImageCredit {
@@ -24,6 +25,7 @@ export interface Image {
   palette: string[];
   tags: string[];
   credit: ImageCredit;
-  sourceUrl: string;
+  /** Where it came from; null for an upload, which came from whoever sent it. */
+  sourceUrl: string | null;
   createdAt: Date;
 }

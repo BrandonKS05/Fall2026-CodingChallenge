@@ -24,6 +24,14 @@ export class HttpClient {
     return this.request<T>('POST', path, { ...options, body });
   }
 
+  /**
+   * A file, sent as itself: the browser already knows its type, and one picture
+   * needs no multipart envelope to travel in.
+   */
+  postFile<T>(path: string, file: Blob, options: Omit<RequestOptions, 'body'> = {}): Promise<T> {
+    return this.request<T>('POST', path, { ...options, body: file });
+  }
+
   patch<T>(path: string, body: unknown, options: Omit<RequestOptions, 'body'> = {}): Promise<T> {
     return this.request<T>('PATCH', path, { ...options, body });
   }
@@ -44,13 +52,15 @@ export class HttpClient {
 
   private async request<T>(method: string, path: string, options: RequestOptions): Promise<T> {
     const headers: Record<string, string> = { accept: 'application/json' };
-    if (options.body !== undefined) headers['content-type'] = 'application/json';
+    const file = options.body instanceof Blob ? options.body : null;
+    if (file) headers['content-type'] = file.type || 'application/octet-stream';
+    else if (options.body !== undefined) headers['content-type'] = 'application/json';
 
     // Looked up per call so tests can stub the global.
     const response = await globalThis.fetch(this.url(path, options.query), {
       method,
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: file ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
       credentials: 'same-origin',
       signal: options.signal ?? null,
     });
