@@ -11,8 +11,7 @@ import pkg from '../package.json' with { type: 'json' };
 import type { Env } from './config/env.js';
 import { SESSION_TTL_SECONDS } from './config/session.js';
 import { Argon2PasswordHasher } from './modules/auth/adapters/Argon2PasswordHasher.js';
-import { LoggingCodeSender } from './modules/auth/adapters/LoggingCodeSender.js';
-import { ResendEmailSender } from './modules/auth/adapters/ResendEmailSender.js';
+import { createEmailSender } from './modules/auth/adapters/emailSenderFactory.js';
 import type { EmailSender } from './modules/auth/ports/CodeSender.js';
 import { VerificationService } from './modules/auth/VerificationService.js';
 import { GoogleOAuthProvider } from './modules/auth/adapters/GoogleOAuthProvider.js';
@@ -135,11 +134,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
       : {});
   // Codes go out through whichever delivery is configured; with none, they go
   // to the log, which is a development convenience and nothing more.
-  const emailSender =
-    overrides.emailSender ??
-    (env.RESEND_API_KEY && env.EMAIL_FROM
-      ? new ResendEmailSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM, fetchFn })
-      : new LoggingCodeSender(logger));
+  const emailSender = overrides.emailSender ?? createEmailSender(env, fetchFn, logger);
   const verification = new VerificationService({
     codes: repositories.verificationCodes,
     hasher: passwordHasher,

@@ -49,9 +49,15 @@ const envSchema = z
     GOOGLE_CLIENT_SECRET: z.string().optional(),
 
     /**
-     * Delivery for verification codes. Without these the codes are written to
-     * the log and handed back to the client, which is how a fresh clone signs
-     * up with no mail service — and never happens in production.
+     * Delivery for verification codes. Both together turn on real email;
+     * neither means the codes are written to the log and handed back to the
+     * client, which is how a fresh clone signs up with no mail service.
+     *
+     * One without the other is a mistake, but it is a mistake about sign-up,
+     * not about the rest of the product — so the composition root complains
+     * loudly and carries on rather than refusing to boot. An address that is
+     * present but blank is treated as absent, because that is what a host's
+     * variable editor leaves behind when a value does not get pasted.
      */
     RESEND_API_KEY: z.string().optional(),
     /** The verified sender, e.g. "Wumboo <hello@wumboo.app>". */
@@ -74,13 +80,6 @@ const envSchema = z
     S3_SECRET_ACCESS_KEY: z.string().optional(),
   })
   .superRefine((env, ctx) => {
-    if (Boolean(env.RESEND_API_KEY) !== Boolean(env.EMAIL_FROM)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['RESEND_API_KEY'],
-        message: 'RESEND_API_KEY and EMAIL_FROM must be set together',
-      });
-    }
     if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
       ctx.addIssue({
         code: 'custom',
