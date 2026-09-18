@@ -34,9 +34,14 @@ export function NotificationBell({ user }: { user: User | null }) {
       >
         <BellIcon />
         {unread > 0 && (
+          // On the button's corner rather than on the bell itself: a 16px glyph
+          // centred in a 32px button leaves no room for a chip that is not
+          // sitting on top of it. The ring is the surface colour, so the count
+          // reads as being in front of the bell rather than drawn across it.
+          // The same treatment as the messages badge beside it, deliberately.
           <span
             aria-hidden
-            className="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground"
+            className="absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-stage-ink px-1 text-[9px] leading-none font-semibold text-stage ring-2 ring-background"
           >
             {unread > 9 ? '9+' : unread}
           </span>

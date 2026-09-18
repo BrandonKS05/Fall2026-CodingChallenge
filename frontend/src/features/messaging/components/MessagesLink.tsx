@@ -18,15 +18,17 @@ export function MessagesLink({ signedIn, className }: { signedIn: boolean; class
       to="/messages"
       aria-label={unread > 0 ? `Messages, ${unread} unread` : 'Messages'}
       className={cn(
-        'relative inline-flex size-7 items-center justify-center rounded-full transition-colors',
+        // Matches the notification bell beside it: a 32px target, a 16px glyph.
+        'relative inline-flex size-8 items-center justify-center rounded-full transition-colors',
         className,
       )}
     >
-      <MessageCircleIcon className="size-[18px]" aria-hidden />
+      <MessageCircleIcon className="size-4" aria-hidden />
+      {/* The same chip as the notification bell beside it. */}
       {unread > 0 && (
         <span
           aria-hidden
-          className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-stage-ink px-1 text-[9px] leading-4 font-semibold text-stage"
+          className="absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-stage-ink px-1 text-[9px] leading-none font-semibold text-stage ring-2 ring-background"
         >
           {unread > 9 ? '9+' : unread}
         </span>
