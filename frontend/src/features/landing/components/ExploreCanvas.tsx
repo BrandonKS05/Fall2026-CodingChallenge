@@ -140,6 +140,13 @@ export interface ExploreCanvasProps {
    * component: whoever renders the stage owns that relationship.
    */
   onOpenBoard?: (id: string) => void;
+  /**
+   * Something is open over the stage. The map stops following the cursor and
+   * holds exactly where it was — it does not slide back to rest, which would
+   * be one more thing moving behind a dialog — and the native cursor comes
+   * back, because the thing in front needs pointing at.
+   */
+  paused?: boolean;
   tuning?: ParallaxTuning;
   slots?: Slot[];
   slotLimit?: number;
@@ -151,6 +158,7 @@ export function ExploreCanvas({
   signedIn = false,
   chromeLeading,
   onOpenBoard,
+  paused = false,
   tuning = DEFAULT_TUNING,
   slots = SLOTS,
   slotLimit = TILE_LIMIT,
@@ -160,7 +168,11 @@ export function ExploreCanvas({
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const coarsePointer = useMediaQuery('(pointer: coarse)');
   const interactive = !reducedMotion && !coarsePointer;
-  const parallax = useParallax(interactive, tuning);
+  // `interactive` is what this browser can do; `tracking` is whether we are
+  // doing it right now. The tiles keep reading `interactive`, so pausing holds
+  // the map still instead of sending it home.
+  const tracking = interactive && !paused;
+  const parallax = useParallax(tracking, tuning);
   const [hovering, setHovering] = useState(false);
   const feedLimit = slotLimit + spareImages;
 
@@ -210,7 +222,10 @@ export function ExploreCanvas({
       aria-label="Featured boards"
       className={cn(
         'relative isolate h-svh w-full overflow-clip bg-stage text-stage-ink select-none',
-        interactive && 'cursor-none',
+        // The dot is the cursor here. Tiles are links and buttons, and a
+        // browser's own rule for those beats an inherited one, so the
+        // descendants have to be told as well or the arrow comes back.
+        tracking && 'cursor-none [&_*]:cursor-none',
       )}
     >
       <div
@@ -257,7 +272,7 @@ export function ExploreCanvas({
 
       <StageChrome signedIn={signedIn} leading={chromeLeading} />
 
-      {interactive && <CursorDot parallax={parallax} hovering={hovering} />}
+      {tracking && <CursorDot parallax={parallax} hovering={hovering} />}
     </section>
   );
 }

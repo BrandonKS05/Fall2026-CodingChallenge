@@ -121,37 +121,20 @@ export function ImageLightbox({
             </div>
           </div>
 
-          {/* Apart from the picture, on its own panel: the caption is not a strip
-              of paint across the bottom of someone's photograph. */}
-          <figcaption
-            className={cn(
-              'w-full max-w-2xl rounded-2xl bg-background/95 px-5 py-4 text-center shadow-lg',
-              locked && 'invisible',
-            )}
-          >
-            <DialogTitle className="text-base font-medium">{title}</DialogTitle>
-            <DialogDescription className="mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm">
-              <span>
-                Added by{' '}
-                <ProfileLink handle={item.addedBy.handle} className="text-foreground">
-                  {item.addedBy.displayName}
-                </ProfileLink>
-              </span>
-              <span aria-hidden>·</span>
-              <span>{timeAgo(item.createdAt)}</span>
+          {/* Below the picture and on nothing: the blurred backdrop is already
+              dark enough to read against, and a panel here was one more box
+              between a person and a photograph. Two lines, both clipped, so a
+              long caption or a fistful of tags cannot push the dots off. */}
+          <figcaption className={cn('w-full max-w-2xl px-4 text-center', locked && 'invisible')}>
+            <DialogTitle className="truncate text-base font-medium">{title}</DialogTitle>
+            <DialogDescription className="mt-1 truncate text-sm">
+              {'Added by '}
+              <ProfileLink handle={item.addedBy.handle} className="text-foreground">
+                {item.addedBy.displayName}
+              </ProfileLink>
+              {` · ${timeAgo(item.createdAt)}`}
+              {item.tags.length > 0 && ` · ${item.tags.map((tag) => `#${tag}`).join(' ')}`}
             </DialogDescription>
-            {item.tags.length > 0 && (
-              <ul className="mt-3 flex flex-wrap justify-center gap-1.5">
-                {item.tags.map((tag) => (
-                  <li
-                    key={tag}
-                    className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground"
-                  >
-                    #{tag}
-                  </li>
-                ))}
-              </ul>
-            )}
           </figcaption>
 
           {many && (

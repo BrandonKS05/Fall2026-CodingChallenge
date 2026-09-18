@@ -173,6 +173,29 @@ describe('ExploreCanvas', () => {
     expect(screen.getByRole('link', { name: 'Explore' })).toBeInTheDocument();
   });
 
+  it('holds the map still and gives the cursor back while something is open over it', async () => {
+    const listeners = vi.spyOn(window, 'addEventListener');
+    renderCanvas({ body: { images: feed } }, { paused: true });
+    await screen.findAllByTestId('stage-tile');
+
+    // Nothing is listening, so the map cannot move: it stays exactly where the
+    // pointer left it rather than sliding back to rest behind the dialog.
+    expect(listeners.mock.calls.some(([type]) => type === 'pointermove')).toBe(false);
+    expect(screen.queryByTestId('cursor-dot')).not.toBeInTheDocument();
+    // The thing in front needs pointing at.
+    expect(screen.getByRole('region', { name: 'Featured boards' })).not.toHaveClass('cursor-none');
+    listeners.mockRestore();
+    cleanup();
+    vi.unstubAllGlobals();
+
+    const tracking = vi.spyOn(window, 'addEventListener');
+    renderCanvas();
+    await screen.findAllByTestId('stage-tile');
+    expect(tracking.mock.calls.some(([type]) => type === 'pointermove')).toBe(true);
+    expect(screen.getByTestId('cursor-dot')).toBeInTheDocument();
+    tracking.mockRestore();
+  });
+
   it('falls back to a static scatter with the native cursor for reduced motion and touch', async () => {
     stubMediaQueries(['prefers-reduced-motion']);
     renderCanvas();
