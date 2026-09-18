@@ -39,8 +39,15 @@ export class ResendEmailSender implements EmailSender {
       }),
     });
     if (!response.ok) {
-      // The body can carry the address; the status is all that is safe to keep.
-      throw new UpstreamError('The email could not be sent', response.status);
+      // The body carries the reason and sometimes the address. Keep the reason,
+      // which is the difference between "your domain is not verified" and a
+      // bare 403 nobody can act on; drop everything that looks like an address.
+      const detail = await response.text().catch(() => '');
+      const reason = detail.replace(/[\w.+-]+@[\w.-]+/g, '<address>').slice(0, 200);
+      throw new UpstreamError(
+        `The email could not be sent${reason ? `: ${reason}` : ''}`,
+        response.status,
+      );
     }
   }
 }

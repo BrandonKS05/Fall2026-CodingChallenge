@@ -12,10 +12,12 @@ import type { Logger } from '../../../infrastructure/logging/Logger.js';
 import type { EmailSender } from '../ports/CodeSender.js';
 import { LoggingCodeSender } from './LoggingCodeSender.js';
 import { ResendEmailSender } from './ResendEmailSender.js';
+import { UnconfiguredEmailSender } from './UnconfiguredEmailSender.js';
 
 export interface EmailSenderSettings {
   RESEND_API_KEY?: string | undefined;
   EMAIL_FROM?: string | undefined;
+  NODE_ENV?: string | undefined;
 }
 
 /** A variable a host left blank is a variable nobody set. */
@@ -39,9 +41,14 @@ export function createEmailSender(
     const present = apiKey ? 'RESEND_API_KEY' : 'EMAIL_FROM';
     logger.error(
       { missing, present },
-      `${present} is set but ${missing} is not, so no verification email can be sent. ` +
-        'Set both, or neither. Codes are going to the log until then.',
+      `${present} is set but ${missing} is not, so no verification email can be sent. Set both, or neither.`,
     );
   }
-  return new LoggingCodeSender(logger);
+
+  // In development the code goes to the log, which is how a fresh clone signs
+  // up with no mail service. In production that would mean telling somebody a
+  // code is on its way when it is not, so sign-up fails instead.
+  return settings.NODE_ENV === 'production'
+    ? new UnconfiguredEmailSender(logger)
+    : new LoggingCodeSender(logger);
 }

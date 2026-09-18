@@ -3,6 +3,7 @@ import type { FetchFn } from '../../../infrastructure/http/fetch.js';
 import type { Logger } from '../../../infrastructure/logging/Logger.js';
 import { LoggingCodeSender } from './LoggingCodeSender.js';
 import { ResendEmailSender } from './ResendEmailSender.js';
+import { UnconfiguredEmailSender } from './UnconfiguredEmailSender.js';
 import { createEmailSender } from './emailSenderFactory.js';
 
 const fetchFn = (() => Promise.resolve(new Response('{}'))) as unknown as FetchFn;
@@ -35,6 +36,17 @@ describe('createEmailSender', () => {
     const { logger, error } = spyLogger();
     expect(createEmailSender({}, fetchFn, logger)).toBeInstanceOf(LoggingCodeSender);
     expect(error).not.toHaveBeenCalled();
+  });
+
+  it('refuses to pretend in production, where a logged code reaches nobody', async () => {
+    const { logger } = spyLogger();
+    const sender = createEmailSender({ NODE_ENV: 'production' }, fetchFn, logger);
+
+    expect(sender).toBeInstanceOf(UnconfiguredEmailSender);
+    // Sign-up fails rather than telling somebody a code is on its way.
+    await expect(
+      sender.send({ to: 'ada@example.com', subject: 'Your code', text: '123456' }),
+    ).rejects.toThrow(/cannot send the code/i);
   });
 
   it('keeps serving, and complains, when only one of them is set', () => {
