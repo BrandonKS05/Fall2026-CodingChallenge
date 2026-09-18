@@ -32,13 +32,12 @@ Or run it yourself. Needs Node 20.19+, pnpm 10 (corepack enable), and Docker.
 ------------------------------------------------------------
 REFLECTION (under 100 words)
 ------------------------------------------------------------
-The new thing was embeddings and vector search: pgvector, HNSW indexes. What it reinforced:
-calling the model and storing the vector is never one decision. Every option had a side effect
-with a wide blast radius. Embedding inside the request made a save hang whenever OpenAI did.
-Embedding after meant the save landed before the vector existed, so the profile had nothing to
-learn from. An in-memory queue loses rows on restart. I made the row its own queue and folded
-interactions in once the vector arrived. Every wrong choice failed silently, so the call had to
-be mine.
+The new thing was embeddings and vector search: pgvector, HNSW indexes. Calling the model 
+and storing the vector is never one decision. Every option had a side effect with a wide blast 
+radius. Embedding inside the request made a save hang whenever OpenAI did. Embedding after 
+meant the save landed before the vector existed, so the profile had nothing to learn from. An
+in-memory queue loses rows on restart. I made the row its own queue and folded interactions 
+in once the vector arrived. Every wrong choice failed silently, so the call had to be mine.
 
 ------------------------------------------------------------
 FEEDBACK
