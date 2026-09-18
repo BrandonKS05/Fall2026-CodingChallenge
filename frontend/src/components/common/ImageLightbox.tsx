@@ -121,39 +121,45 @@ export function ImageLightbox({
             </div>
           </div>
 
-          {/* Below the picture and on nothing: the blurred backdrop is already
-              dark enough to read against, and a panel here was one more box
-              between a person and a photograph. Two lines, both clipped, so a
-              long caption or a fistful of tags cannot push the dots off. */}
-          <figcaption className={cn('w-full max-w-2xl px-4 text-center', locked && 'invisible')}>
-            <DialogTitle className="truncate text-base font-medium">{title}</DialogTitle>
-            <DialogDescription className="mt-1 truncate text-sm">
-              {'Added by '}
-              <ProfileLink handle={item.addedBy.handle} className="text-foreground">
-                {item.addedBy.displayName}
-              </ProfileLink>
-              {` · ${timeAgo(item.createdAt)}`}
-              {item.tags.length > 0 && ` · ${item.tags.map((tag) => `#${tag}`).join(' ')}`}
-            </DialogDescription>
-          </figcaption>
+          {/* The foot of the picture: who and what on the left, where you are on
+              the right, on nothing at all. The blurred backdrop is already dark
+              enough to read against, and a panel here was one more box between a
+              person and a photograph. Two lines, both clipped, so a long caption
+              or a fistful of tags can never become a third. */}
+          <div className="flex w-full items-end justify-between gap-6 px-2 sm:px-14">
+            <figcaption className={cn('min-w-0 flex-1 text-left', locked && 'invisible')}>
+              <DialogTitle className="truncate text-base font-medium">{title}</DialogTitle>
+              <DialogDescription className="mt-0.5 truncate text-sm">
+                {'Added by '}
+                <ProfileLink handle={item.addedBy.handle} className="text-foreground">
+                  {item.addedBy.displayName}
+                </ProfileLink>
+                {` · ${timeAgo(item.createdAt)}`}
+                {item.tags.length > 0 && ` · ${item.tags.map((tag) => `#${tag}`).join(' ')}`}
+              </DialogDescription>
+            </figcaption>
 
-          {many && (
-            <nav aria-label="Images on this board" className="flex flex-wrap justify-center gap-2">
-              {items.slice(0, reachable).map((candidate, dot) => (
-                <button
-                  key={candidate.id}
-                  type="button"
-                  aria-label={`Image ${dot + 1} of ${reachable}`}
-                  aria-current={dot === at}
-                  onClick={() => onIndex(dot)}
-                  className={cn(
-                    'size-2 rounded-full transition-colors',
-                    dot === at ? 'bg-foreground' : 'bg-foreground/25 hover:bg-foreground/50',
-                  )}
-                />
-              ))}
-            </nav>
-          )}
+            {many && (
+              <nav
+                aria-label="Images on this board"
+                className="flex shrink-0 items-center gap-2 pb-1.5"
+              >
+                {items.slice(0, reachable).map((candidate, dot) => (
+                  <button
+                    key={candidate.id}
+                    type="button"
+                    aria-label={`Image ${dot + 1} of ${reachable}`}
+                    aria-current={dot === at}
+                    onClick={() => onIndex(dot)}
+                    className={cn(
+                      'size-2 rounded-full transition-colors',
+                      dot === at ? 'bg-foreground' : 'bg-foreground/25 hover:bg-foreground/50',
+                    )}
+                  />
+                ))}
+              </nav>
+            )}
+          </div>
         </figure>
       </DialogContent>
     </Dialog>
