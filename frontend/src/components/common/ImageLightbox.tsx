@@ -68,18 +68,10 @@ export function ImageLightbox({
       <DialogContent
         showCloseButton
         overlayClassName="bg-background/70 backdrop-blur-md supports-backdrop-filter:backdrop-blur-md"
-        className="max-h-[92svh] w-[min(100vw-2rem,64rem)] max-w-none overflow-y-auto border-none bg-transparent p-0 shadow-none sm:max-w-none"
+        className="max-h-[92svh] w-[min(100vw-2rem,64rem)] max-w-none overflow-y-auto border-none bg-transparent p-0 shadow-none ring-0 sm:max-w-none"
       >
         <figure className="flex flex-col items-center gap-4">
-          <div className="relative flex w-full items-center justify-center">
-            {many && (
-              <NudgeButton
-                side="left"
-                onClick={() => step(-1)}
-                label="Previous image"
-                disabled={at === 0}
-              />
-            )}
+          <div className="flex w-full items-center justify-center px-2 sm:px-14">
             <div className="relative">
               <img
                 key={item.id}
@@ -110,15 +102,23 @@ export function ImageLightbox({
                   </div>
                 </div>
               )}
+              {many && (
+                <>
+                  <NudgeButton
+                    side="left"
+                    onClick={() => step(-1)}
+                    label="Previous image"
+                    disabled={at === 0}
+                  />
+                  <NudgeButton
+                    side="right"
+                    onClick={() => step(1)}
+                    label="Next image"
+                    disabled={at === reachable - 1}
+                  />
+                </>
+              )}
             </div>
-            {many && (
-              <NudgeButton
-                side="right"
-                onClick={() => step(1)}
-                label="Next image"
-                disabled={at === reachable - 1}
-              />
-            )}
           </div>
 
           {/* Apart from the picture, on its own panel: the caption is not a strip
@@ -196,9 +196,11 @@ function NudgeButton({
       aria-label={label}
       disabled={disabled}
       className={cn(
-        'absolute z-10 grid size-10 place-items-center rounded-full bg-background/80 text-foreground shadow-md transition-transform hover:scale-105',
+        'absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full',
+        'bg-background/80 text-foreground shadow-md transition-transform hover:scale-105',
         'disabled:pointer-events-none disabled:bg-background/40 disabled:text-muted-foreground disabled:shadow-none',
-        side === 'left' ? 'left-0 sm:-left-5' : 'right-0 sm:-right-5',
+        // Over the picture where there is no room, just outside it where there is.
+        side === 'left' ? 'left-1 sm:-left-12' : 'right-1 sm:-right-12',
       )}
     >
       <Icon className="size-5" />
