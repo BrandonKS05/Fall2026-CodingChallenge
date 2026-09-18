@@ -41,6 +41,14 @@ export class InMemoryUserRepository implements UserRepository {
     return next;
   }
 
+  async markOnboarded(userId: string): Promise<User> {
+    const user = this.rows.get(userId);
+    if (!user) throw new NotFoundError('User', userId);
+    const next = { ...user, onboardedAt: new Date(), updatedAt: new Date() };
+    this.rows.set(userId, next);
+    return next;
+  }
+
   async create(input: NewUser): Promise<User> {
     if (await this.findByEmail(input.email)) {
       throw new ConflictError('An account with this email already exists');
@@ -54,6 +62,7 @@ export class InMemoryUserRepository implements UserRepository {
       displayName: input.displayName,
       handle,
       handleChangedAt: null,
+      onboardedAt: null,
       passwordHash: input.passwordHash,
       googleId: input.googleId ?? null,
       bio: '',

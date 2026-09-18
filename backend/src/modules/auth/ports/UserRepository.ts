@@ -34,6 +34,8 @@ export interface UserRepository {
   update(userId: string, patch: UserPatch): Promise<User>;
   /** Stamps the moment an address was proved by a code. */
   markVerified(userId: string, patch: { emailVerifiedAt: Date }): Promise<User>;
+  /** Stamps the moment the interests step was answered, skip included. */
+  markOnboarded(userId: string): Promise<User>;
   /** Replaces the stored password hash. Throws NotFoundError for an unknown id. */
   setPassword(userId: string, passwordHash: string): Promise<void>;
   /** Retires every token issued so far and resolves the new version. */

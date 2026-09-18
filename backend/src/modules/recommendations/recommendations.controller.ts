@@ -46,9 +46,10 @@ export function createRecommendationsController(
       res.status(204).end();
     },
 
+    /** Picking nothing is skipping, and skipping still finishes the step. */
     chooseInterests: async (_req, res) => {
       const { body } = getValidated<ChooseInterestsRequest>(res);
-      await interests.seedFromCategories(currentUser(res).id, body.categories);
+      await interests.completeOnboarding(currentUser(res).id, body.categories);
       res.status(204).end();
     },
   };

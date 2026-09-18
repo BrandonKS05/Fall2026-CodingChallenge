@@ -83,6 +83,7 @@ export const userFixture: User = {
   displayName: 'Ada',
   handle: 'ada',
   handleChangedAt: null,
+  onboardedAt: now,
   bio: '',
   preferences: DEFAULT_USER_PREFERENCES,
   createdAt: now,

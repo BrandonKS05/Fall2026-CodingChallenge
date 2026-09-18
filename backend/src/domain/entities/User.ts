@@ -16,6 +16,11 @@ export interface User {
   handleChangedAt: Date | null;
   /** Shown on the person's own page; empty until written. */
   bio: string;
+  /**
+   * When the one-time interests step was answered. Null means it is still
+   * owed; skipping it counts as answering, so it is never asked twice.
+   */
+  onboardedAt: Date | null;
   /** The account's own settings, always complete: stored gaps are filled with defaults. */
   preferences: UserPreferences;
   /** Every token carries this; raising it retires the tokens already out there. */
@@ -37,6 +42,7 @@ export function toPublicUser(user: User): PublicUser {
     handle: user.handle,
     handleChangedAt: user.handleChangedAt,
     bio: user.bio,
+    onboardedAt: user.onboardedAt,
     preferences: user.preferences,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

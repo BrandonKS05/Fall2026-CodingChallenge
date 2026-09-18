@@ -113,6 +113,13 @@
       "when": 1789702449877,
       "tag": "0015_welcome_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789768885821,
+      "tag": "0016_onboarding",
+      "breakpoints": true
     }
   ]
 }

@@ -38,8 +38,14 @@ export const recordInteractionRequestSchema = z.object({
 });
 export type RecordInteractionRequest = z.infer<typeof recordInteractionRequestSchema>;
 
-/** The categories ticked at sign-up, which seed the first feed. */
+/** How many a new account may pick before it stops being a choice and starts being a form. */
+export const MAX_STARTING_INTERESTS = 6;
+
+/**
+ * The categories ticked at sign-up. An empty list is a real answer — it means
+ * "skip" — and either way the step is done with.
+ */
 export const chooseInterestsRequestSchema = z.object({
-  categories: z.array(searchCategorySchema).min(1).max(20),
+  categories: z.array(searchCategorySchema).max(MAX_STARTING_INTERESTS),
 });
 export type ChooseInterestsRequest = z.infer<typeof chooseInterestsRequestSchema>;

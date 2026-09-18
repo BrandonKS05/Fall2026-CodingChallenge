@@ -10,7 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17-alpine
+        # pgvector's own image, matching docker-compose: the database tests run
+        # every migration, and `CREATE EXTENSION vector` needs it to be present.
+        image: pgvector/pgvector:pg17
         env:
           POSTGRES_USER: wumboo
           POSTGRES_PASSWORD: wumboo

@@ -7,7 +7,6 @@ import { imageTitle } from '@wumboo/shared';
 import { StageButton } from '@/components/common/StageButton';
 import { cn } from '@/lib/utils';
 import { useRecommendations } from '../queries';
-import { InterestPicker } from './InterestPicker';
 
 export interface RecommendedRowProps {
   /** Only a member has a profile to recommend from. */
@@ -21,13 +20,9 @@ export function RecommendedRow({ signedIn, onOpen, className }: RecommendedRowPr
   const feed = useRecommendations(signedIn);
   const items = feed.data?.pages.flatMap((page) => page.items) ?? [];
 
-  if (!signedIn) return null;
-  // A cold feed is still full of pictures, so emptiness is no way to tell
-  // whether anybody has been asked yet. The server says.
-  const cold = feed.data?.pages[0]?.personalised === false;
-  if (!feed.isPending && (cold || items.length === 0)) {
-    return <InterestPicker className={className} />;
-  }
+  // Nothing to say yet: a new account with no public boards to draw on. The
+  // asking happens once at sign-up, not here.
+  if (!signedIn || (!feed.isPending && items.length === 0)) return null;
 
   return (
     <section aria-label="You may like" className={cn('text-stage-ink', className)}>

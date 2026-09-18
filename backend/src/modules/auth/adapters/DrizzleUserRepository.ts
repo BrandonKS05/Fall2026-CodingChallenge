@@ -22,6 +22,7 @@ const toUser = (row: UserRow): User => ({
   displayName: row.displayName,
   handle: row.handle,
   handleChangedAt: row.handleChangedAt,
+  onboardedAt: row.onboardedAt,
   passwordHash: row.passwordHash,
   googleId: row.googleId,
   bio: row.bio,
@@ -69,6 +70,16 @@ export class DrizzleUserRepository implements UserRepository {
     const [row] = await this.db
       .update(users)
       .set({ ...patch, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    if (!row) throw new NotFoundError('User', userId);
+    return toUser(row);
+  }
+
+  async markOnboarded(userId: string): Promise<User> {
+    const [row] = await this.db
+      .update(users)
+      .set({ onboardedAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, userId))
       .returning();
     if (!row) throw new NotFoundError('User', userId);

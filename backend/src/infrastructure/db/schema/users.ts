@@ -21,6 +21,12 @@ export const users = pgTable('users', {
   bio: text().notNull().default(''),
   /** Account settings as one document; absent keys fall back to the shared defaults. */
   preferences: jsonb().$type<Partial<UserPreferences>>().notNull().default({}),
+  /**
+   * When they were taken through the one-time "what do you like" step. Null
+   * means it has not happened yet, which is the only thing that makes it
+   * appear — so skipping it counts as having been through it.
+   */
+  onboardedAt: timestamp({ withTimezone: true }),
   /** Bumped to invalidate every session token issued so far. */
   sessionVersion: integer().notNull().default(0),
   ...timestamps,

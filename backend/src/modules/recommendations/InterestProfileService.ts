@@ -15,6 +15,7 @@ import { RECOMMENDATIONS } from '../../config/recommendations.js';
 import type { InteractionType } from '../../domain/entities/Interaction.js';
 import type { EventBus } from '../../infrastructure/events/EventBus.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';
+import type { UserRepository } from '../auth/ports/UserRepository.js';
 import {
   blendAway,
   blendToward,
@@ -44,6 +45,7 @@ export interface RecordInteractionInput {
 export interface InterestProfileDeps {
   profiles: InterestProfileRepository;
   categories: CategoryEmbeddingRepository;
+  users: UserRepository;
   logger: Logger;
   now?: () => Date;
 }
@@ -140,6 +142,16 @@ export class InterestProfileService {
     for (const entry of pending) {
       await this.applyToProfile(entry.userId, entry.itemId, entry.weight);
     }
+  }
+
+  /**
+   * The one-time step a new account is shown before anything else. Whatever
+   * they picked seeds the profile; picking nothing is a real answer. Either
+   * way the step is stamped as done, so it is never asked again.
+   */
+  async completeOnboarding(userId: string, categories: SearchCategory[]): Promise<void> {
+    await this.seedFromCategories(userId, categories);
+    await this.deps.users.markOnboarded(userId);
   }
 
   /**

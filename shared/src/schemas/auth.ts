@@ -153,6 +153,11 @@ export const userSchema = z.object({
   handleChangedAt: timestampSchema.nullable(),
   /** Shown on the person's page; empty until they write one. */
   bio: z.string(),
+  /**
+   * When they were taken through the one-time interests step. Null while it is
+   * still owed, which is what puts it on screen.
+   */
+  onboardedAt: timestampSchema.nullable(),
   /** The person's own settings; only ever sent to the person they belong to. */
   preferences: userPreferencesSchema,
   createdAt: timestampSchema,

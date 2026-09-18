@@ -76,22 +76,26 @@ describe('recommendations routes', () => {
     expect(unknownAct.status).toBe(400);
   });
 
-  it('takes the categories somebody ticked and seeds a profile from them', async () => {
-    await request(app)
-      .post('/api/recommendations/interests')
-      .set('Cookie', reader)
-      .send({ categories: ['nature', 'food'] })
-      .expect(204);
+  it('takes the categories somebody ticked, and takes a skip too', async () => {
+    const answer = (categories: string[]) =>
+      request(app)
+        .post('/api/recommendations/interests')
+        .set('Cookie', reader)
+        .send({ categories });
 
-    // Nothing was seeded, because nothing has embedded the categories yet —
-    // and that is a warning in the log, not a failure in front of anybody.
-    expect(
-      (
-        await request(app)
-          .post('/api/recommendations/interests')
-          .set('Cookie', reader)
-          .send({ categories: [] })
-      ).status,
-    ).toBe(400);
+    await answer(['nature', 'food']).expect(204);
+    // Picking nothing is skipping, which is a real answer.
+    await answer([]).expect(204);
+    // Seven is more than anybody is asked for.
+    const tooMany = await answer([
+      'nature',
+      'food',
+      'animals',
+      'music',
+      'travel',
+      'people',
+      'sports',
+    ]);
+    expect(tooMany.status).toBe(400);
   });
 });

@@ -7,12 +7,13 @@ import { AnimatePresence, motion } from 'motion/react';
 import { createBrowserRouter, Outlet, useLocation } from 'react-router';
 import { AuthDialogProvider } from './AuthDialogProvider';
 import { WumboAI } from '@/features/assistant';
+import { InterestOnboarding } from '@/features/recommendations';
 import { AuthRoute } from '@/features/auth/pages/AuthRoute';
 import { AppShell } from './layout/AppShell';
 import { NotFoundPage } from './NotFoundPage';
 import { RouteErrorPage } from './RouteErrorPage';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
-import { RequireAuth } from '@/features/auth';
+import { RequireAuth, useSession } from '@/features/auth';
 
 const LandingPage = lazy(() => import('@/features/landing/pages/LandingPage'));
 const BoardsPage = lazy(() => import('@/features/collections/pages/BoardsPage'));
@@ -65,6 +66,17 @@ function RouteTransition({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Whether the interests step is still owed is a fact about the session, and
+ * the session belongs to auth. Composing the two is the app's job, which is
+ * why the question is asked here and not inside the feature.
+ */
+function OnboardingGate() {
+  const { user } = useSession();
+  if (!user || user.onboardedAt !== null) return null;
+  return <InterestOnboarding />;
+}
+
 export const router = createBrowserRouter([
   {
     // One sign-in dialog for the whole app: any page, including the landing hero, opens it in place.
@@ -76,6 +88,9 @@ export const router = createBrowserRouter([
         </RouteTransition>
         {/* Floats over every page; it holds its own state and its own service. */}
         <WumboAI />
+        {/* Over everything, including the landing hero: the one thing a brand
+            new account is asked before it goes anywhere. */}
+        <OnboardingGate />
       </AuthDialogProvider>
     ),
     children: [

@@ -199,6 +199,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
   const interests = new InterestProfileService({
     profiles: repositories.interestProfiles,
     categories: repositories.categoryEmbeddings,
+    users: repositories.users,
     logger,
   });
   // Saving a picture is the strongest signal there is, and it already has an event.

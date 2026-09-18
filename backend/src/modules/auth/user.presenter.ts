@@ -16,6 +16,7 @@ export function presentUser(user: PublicUser): UserDto {
     handle: user.handle,
     handleChangedAt: user.handleChangedAt?.toISOString() ?? null,
     bio: user.bio,
+    onboardedAt: user.onboardedAt?.toISOString() ?? null,
     preferences: user.preferences,
     createdAt: user.createdAt.toISOString(),
   };

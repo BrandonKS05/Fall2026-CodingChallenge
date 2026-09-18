@@ -53,7 +53,11 @@ export function useChooseInterests() {
   return useMutation({
     mutationFn: (categories: SearchCategory[]) =>
       recommendationsApi.chooseInterests({ categories }),
-    // The feed was empty because there was nothing to go on; now there is.
-    onSuccess: () => client.invalidateQueries({ queryKey: ['recommendations'] }),
+    onSuccess: () => {
+      // The session carries whether the step is still owed, so it has to be
+      // re-read or the dialog would sit there after being answered.
+      void client.invalidateQueries({ queryKey: queryKeys.session });
+      void client.invalidateQueries({ queryKey: ['recommendations'] });
+    },
   });
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { RECOMMENDATIONS } from '../../config/recommendations.js';
 import { InMemoryInterestProfileRepository } from '../../testing/fakes/InMemoryInterestProfileRepository.js';
+import { InMemoryUserRepository } from '../../testing/fakes/InMemoryUserRepository.js';
 import { silentLogger } from '../../testing/fakes/fakeAuth.js';
 import { InterestProfileService } from './InterestProfileService.js';
 import { normalize, similarity } from './interestMath.js';
@@ -27,8 +28,14 @@ const categories = {
 
 function build() {
   const profiles = new InMemoryInterestProfileRepository();
-  const service = new InterestProfileService({ profiles, categories, logger: silentLogger });
-  return { profiles, service };
+  const users = new InMemoryUserRepository();
+  const service = new InterestProfileService({
+    profiles,
+    categories,
+    users,
+    logger: silentLogger,
+  });
+  return { profiles, users, service };
 }
 
 describe('recordInteraction', () => {
@@ -200,6 +207,38 @@ describe('seedFromCategories', () => {
     const { profiles, service } = build();
     await service.seedFromCategories(USER, []);
     expect(profiles.centroidsOf(USER)).toHaveLength(0);
+  });
+});
+
+describe('completeOnboarding', () => {
+  it('seeds what was picked and marks the step done', async () => {
+    const { profiles, users, service } = build();
+    const created = await users.create({
+      email: 'ada@example.com',
+      displayName: 'Ada',
+      handle: 'ada',
+      passwordHash: 'x',
+    });
+
+    await service.completeOnboarding(created.id, ['a', 'b'] as never);
+
+    expect(profiles.centroidsOf(created.id).length).toBeGreaterThan(0);
+    expect((await users.findById(created.id))?.onboardedAt).toBeInstanceOf(Date);
+  });
+
+  it('counts skipping as answering, so it is never asked twice', async () => {
+    const { profiles, users, service } = build();
+    const created = await users.create({
+      email: 'grace@example.com',
+      displayName: 'Grace',
+      handle: 'grace',
+      passwordHash: 'x',
+    });
+
+    await service.completeOnboarding(created.id, []);
+
+    expect(profiles.centroidsOf(created.id)).toHaveLength(0);
+    expect((await users.findById(created.id))?.onboardedAt).toBeInstanceOf(Date);
   });
 });
 
