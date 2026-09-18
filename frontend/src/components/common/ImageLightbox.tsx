@@ -1,12 +1,12 @@
 /**
  * One picture at a time, with the board behind it blurred away: arrows to move
- * along the board, dots to say where you are in it, and the caption set apart
- * from the picture rather than pasted across its foot.
+ * along the board, the caption at the foot of the picture, and dots on a line
+ * of their own to say where you are in it.
  */
 import { imageTitle, type Item } from '@wumboo/shared';
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import { ChevronLeftIcon, ChevronRightIcon, LoaderCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { ProfileLink } from '@/components/common/ProfileLink';
 import { timeAgo } from '@/lib/format';
@@ -46,6 +46,12 @@ export function ImageLightbox({
   const item = open ? items[at] : undefined;
   const locked = free !== undefined && at >= free;
   const step = (by: number) => onIndex((((at + by) % reachable) + reachable) % reachable);
+  /**
+   * The picture that has finished arriving. A new one takes a moment to fetch,
+   * and until it does the frame would be empty, so it holds a spinner instead.
+   */
+  const [loadedId, setLoadedId] = useState<string | null>(null);
+  const ready = item !== undefined && loadedId === item.id;
 
   // The arrows work from the keyboard too, which is how anyone looks through a
   // set of pictures without thinking about it.
@@ -72,94 +78,114 @@ export function ImageLightbox({
       >
         <figure className="flex flex-col items-center gap-4">
           <div className="flex w-full items-center justify-center px-2 sm:px-14">
-            <div className="relative">
-              <img
-                key={item.id}
-                src={item.image.url}
-                alt={locked ? '' : title}
-                width={item.image.width}
-                height={item.image.height}
-                className={cn(
-                  'max-h-[64svh] w-auto max-w-full rounded-2xl bg-muted object-contain shadow-2xl',
-                  locked && 'pointer-events-none blur-[6px] select-none',
+            <div className="flex max-w-full flex-col gap-3">
+              <div className="relative">
+                <img
+                  key={item.id}
+                  // A picture already in the cache can be done before React has
+                  // attached onLoad, and would otherwise spin for ever.
+                  ref={(node) => {
+                    if (node?.complete) setLoadedId(item.id);
+                  }}
+                  src={item.image.url}
+                  alt={locked ? '' : title}
+                  width={item.image.width}
+                  height={item.image.height}
+                  onLoad={() => setLoadedId(item.id)}
+                  // A picture that will not come is not a picture that is coming.
+                  onError={() => setLoadedId(item.id)}
+                  className={cn(
+                    'max-h-[64svh] w-auto max-w-full rounded-2xl bg-muted object-contain shadow-2xl',
+                    'transition-opacity duration-200',
+                    !ready && 'opacity-0',
+                    locked && 'pointer-events-none blur-[6px] select-none',
+                  )}
+                />
+                {!ready && (
+                  <div className="absolute inset-0 grid place-items-center rounded-2xl bg-muted/40">
+                    <LoaderCircleIcon
+                      className="size-6 animate-spin text-muted-foreground"
+                      aria-hidden
+                    />
+                  </div>
                 )}
-              />
-              {locked && (
-                <div className="absolute inset-0 grid place-items-center rounded-2xl px-4">
-                  <div className="max-w-xs rounded-2xl bg-background/90 px-7 py-6 text-center shadow-lg backdrop-blur-xs">
-                    <p className="font-hand text-4xl leading-none">There is more.</p>
-                    <p className="mt-2 text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
-                      Sign in to see the rest of this board.
-                    </p>
-                    <div className="mt-4 flex justify-center gap-2">
-                      <Button size="sm" onClick={onSignIn}>
-                        Sign in
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={onSignUp}>
-                        Create an account
-                      </Button>
+                {locked && (
+                  <div className="absolute inset-0 grid place-items-center rounded-2xl px-4">
+                    <div className="max-w-xs rounded-2xl bg-background/90 px-7 py-6 text-center shadow-lg backdrop-blur-xs">
+                      <p className="font-hand text-4xl leading-none">There is more.</p>
+                      <p className="mt-2 text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+                        Sign in to see the rest of this board.
+                      </p>
+                      <div className="mt-4 flex justify-center gap-2">
+                        <Button size="sm" onClick={onSignIn}>
+                          Sign in
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={onSignUp}>
+                          Create an account
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-              {many && (
-                <>
-                  <NudgeButton
-                    side="left"
-                    onClick={() => step(-1)}
-                    label="Previous image"
-                    disabled={at === 0}
-                  />
-                  <NudgeButton
-                    side="right"
-                    onClick={() => step(1)}
-                    label="Next image"
-                    disabled={at === reachable - 1}
-                  />
-                </>
-              )}
+                )}
+                {many && (
+                  <>
+                    <NudgeButton
+                      side="left"
+                      onClick={() => step(-1)}
+                      label="Previous image"
+                      disabled={at === 0}
+                    />
+                    <NudgeButton
+                      side="right"
+                      onClick={() => step(1)}
+                      label="Next image"
+                      disabled={at === reachable - 1}
+                    />
+                  </>
+                )}
+              </div>
+
+              {/* At the foot of the picture and on nothing at all: the blurred
+              backdrop is already dark enough to read against, and a panel here
+              was one more box between a person and a photograph. Two lines,
+              both clipped, so a long caption or a fistful of tags can never
+              become a third.
+
+              `w-0 min-w-full` keeps the caption from having a say in how wide
+              the column is: the picture decides that, and the text begins
+              exactly where the picture does, whatever shape it is. */}
+              <figcaption className={cn('w-0 min-w-full text-left', locked && 'invisible')}>
+                <DialogTitle className="truncate text-base font-medium">{title}</DialogTitle>
+                <DialogDescription className="mt-0.5 truncate text-sm">
+                  {'Added by '}
+                  <ProfileLink handle={item.addedBy.handle} className="text-foreground">
+                    {item.addedBy.displayName}
+                  </ProfileLink>
+                  {` · ${timeAgo(item.createdAt)}`}
+                  {item.tags.length > 0 && ` · ${item.tags.map((tag) => `#${tag}`).join(' ')}`}
+                </DialogDescription>
+              </figcaption>
             </div>
           </div>
 
-          {/* The foot of the picture: who and what on the left, where you are on
-              the right, on nothing at all. The blurred backdrop is already dark
-              enough to read against, and a panel here was one more box between a
-              person and a photograph. Two lines, both clipped, so a long caption
-              or a fistful of tags can never become a third. */}
-          <div className="flex w-full items-end justify-between gap-6 px-2 sm:px-14">
-            <figcaption className={cn('min-w-0 flex-1 text-left', locked && 'invisible')}>
-              <DialogTitle className="truncate text-base font-medium">{title}</DialogTitle>
-              <DialogDescription className="mt-0.5 truncate text-sm">
-                {'Added by '}
-                <ProfileLink handle={item.addedBy.handle} className="text-foreground">
-                  {item.addedBy.displayName}
-                </ProfileLink>
-                {` · ${timeAgo(item.createdAt)}`}
-                {item.tags.length > 0 && ` · ${item.tags.map((tag) => `#${tag}`).join(' ')}`}
-              </DialogDescription>
-            </figcaption>
-
-            {many && (
-              <nav
-                aria-label="Images on this board"
-                className="flex shrink-0 items-center gap-2 pb-1.5"
-              >
-                {items.slice(0, reachable).map((candidate, dot) => (
-                  <button
-                    key={candidate.id}
-                    type="button"
-                    aria-label={`Image ${dot + 1} of ${reachable}`}
-                    aria-current={dot === at}
-                    onClick={() => onIndex(dot)}
-                    className={cn(
-                      'size-2 rounded-full transition-colors',
-                      dot === at ? 'bg-foreground' : 'bg-foreground/25 hover:bg-foreground/50',
-                    )}
-                  />
-                ))}
-              </nav>
-            )}
-          </div>
+          {/* Where you are, on a line of its own under everything else. */}
+          {many && (
+            <nav aria-label="Images on this board" className="flex flex-wrap justify-center gap-2">
+              {items.slice(0, reachable).map((candidate, dot) => (
+                <button
+                  key={candidate.id}
+                  type="button"
+                  aria-label={`Image ${dot + 1} of ${reachable}`}
+                  aria-current={dot === at}
+                  onClick={() => onIndex(dot)}
+                  className={cn(
+                    'size-2 rounded-full transition-colors',
+                    dot === at ? 'bg-foreground' : 'bg-foreground/25 hover:bg-foreground/50',
+                  )}
+                />
+              ))}
+            </nav>
+          )}
         </figure>
       </DialogContent>
     </Dialog>
