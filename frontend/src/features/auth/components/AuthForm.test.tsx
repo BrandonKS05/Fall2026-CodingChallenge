@@ -41,12 +41,13 @@ function renderForm(routes: Record<string, StubRoute> = {}) {
 describe('AuthForm, signing up', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('asks for a handle, suggests one from the email, and says when it is taken', async () => {
+  it('leaves the handle to the person signing up, and says when one is taken', async () => {
     renderForm();
 
+    // An email is not a handle. Nothing is filled in on their behalf.
     await userEvent.type(screen.getByLabelText('Email'), 'Ada.Lovelace@example.com');
     await userEvent.tab();
-    expect(screen.getByLabelText('Handle')).toHaveValue('adalovelace');
+    expect(screen.getByLabelText('Handle')).toHaveValue('');
 
     const handle = screen.getByLabelText('Handle');
     await userEvent.clear(handle);
@@ -56,6 +57,19 @@ describe('AuthForm, signing up', () => {
     await userEvent.clear(handle);
     await userEvent.type(handle, 'ada');
     expect(await screen.findByText('@ada is free')).toBeInTheDocument();
+  });
+
+  it('will not sign anyone up without a handle they chose', async () => {
+    const api = renderForm();
+
+    await userEvent.type(screen.getByLabelText('Name'), 'Ada');
+    await userEvent.type(screen.getByLabelText('Email'), 'ada@example.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'lovelace-1815');
+    await userEvent.type(screen.getByLabelText('Confirm password'), 'lovelace-1815');
+    await userEvent.click(screen.getByRole('button', { name: 'Sign up' }));
+
+    expect(await screen.findByText(/Handles are at least/)).toBeInTheDocument();
+    expect(api.calls.some((call) => call.path === '/api/auth/register')).toBe(false);
   });
 
   it('will not submit a weak password, or two that differ', async () => {
@@ -90,8 +104,6 @@ describe('AuthForm, signing up', () => {
 
     await userEvent.type(screen.getByLabelText('Name'), 'Ada');
     await userEvent.type(screen.getByLabelText('Email'), 'ada@example.com');
-    // The email has already suggested a handle by now; this replaces it.
-    await userEvent.clear(screen.getByLabelText('Handle'));
     await userEvent.type(screen.getByLabelText('Handle'), 'ada');
     await userEvent.type(password, 'lovelace-1815');
     await userEvent.type(screen.getByLabelText('Confirm password'), 'lovelace-1815');
@@ -120,6 +132,7 @@ describe('AuthForm, proving who you are', () => {
   async function fillAndSubmit() {
     await userEvent.type(screen.getByLabelText('Name'), 'Ada');
     await userEvent.type(screen.getByLabelText('Email'), 'ada@example.com');
+    await userEvent.type(screen.getByLabelText('Handle'), 'ada');
     await userEvent.type(screen.getByLabelText('Password'), 'lovelace-1815');
     await userEvent.type(screen.getByLabelText('Confirm password'), 'lovelace-1815');
     await userEvent.click(screen.getByRole('button', { name: 'Sign up' }));

@@ -6,7 +6,6 @@
  */
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import {
-  handleFromSeed,
   loginRequestSchema,
   registerRequestSchema,
   type LoginRequest,
@@ -114,15 +113,9 @@ export function AuthForm({ mode, onSwitchMode, onSuccess }: AuthFormProps) {
   const taken = availability.data?.available === false ? availability.data.handle : null;
   const free = availability.data?.available === true ? availability.data.handle : null;
 
-  // A handle nobody has touched follows the email, which is what most people would pick anyway.
-  const emailField = form.register('email', {
-    onBlur: (event: React.FocusEvent<HTMLInputElement>) => {
-      const typed = event.target.value;
-      if (signingUp && typed && !form.getFieldState('handle').isDirty) {
-        form.setValue('handle', handleFromSeed(typed));
-      }
-    },
-  });
+  // The handle is nobody's business but the person choosing it: it is not
+  // guessed from the email, and sign-up will not go through without one.
+  const emailField = form.register('email');
 
   const destination = (location.state as { from?: string } | null)?.from ?? '/boards';
 
