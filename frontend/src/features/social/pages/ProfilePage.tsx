@@ -8,10 +8,12 @@
  */
 import { useState } from 'react';
 import { useParams } from 'react-router';
+import { toast } from 'sonner';
 import { StageButton } from '@/components/common/StageButton';
 import { StageChrome } from '@/components/common/StageChrome';
 import { useSession } from '@/features/auth';
-import { BoardCard, BoardCarousel } from '@/features/collections';
+import { BoardCard, BoardCarousel, useBoards, useCreateBoard } from '@/features/collections';
+import { SaveToBoardDialog, type SavablePicture } from '@/features/items';
 import { MessagesLink, useStartConversation } from '@/features/messaging';
 import { NotificationBell } from '@/features/notifications';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
@@ -28,6 +30,10 @@ export default function ProfilePage() {
   const profile = useProfile(handle);
   const [openList, setOpenList] = useState<'followers' | 'following' | null>(null);
   const [openBoard, setOpenBoard] = useState<string | null>(null);
+  // Somebody else's board is a place to find things, so a picture in it can be kept.
+  const [picking, setPicking] = useState<SavablePicture | null>(null);
+  const boards = useBoards(signedIn);
+  const createBoard = useCreateBoard();
 
   return (
     <div className="flex min-h-svh flex-col bg-stage text-stage-ink">
@@ -141,6 +147,21 @@ export default function ProfilePage() {
         collectionId={openBoard}
         signedIn={signedIn}
         onClose={() => setOpenBoard(null)}
+        onSave={signedIn ? (item) => setPicking(item.image) : undefined}
+      />
+
+      <SaveToBoardDialog
+        result={picking}
+        user={user}
+        boards={boards.data ?? []}
+        onClose={() => setPicking(null)}
+        onSaved={(board) => {
+          setPicking(null);
+          toast.success(`Saved to “${board.title}”`);
+        }}
+        onCreateBoard={(title) =>
+          createBoard.mutateAsync({ title, description: '', visibility: 'private' })
+        }
       />
     </div>
   );

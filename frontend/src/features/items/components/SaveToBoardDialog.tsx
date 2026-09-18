@@ -20,8 +20,15 @@ import { ApiError, http } from '@/lib/api';
 import { pluralize } from '@/lib/format';
 import { useSaveToBoard } from '../queries';
 
+/**
+ * Everything the picker needs to save something: where the picture came from.
+ * A search result has these, and so does a picture already on somebody else's
+ * board, which is how the carousel saves.
+ */
+export type SavablePicture = Pick<SearchResult, 'provider' | 'providerImageId'>;
+
 interface SaveToBoardDialogProps {
-  result: SearchResult | null;
+  result: SavablePicture | null;
   user: User | null;
   boards: Collection[];
   onClose: () => void;

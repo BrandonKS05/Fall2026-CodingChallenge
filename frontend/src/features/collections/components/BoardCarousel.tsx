@@ -3,6 +3,7 @@
  * you were already on, rather than a page of their own. A visitor gets a
  * quarter of them, rounded up, and a blurred look at the next.
  */
+import type { Item } from '@wumboo/shared';
 import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -15,12 +16,15 @@ export function BoardCarousel({
   collectionId,
   signedIn,
   onClose,
+  onSave,
 }: {
   /** The board to open, or null when nothing is open. */
   collectionId: string | null;
   /** Whether the viewer is a member, which decides how much of the board they get. */
   signedIn: boolean;
   onClose: () => void;
+  /** Keeps a picture to one of the viewer's own boards; the page owns the picker. */
+  onSave?: ((item: Item) => void) | undefined;
 }) {
   const auth = useAuthDialog();
   const board = useBoard(collectionId ?? '');
@@ -63,6 +67,7 @@ export function BoardCarousel({
       free={signedIn ? undefined : freeCount(items.length)}
       onSignIn={() => auth.open({ mode: 'login' })}
       onSignUp={() => auth.open({ mode: 'register' })}
+      onSave={onSave}
     />
   );
 }

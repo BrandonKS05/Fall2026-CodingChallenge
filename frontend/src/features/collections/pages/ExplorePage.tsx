@@ -16,7 +16,7 @@ import { NotificationBell } from '@/features/notifications';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth';
-import { SaveToBoardDialog, useSaveToBoard } from '@/features/items';
+import { SaveToBoardDialog, useSaveToBoard, type SavablePicture } from '@/features/items';
 import { PersonRow, useProfileSearch } from '@/features/social';
 import {
   ALL_CATEGORIES,
@@ -79,7 +79,7 @@ export default function ExplorePage() {
   const createBoard = useCreateBoard();
   const quickSave = useSaveToBoard();
   const search = useImageSearch(imageQuery, wantsImages);
-  const [picking, setPicking] = useState<SearchResult | null>(null);
+  const [picking, setPicking] = useState<SavablePicture | null>(null);
   // A board opens here, over the wall, rather than on a page of its own.
   const [openBoard, setOpenBoard] = useState<string | null>(null);
   const [savedTo, setSavedTo] = useState<Record<string, string>>({});
@@ -97,7 +97,7 @@ export default function ExplorePage() {
         ? CATEGORIES[filters.category].label.toLowerCase()
         : 'that colour';
 
-  function markSaved(result: SearchResult, board: Collection) {
+  function markSaved(result: SavablePicture, board: Collection) {
     setSavedTo((current) => ({ ...current, [result.providerImageId]: board.title }));
     toast.success(`Saved to “${board.title}”`, {
       action: { label: 'View board', onClick: () => window.location.assign(`/boards/${board.id}`) },
@@ -285,6 +285,9 @@ export default function ExplorePage() {
         collectionId={openBoard}
         signedIn={user !== null}
         onClose={() => setOpenBoard(null)}
+        // Keeping somebody else's picture is the same act as keeping one from
+        // search, so it opens the same picker.
+        onSave={user ? (item) => setPicking(item.image) : undefined}
       />
 
       <SaveToBoardDialog
@@ -292,7 +295,11 @@ export default function ExplorePage() {
         user={user}
         boards={boardsQuery.data ?? []}
         onClose={() => setPicking(null)}
-        onSaved={(board) => picking && markSaved(picking, board)}
+        onSaved={(board) => {
+          if (picking) markSaved(picking, board);
+          // Saved is saved: the picker has done its job and the toast says so.
+          setPicking(null);
+        }}
         onCreateBoard={(title) =>
           createBoard.mutateAsync({ title, description: '', visibility: 'private' })
         }

@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useSession } from '@/features/auth';
-import { BoardCarousel } from '@/features/collections';
+import { BoardCarousel, useBoards, useCreateBoard } from '@/features/collections';
+import { SaveToBoardDialog, type SavablePicture } from '@/features/items';
 import { MessagesLink } from '@/features/messaging';
 import { NotificationBell } from '@/features/notifications';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
@@ -11,6 +13,9 @@ export default function LandingPage() {
   const { user } = useSession();
   // A picture on the stage opens the board it is on, here, over the stage.
   const [openBoard, setOpenBoard] = useState<string | null>(null);
+  const [picking, setPicking] = useState<SavablePicture | null>(null);
+  const boards = useBoards(user !== null);
+  const createBoard = useCreateBoard();
   const auth = useAuthDialog();
   // Both of the things that can sit over the stage. While either is up the map
   // holds still: reading a card over a drifting background is a horrible way to
@@ -34,6 +39,21 @@ export default function LandingPage() {
         collectionId={openBoard}
         signedIn={user !== null}
         onClose={() => setOpenBoard(null)}
+        onSave={user ? (item) => setPicking(item.image) : undefined}
+      />
+
+      <SaveToBoardDialog
+        result={picking}
+        user={user}
+        boards={boards.data ?? []}
+        onClose={() => setPicking(null)}
+        onSaved={(board) => {
+          setPicking(null);
+          toast.success(`Saved to “${board.title}”`);
+        }}
+        onCreateBoard={(title) =>
+          createBoard.mutateAsync({ title, description: '', visibility: 'private' })
+        }
       />
     </>
   );

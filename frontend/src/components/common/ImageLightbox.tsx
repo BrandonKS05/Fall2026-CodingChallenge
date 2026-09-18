@@ -4,7 +4,7 @@
  * of their own to say where you are in it.
  */
 import { imageTitle, type Item } from '@wumboo/shared';
-import { ChevronLeftIcon, ChevronRightIcon, LoaderCircleIcon } from 'lucide-react';
+import { BookmarkIcon, ChevronLeftIcon, ChevronRightIcon, LoaderCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -27,6 +27,12 @@ interface ImageLightboxProps {
   /** Shown over the first picture past the free ones. */
   onSignIn?: (() => void) | undefined;
   onSignUp?: (() => void) | undefined;
+  /**
+   * Keeps the picture being looked at. Passed in rather than done here: this
+   * is a shared component and boards belong to a feature. Without it the
+   * button is not rendered, which is what a signed-out visitor gets.
+   */
+  onSave?: ((item: Item) => void) | undefined;
 }
 
 export function ImageLightbox({
@@ -37,6 +43,7 @@ export function ImageLightbox({
   free,
   onSignIn,
   onSignUp,
+  onSave,
 }: ImageLightboxProps) {
   const open = index !== null && items.length > 0;
   // A visitor gets the free ones plus a look at the next, blurred: a gate has
@@ -154,16 +161,28 @@ export function ImageLightbox({
               `w-0 min-w-full` keeps the caption from having a say in how wide
               the column is: the picture decides that, and the text begins
               exactly where the picture does, whatever shape it is. */}
-              <figcaption className={cn('w-0 min-w-full text-left', locked && 'invisible')}>
-                <DialogTitle className="truncate text-base font-medium">{title}</DialogTitle>
-                <DialogDescription className="mt-0.5 truncate text-sm">
-                  {'Added by '}
-                  <ProfileLink handle={item.addedBy.handle} className="text-foreground">
-                    {item.addedBy.displayName}
-                  </ProfileLink>
-                  {` · ${timeAgo(item.createdAt)}`}
-                  {item.tags.length > 0 && ` · ${item.tags.map((tag) => `#${tag}`).join(' ')}`}
-                </DialogDescription>
+              <figcaption
+                className={cn(
+                  'flex w-0 min-w-full items-start justify-between gap-4 text-left',
+                  locked && 'invisible',
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="truncate text-base font-medium">{title}</DialogTitle>
+                  <DialogDescription className="mt-0.5 truncate text-sm">
+                    {'Added by '}
+                    <ProfileLink handle={item.addedBy.handle} className="text-foreground">
+                      {item.addedBy.displayName}
+                    </ProfileLink>
+                    {` · ${timeAgo(item.createdAt)}`}
+                    {item.tags.length > 0 && ` · ${item.tags.map((tag) => `#${tag}`).join(' ')}`}
+                  </DialogDescription>
+                </div>
+                {onSave && (
+                  <Button size="sm" className="shrink-0" onClick={() => onSave(item)}>
+                    <BookmarkIcon /> Save
+                  </Button>
+                )}
               </figcaption>
             </div>
           </div>
