@@ -29,6 +29,8 @@ import type { EmbeddingRepository } from '../../modules/recommendations/ports/Em
 import { DrizzleEmbeddingRepository } from '../../modules/recommendations/adapters/DrizzleEmbeddingRepository.js';
 import type { CategoryEmbeddingRepository } from '../../modules/recommendations/ports/CategoryEmbeddingRepository.js';
 import { DrizzleCategoryEmbeddingRepository } from '../../modules/recommendations/adapters/DrizzleCategoryEmbeddingRepository.js';
+import type { InterestProfileRepository } from '../../modules/recommendations/ports/InterestProfileRepository.js';
+import { DrizzleInterestProfileRepository } from '../../modules/recommendations/adapters/DrizzleInterestProfileRepository.js';
 import type { Db } from './client.js';
 
 export interface Repositories {
@@ -45,6 +47,7 @@ export interface Repositories {
   messages: MessageRepository;
   embeddings: EmbeddingRepository;
   categoryEmbeddings: CategoryEmbeddingRepository;
+  interestProfiles: InterestProfileRepository;
 }
 
 export function createDrizzleRepositories(db: Db): Repositories {
@@ -62,5 +65,6 @@ export function createDrizzleRepositories(db: Db): Repositories {
     messages: new DrizzleMessageRepository(db),
     embeddings: new DrizzleEmbeddingRepository(db),
     categoryEmbeddings: new DrizzleCategoryEmbeddingRepository(db),
+    interestProfiles: new DrizzleInterestProfileRepository(db),
   };
 }

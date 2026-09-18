@@ -48,6 +48,7 @@ import { MessagingService } from './modules/messaging/MessagingService.js';
 import { noBroadcast } from './modules/messaging/ports/MessageBroadcaster.js';
 import { NotificationService } from './modules/notifications/NotificationService.js';
 import { EmbeddingService } from './modules/recommendations/EmbeddingService.js';
+import { InterestProfileService } from './modules/recommendations/InterestProfileService.js';
 import { OpenAIEmbeddingClient } from './modules/recommendations/adapters/OpenAIEmbeddingClient.js';
 import { ShareService } from './modules/sharing/ShareService.js';
 import { SocialService } from './modules/social/SocialService.js';
@@ -64,6 +65,8 @@ export interface Services {
    * cannot be faked locally, and a clone without a key should still run.
    */
   embeddings: EmbeddingService | null;
+  /** What each person is interested in, kept up to date by what they do. */
+  interests: InterestProfileService;
   share: ShareService;
   social: SocialService;
   notifications: NotificationService;
@@ -235,6 +238,11 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
       logger,
     }),
     embeddings,
+    interests: new InterestProfileService({
+      profiles: repositories.interestProfiles,
+      categories: repositories.categoryEmbeddings,
+      logger,
+    }),
     social: new SocialService({
       users: repositories.users,
       follows: repositories.follows,
