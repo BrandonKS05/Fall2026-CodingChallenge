@@ -20,6 +20,15 @@ Sign in with the demo account
     demo@wumboo.app / demo-password-123
     sam@wumboo.app  / demo-password-123  
 
+Or run it yourself. Needs Node 20.19+, pnpm 10 (corepack enable), and Docker.
+
+    cp backend/.env.example backend/.env   # set PIXABAY_API_KEY and JWT_SECRET
+    docker compose up -d                   # Postgres on localhost:5434
+    pnpm install
+    pnpm db:migrate
+    pnpm db:seed                           # demo accounts and boards
+    pnpm dev                               # app on :5173, API on :4000
+
 ------------------------------------------------------------
 REFLECTION (under 100 words)
 ------------------------------------------------------------
