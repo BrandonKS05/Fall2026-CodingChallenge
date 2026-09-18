@@ -14,6 +14,15 @@ const app = createApp(container);
 
 const server = app.listen(env.PORT, () => {
   container.logger.info({ port: env.PORT, env: env.NODE_ENV }, 'API listening');
+  // After listen, like the seed: the queue is durable, so catching up on
+  // whatever is unembedded is never a reason to fail a health check.
+  if (container.services.embeddings) {
+    void container.services.embeddings.run().catch((error: unknown) => {
+      container.logger.error({ err: error }, 'The embedding worker stopped');
+    });
+  } else {
+    container.logger.warn('No OPENAI_API_KEY: pictures will not be embedded');
+  }
   if (env.SEED_DEMO) {
     // After listen, so the host's health check passes while the seed downloads
     // images. The seed is idempotent and resumable, so the flag can stay on and

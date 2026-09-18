@@ -25,6 +25,10 @@ import type { FollowRepository } from '../../modules/social/ports/FollowReposito
 import { DrizzleFollowRepository } from '../../modules/social/adapters/DrizzleFollowRepository.js';
 import type { NotificationRepository } from '../../modules/notifications/ports/NotificationRepository.js';
 import { DrizzleNotificationRepository } from '../../modules/notifications/adapters/DrizzleNotificationRepository.js';
+import type { EmbeddingRepository } from '../../modules/recommendations/ports/EmbeddingRepository.js';
+import { DrizzleEmbeddingRepository } from '../../modules/recommendations/adapters/DrizzleEmbeddingRepository.js';
+import type { CategoryEmbeddingRepository } from '../../modules/recommendations/ports/CategoryEmbeddingRepository.js';
+import { DrizzleCategoryEmbeddingRepository } from '../../modules/recommendations/adapters/DrizzleCategoryEmbeddingRepository.js';
 import type { Db } from './client.js';
 
 export interface Repositories {
@@ -39,6 +43,8 @@ export interface Repositories {
   follows: FollowRepository;
   conversations: ConversationRepository;
   messages: MessageRepository;
+  embeddings: EmbeddingRepository;
+  categoryEmbeddings: CategoryEmbeddingRepository;
 }
 
 export function createDrizzleRepositories(db: Db): Repositories {
@@ -54,5 +60,7 @@ export function createDrizzleRepositories(db: Db): Repositories {
     follows: new DrizzleFollowRepository(db),
     conversations: new DrizzleConversationRepository(db),
     messages: new DrizzleMessageRepository(db),
+    embeddings: new DrizzleEmbeddingRepository(db),
+    categoryEmbeddings: new DrizzleCategoryEmbeddingRepository(db),
   };
 }

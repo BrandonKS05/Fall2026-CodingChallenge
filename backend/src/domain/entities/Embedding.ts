@@ -17,3 +17,13 @@ export const EMBEDDING_DIMENSIONS = 1536;
  * product is the cheaper of them.
  */
 export type Embedding = number[];
+
+/**
+ * The words a saved picture is embedded from: what the person wrote, the tags
+ * they gave it, and the tags it arrived with.
+ */
+export interface EmbeddableItem {
+  caption: string;
+  tags: string[];
+  image: { tags: string[] };
+}

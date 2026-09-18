@@ -57,6 +57,13 @@ const envSchema = z
     /** The verified sender, e.g. "Wumboo <hello@wumboo.app>". */
     EMAIL_FROM: z.string().optional(),
 
+    /**
+     * Embeddings for the recommender. Without it the embedding worker stays
+     * asleep and the "You may like" feed falls back to what is popular, which
+     * is what a fresh clone with no key should do.
+     */
+    OPENAI_API_KEY: z.string().optional(),
+
     /** Selects the StorageBackend strategy. See infrastructure/storage. */
     STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
     STORAGE_LOCAL_DIR: z.string().default('./storage'),

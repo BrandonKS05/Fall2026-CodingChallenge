@@ -48,6 +48,8 @@ import { ItemService } from './modules/items/ItemService.js';
 import { MessagingService } from './modules/messaging/MessagingService.js';
 import { noBroadcast } from './modules/messaging/ports/MessageBroadcaster.js';
 import { NotificationService } from './modules/notifications/NotificationService.js';
+import { EmbeddingService } from './modules/recommendations/EmbeddingService.js';
+import { OpenAIEmbeddingClient } from './modules/recommendations/adapters/OpenAIEmbeddingClient.js';
 import { ShareService } from './modules/sharing/ShareService.js';
 import { SocialService } from './modules/social/SocialService.js';
 
@@ -58,6 +60,11 @@ export interface Services {
   images: ImageService;
   items: ItemService;
   messaging: MessagingService;
+  /**
+   * Null without an embeddings key: the recommender is the one feature that
+   * cannot be faked locally, and a clone without a key should still run.
+   */
+  embeddings: EmbeddingService | null;
   share: ShareService;
   social: SocialService;
   notifications: NotificationService;
@@ -188,6 +195,17 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     events,
     logger,
   });
+  // The worker only exists where there is a model to call. It listens for
+  // boards gaining pictures, but does no work on the request that added them.
+  const embeddings = env.OPENAI_API_KEY
+    ? new EmbeddingService({
+        repository: repositories.embeddings,
+        client: new OpenAIEmbeddingClient({ apiKey: env.OPENAI_API_KEY, fetchFn, logger }),
+        logger,
+      })
+    : null;
+  embeddings?.listen(events);
+
   const services: Services = {
     auth: new AuthService({
       users: repositories.users,
@@ -221,6 +239,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
       events,
       logger,
     }),
+    embeddings,
     social: new SocialService({
       users: repositories.users,
       follows: repositories.follows,
@@ -244,6 +263,9 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     tokens,
     oauth,
     services,
-    dispose: () => database.close(),
+    dispose: async () => {
+      embeddings?.stop();
+      await database.close();
+    },
   };
 }
