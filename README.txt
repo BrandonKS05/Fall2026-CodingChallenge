@@ -43,11 +43,6 @@ be mine.
 ------------------------------------------------------------
 FEEDBACK
 ------------------------------------------------------------
-The prompt is a great size for a week. Two suggestions: the rubric's point totals do not match
-their headers (Core Features says "up to 3" but lists a 5-point tier), and it would help to say
-up front whether graders run the project locally or expect a deployed link, since that decides
-how much effort belongs in setup instructions versus hosting.
-
 Future projects could include a starter repo with scaffolding, Postgres, and environment setup
 already in place. That would put more of the time budget into the design decisions you're
 actually grading.
