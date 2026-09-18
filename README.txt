@@ -1,58 +1,24 @@
-Wumboo - Image Saving & Sharing App
+Wumboo 
 Change++ Fall 2026 Coding Challenge
 
 Name:  Brandon Lee
 Email: jin.woo.lee@vanderbilt.edu
 
-Wumboo is a Pinterest-style app for the thing that happens to everyone: you find something,
-save it somewhere, and then cannot find it again. Search millions of free photos (Pixabay),
-keep them on boards, caption and reorder them, share a board by link or invite people to edit
-it with you, and hear about it when a shared board changes.
+Wumboo is a Pinterest-style app where you can search millions of free photos (Pixabay),
+keep them on boards, caption and reorder them, share a board by link or invite people to 
+edit it with you, and hear about it when a shared board changes.
 
-============================================================
-START HERE - IT IS ALREADY RUNNING
-============================================================
+    docs/ARCHITECTURE.md   Full design 
+                          
+    docs/API.md            Every endpoint
 
-    https://wumbo.brandonnlee.com
 
-Nothing to install. Sign in with the demo account, or browse signed out to see
-what a visitor gets.
+https://wumbo.brandonnlee.com
+
+Sign in with the demo account
 
     demo@wumboo.app / demo-password-123
-    sam@wumboo.app  / demo-password-123   (shares a board with the demo account,
-                                           so you can see collaboration)
-
-------------------------------------------------------------
-RUNNING IT LOCALLY (optional)
-------------------------------------------------------------
-Prerequisites: Node 20.19+ (24 recommended), pnpm 10 (corepack enable), Docker Desktop.
-
-1. cp backend/.env.example backend/.env
-   Set PIXABAY_API_KEY (free: https://pixabay.com/api/docs/) and JWT_SECRET (any 32+ characters).
-2. docker compose up -d     # Postgres on localhost:5434
-3. pnpm install
-4. pnpm db:migrate
-5. pnpm db:seed             # demo accounts and eight boards (downloads ~60 photos)
-6. pnpm dev                 # app on http://localhost:5173, API on :4000
-
-Everything else in backend/.env is optional: Google sign-in, OPENAI_API_KEY for the
-recommendation feed and the assistant, Resend for real verification emails. Without Resend the
-sign-up code is printed to the server log, which is how a fresh clone signs up with no mail
-service.
-
-Checks: pnpm typecheck, pnpm lint, pnpm test, and pnpm --filter @wumboo/backend test:db
-(repository tests against the Docker Postgres).
-
-------------------------------------------------------------
-HOW IT IS BUILT
-------------------------------------------------------------
-React 19 + TypeScript with Tailwind and shadcn/ui on the front, Express 5 + TypeScript and
-Postgres behind it, and a shared package of zod schemas both sides import so the client and the
-server cannot drift apart.
-
-    docs/ARCHITECTURE.md   the layers, the dependency rule that lint enforces, the design
-                           pattern catalog, and why each decision went the way it did
-    docs/API.md            every endpoint
+    sam@wumboo.app  / demo-password-123  
 
 ------------------------------------------------------------
 REFLECTION (under 100 words)
