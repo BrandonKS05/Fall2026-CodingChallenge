@@ -10,6 +10,7 @@ Updated as each piece is implemented.
 | `frontend/` | Vite + React + TypeScript single-page app                    |
 | `backend/`  | Express + TypeScript REST API                                |
 | `shared/`   | zod schemas that define the API contract, used by both sides |
+| `services/` | `wumbo-ai`, the Python assistant behind the chat widget      |
 | `docs/`     | This file and the endpoint reference                         |
 
 ## Backend layout: feature modules

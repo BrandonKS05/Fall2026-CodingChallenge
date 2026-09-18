@@ -2,67 +2,68 @@ Wumboo - Image Saving & Sharing App
 Change++ Fall 2026 Coding Challenge
 
 Name:  Brandon Lee
-Email: <your Vanderbilt email>
+Email: jin.woo.lee@vanderbilt.edu
 
-Wumboo is a Pinterest-style app built around the sentence in the challenge: you find something,
-save it somewhere, and then cannot find it again. Search millions of free photos (Pixabay), save
-them to boards, organize and caption them, share a board by link or invite people to work on it
-with roles, and get notified when a shared board changes.
+Wumboo is a Pinterest-style app for the thing that happens to everyone: you find something,
+save it somewhere, and then cannot find it again. Search millions of free photos (Pixabay),
+keep them on boards, caption and reorder them, share a board by link or invite people to edit
+it with you, and hear about it when a shared board changes.
+
+============================================================
+START HERE - IT IS ALREADY RUNNING
+============================================================
+
+    https://wumbo.brandonnlee.com
+
+Nothing to install. Sign in with the demo account, or browse signed out to see
+what a visitor gets.
+
+    demo@wumboo.app / demo-password-123
+    sam@wumboo.app  / demo-password-123   (shares a board with the demo account,
+                                           so you can see collaboration)
 
 ------------------------------------------------------------
-LIVE DEMO
-------------------------------------------------------------
-App:  https://wumbo.brandonnlee.com                 (frontend on Vercel)
-API:  https://api.wumbo.brandonnlee.com/api/health  (backend on Railway)
-The demo login below works there too. The frontend reaches the API through a same-origin /api
-rewrite, so the two hosts behave like one site. Deployment notes: docs/DEPLOYMENT.md.
-
-------------------------------------------------------------
-HOW TO RUN
+RUNNING IT LOCALLY (optional)
 ------------------------------------------------------------
 Prerequisites: Node 20.19+ (24 recommended), pnpm 10 (corepack enable), Docker Desktop.
 
 1. cp backend/.env.example backend/.env
-   Then set PIXABAY_API_KEY (free key from https://pixabay.com/api/docs/) and JWT_SECRET
-   (any 32+ character string, e.g. the output of `openssl rand -hex 32`).
-2. docker compose up -d           # Postgres on localhost:5434
+   Set PIXABAY_API_KEY (free: https://pixabay.com/api/docs/) and JWT_SECRET (any 32+ characters).
+2. docker compose up -d     # Postgres on localhost:5434
 3. pnpm install
-4. pnpm db:migrate                # creates the tables
-5. pnpm db:seed                   # demo accounts and eight boards, five public (downloads ~60 photos)
-6. pnpm dev                       # frontend http://localhost:5173, API http://localhost:4000
+4. pnpm db:migrate
+5. pnpm db:seed             # demo accounts and eight boards (downloads ~60 photos)
+6. pnpm dev                 # app on http://localhost:5173, API on :4000
 
-Demo login:  demo@wumboo.app / demo-password-123
-Second user: sam@wumboo.app  / demo-password-123 (shares the "Tide pools" board with the demo user)
+Everything else in backend/.env is optional: Google sign-in, OPENAI_API_KEY for the
+recommendation feed and the assistant, Resend for real verification emails. Without Resend the
+sign-up code is printed to the server log, which is how a fresh clone signs up with no mail
+service.
 
-Optional: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in backend/.env to enable
-"Continue with Google" (register http://localhost:5173/api/auth/google/callback as the redirect URI).
-
-Checks: pnpm typecheck, pnpm lint, pnpm test (unit and route tests, no database needed),
-pnpm --filter @wumboo/backend test:db (repository tests against the Docker Postgres).
+Checks: pnpm typecheck, pnpm lint, pnpm test, and pnpm --filter @wumboo/backend test:db
+(repository tests against the Docker Postgres).
 
 ------------------------------------------------------------
-WHAT IS INSIDE
+HOW IT IS BUILT
 ------------------------------------------------------------
-backend/   Express 5 + TypeScript REST API, Postgres via Drizzle, grouped by feature module
-frontend/  Vite + React 19 + TypeScript, Tailwind + shadcn/ui, TanStack Query, React Router
-shared/    The API contract: zod schemas both sides import, so client and server cannot drift
-docs/      ARCHITECTURE.md (layers, design patterns, decisions) and API.md (every endpoint)
+React 19 + TypeScript with Tailwind and shadcn/ui on the front, Express 5 + TypeScript and
+Postgres behind it, and a shared package of zod schemas both sides import so the client and the
+server cannot drift apart.
 
-Features: accounts (email/password and Google), boards with private / link-only / public
-visibility, image search with filters, save with one click, captions and tags, move between
-boards, remove with undo, share links, collaborators with editor/viewer roles, notifications,
-Explore page for public boards, dark mode. Saved images are downloaded and served by the API,
-because Pixabay's URLs expire; searches are cached for 24 hours as Pixabay requires.
+    docs/ARCHITECTURE.md   the layers, the dependency rule that lint enforces, the design
+                           pattern catalog, and why each decision went the way it did
+    docs/API.md            every endpoint
 
 ------------------------------------------------------------
 REFLECTION (under 100 words)
 ------------------------------------------------------------
-I treated this like a small production system instead of a demo: a shared zod contract, a
-backend split into feature modules with ports and adapters, and lint rules that enforce the
-boundaries. The most instructive bug was ordering breaking in tests because the Node clock and
-the Postgres clock disagreed by milliseconds, which is why every timestamp now comes from the
-database. Reading Pixabay's terms also changed the design: hotlinking is not allowed, so saving
-downloads the image.
+The new thing was embeddings and vector search: pgvector, HNSW indexes. What it reinforced:
+calling the model and storing the vector is never one decision. Every option had a side effect
+with a wide blast radius. Embedding inside the request made a save hang whenever OpenAI did.
+Embedding after meant the save landed before the vector existed, so the profile had nothing to
+learn from. An in-memory queue loses rows on restart. I made the row its own queue and folded
+interactions in once the vector arrived. Every wrong choice failed silently, so the call had to
+be mine.
 
 ------------------------------------------------------------
 FEEDBACK
@@ -71,3 +72,7 @@ The prompt is a great size for a week. Two suggestions: the rubric's point total
 their headers (Core Features says "up to 3" but lists a 5-point tier), and it would help to say
 up front whether graders run the project locally or expect a deployed link, since that decides
 how much effort belongs in setup instructions versus hosting.
+
+Future projects could include a starter repo with scaffolding, Postgres, and environment setup
+already in place. That would put more of the time budget into the design decisions you're
+actually grading.
