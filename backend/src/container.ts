@@ -49,6 +49,7 @@ import { noBroadcast } from './modules/messaging/ports/MessageBroadcaster.js';
 import { NotificationService } from './modules/notifications/NotificationService.js';
 import { EmbeddingService } from './modules/recommendations/EmbeddingService.js';
 import { InterestProfileService } from './modules/recommendations/InterestProfileService.js';
+import { RecommendationService } from './modules/recommendations/RecommendationService.js';
 import { OpenAIEmbeddingClient } from './modules/recommendations/adapters/OpenAIEmbeddingClient.js';
 import { ShareService } from './modules/sharing/ShareService.js';
 import { SocialService } from './modules/social/SocialService.js';
@@ -67,6 +68,8 @@ export interface Services {
   embeddings: EmbeddingService | null;
   /** What each person is interested in, kept up to date by what they do. */
   interests: InterestProfileService;
+  /** The "You may like" feed. */
+  recommendations: RecommendationService;
   share: ShareService;
   social: SocialService;
   notifications: NotificationService;
@@ -193,12 +196,21 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     events,
     logger,
   });
+  const interests = new InterestProfileService({
+    profiles: repositories.interestProfiles,
+    categories: repositories.categoryEmbeddings,
+    logger,
+  });
+  // Saving a picture is the strongest signal there is, and it already has an event.
+  interests.listen(events);
+
   // The worker only exists where there is a model to call. It listens for
   // boards gaining pictures, but does no work on the request that added them.
   const embeddings = env.OPENAI_API_KEY
     ? new EmbeddingService({
         repository: repositories.embeddings,
         client: new OpenAIEmbeddingClient({ apiKey: env.OPENAI_API_KEY, fetchFn, logger }),
+        onFirstEmbedded: (itemIds) => interests.foldInPending(itemIds),
         logger,
       })
     : null;
@@ -210,6 +222,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
       passwordHasher,
       tokens,
       verification,
+      events,
       logger,
     }),
     accountExport: new AccountExportService({
@@ -238,11 +251,12 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
       logger,
     }),
     embeddings,
-    interests: new InterestProfileService({
+    recommendations: new RecommendationService({
+      feed: repositories.feed,
       profiles: repositories.interestProfiles,
-      categories: repositories.categoryEmbeddings,
       logger,
     }),
+    interests,
     social: new SocialService({
       users: repositories.users,
       follows: repositories.follows,

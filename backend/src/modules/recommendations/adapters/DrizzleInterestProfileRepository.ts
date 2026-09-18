@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../../../infrastructure/db/client.js';
 import {
   collectionItems,
@@ -103,6 +103,22 @@ export class DrizzleInterestProfileRepository implements InterestProfileReposito
       .onConflictDoNothing()
       .returning({ id: interactions.id });
     return written.length > 0;
+  }
+
+  async findInteractionsForItems(itemIds: string[]): Promise<InteractionEntry[]> {
+    if (itemIds.length === 0) return [];
+    const rows = await this.db
+      .select({
+        userId: interactions.userId,
+        itemId: interactions.itemId,
+        type: interactions.type,
+        weight: interactions.weight,
+        dwellMs: interactions.dwellMs,
+      })
+      .from(interactions)
+      .where(inArray(interactions.itemId, itemIds))
+      .orderBy(asc(interactions.createdAt));
+    return rows;
   }
 
   async findItemVector(itemId: string): Promise<number[] | null> {

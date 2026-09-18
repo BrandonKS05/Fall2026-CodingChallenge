@@ -4,7 +4,7 @@
  * coupling to the rest of the system.
  */
 import type { NotificationDetail, NotificationType } from '../../domain/entities/Notification.js';
-import type { DomainEvent } from '../../domain/events/index.js';
+import type { BoardEvent, BoardEventName } from '../../domain/events/index.js';
 import type { EventBus } from '../../infrastructure/events/EventBus.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';
 import type { NotificationPreferences } from '@wumboo/shared';
@@ -26,7 +26,7 @@ export interface Inbox {
 
 const INBOX_LIMIT = 50;
 
-const TYPE_BY_EVENT: Record<DomainEvent['name'], NotificationType> = {
+const TYPE_BY_EVENT: Record<BoardEventName, BoardNotificationType> = {
   'item.added': 'item_added',
   'item.updated': 'item_updated',
   'item.removed': 'item_removed',
@@ -35,8 +35,12 @@ const TYPE_BY_EVENT: Record<DomainEvent['name'], NotificationType> = {
   'collection.liked': 'collection_liked',
 };
 
-/** Which switch in a person's settings governs which kind of notification. */
-const SWITCH_FOR: Record<NotificationType, keyof NotificationPreferences> = {
+/**
+ * Which switch in a person's settings governs which kind of notification.
+ * A welcome has no switch: it arrives once, before there is anything to
+ * have an opinion about.
+ */
+const SWITCH_FOR: Record<BoardNotificationType, keyof NotificationPreferences> = {
   item_added: 'itemAdded',
   item_updated: 'itemUpdated',
   item_removed: 'itemRemoved',
@@ -45,6 +49,8 @@ const SWITCH_FOR: Record<NotificationType, keyof NotificationPreferences> = {
   collection_liked: 'collectionLiked',
 };
 
+type BoardNotificationType = Exclude<NotificationType, 'welcome'>;
+
 export class NotificationService {
   private readonly log: Logger;
 
@@ -52,11 +58,29 @@ export class NotificationService {
     this.log = deps.logger.child({ service: 'NotificationService' });
   }
 
-  /** Subscribes to every board event. Called once by the composition root. */
+  /** Subscribes to everything worth telling somebody about. Called once by the composition root. */
   register(bus: EventBus): void {
-    for (const name of Object.keys(TYPE_BY_EVENT) as DomainEvent['name'][]) {
+    for (const name of Object.keys(TYPE_BY_EVENT) as BoardEventName[]) {
       bus.subscribe(name, (event) => this.handle(event));
     }
+    bus.subscribe('user.joined', (event) => this.welcome(event.payload.userId));
+  }
+
+  /**
+   * The first thing in anybody's inbox. It comes from nobody and is about no
+   * board, which is why a notification is allowed to have neither.
+   */
+  async welcome(userId: string): Promise<void> {
+    await this.deps.notifications.createMany([
+      {
+        recipientId: userId,
+        actorId: null,
+        collectionId: null,
+        type: 'welcome',
+        payload: {},
+      },
+    ]);
+    this.log.info({ userId }, 'Welcomed a new account');
   }
 
   /**
@@ -64,7 +88,7 @@ export class NotificationService {
    * alone. Everyone's own settings decide whether their copy is written at all,
    * so a switch that is off means nothing arrives, not something hidden later.
    */
-  async handle(event: DomainEvent): Promise<void> {
+  async handle(event: BoardEvent): Promise<void> {
     const { collectionId, actorId, ...rest } = event.payload;
     const audience =
       event.name === 'collection.liked'

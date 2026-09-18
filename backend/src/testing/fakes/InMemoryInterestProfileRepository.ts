@@ -68,6 +68,10 @@ export class InMemoryInterestProfileRepository implements InterestProfileReposit
     return Promise.resolve(true);
   }
 
+  findInteractionsForItems(itemIds: string[]): Promise<InteractionEntry[]> {
+    return Promise.resolve(this.interactions.filter((entry) => itemIds.includes(entry.itemId)));
+  }
+
   findItemVector(itemId: string): Promise<number[] | null> {
     return Promise.resolve(this.vectors.get(itemId) ?? null);
   }

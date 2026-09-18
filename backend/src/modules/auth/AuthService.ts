@@ -12,6 +12,8 @@ import {
   InvalidOperationError,
   RateLimitError,
 } from '../../domain/errors/index.js';
+import { createEvent } from '../../domain/events/index.js';
+import type { EventBus } from '../../infrastructure/events/EventBus.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';
 import type { OAuthProfile } from './ports/OAuthProvider.js';
 import type { PasswordHasher } from './ports/PasswordHasher.js';
@@ -24,6 +26,8 @@ export interface AuthServiceDeps {
   passwordHasher: PasswordHasher;
   tokens: TokenService;
   verification: VerificationService;
+  /** Optional so an isolated test can build the service without a bus. */
+  events?: EventBus | undefined;
   logger: Logger;
 }
 
@@ -164,11 +168,13 @@ export class AuthService {
 
     const user = await this.deps.users.findByEmail(input.target);
     if (!user) throw new AuthenticationError('That code is not right.');
-    const verified =
-      user.emailVerifiedAt === null
-        ? await this.deps.users.markVerified(user.id, { emailVerifiedAt: new Date() })
-        : user;
+    const wasPending = user.emailVerifiedAt === null;
+    const verified = wasPending
+      ? await this.deps.users.markVerified(user.id, { emailVerifiedAt: new Date() })
+      : user;
     this.log.info({ userId: verified.id }, 'Email verified');
+    // Once, at the moment the account becomes real. Verifying again is not joining again.
+    if (wasPending) await this.announceJoined(verified.id);
     return { status: 'signed-in', ...(await this.startSession(verified)) };
   }
 
@@ -281,7 +287,17 @@ export class AuthService {
       googleId: profile.providerId,
     });
     this.log.info({ userId: created.id }, 'User registered with Google');
+    // Google checked the address itself, so this account is real on creation.
+    await this.announceJoined(created.id);
     return this.startSession(created);
+  }
+
+  /**
+   * Publishes rather than notifies: whoever wants to greet a new account can,
+   * and auth stays ignorant of who that is.
+   */
+  private async announceJoined(userId: string): Promise<void> {
+    await this.deps.events?.publish(createEvent('user.joined', { userId }));
   }
 
   /** One lookup behind the sign-up field, so a taken handle is caught before submitting. */

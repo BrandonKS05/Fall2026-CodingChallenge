@@ -27,12 +27,18 @@ export class InMemoryNotificationRepository implements NotificationRepository {
       .reverse()
       .slice(0, limit);
     return Promise.all(
-      mine.map(async (row) => ({
-        ...row,
-        actorHandle: (await this.users.findById(row.actorId))?.handle ?? '',
-        actorDisplayName: (await this.users.findById(row.actorId))?.displayName ?? '',
-        collectionTitle: (await this.collections.findById(row.collectionId))?.title ?? '',
-      })),
+      mine.map(async (row) => {
+        // A welcome has neither, the way the left joins in the real one allow.
+        const actor = row.actorId === null ? null : await this.users.findById(row.actorId);
+        const collection =
+          row.collectionId === null ? null : await this.collections.findById(row.collectionId);
+        return {
+          ...row,
+          actorHandle: actor?.handle ?? null,
+          actorDisplayName: actor?.displayName ?? null,
+          collectionTitle: collection?.title ?? null,
+        };
+      }),
     );
   }
 

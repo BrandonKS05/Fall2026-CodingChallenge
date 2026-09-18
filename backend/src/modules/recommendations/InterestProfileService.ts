@@ -13,6 +13,7 @@
 import type { SearchCategory } from '@wumboo/shared';
 import { RECOMMENDATIONS } from '../../config/recommendations.js';
 import type { InteractionType } from '../../domain/entities/Interaction.js';
+import type { EventBus } from '../../infrastructure/events/EventBus.js';
 import type { Logger } from '../../infrastructure/logging/Logger.js';
 import {
   blendAway,
@@ -51,6 +52,21 @@ export class InterestProfileService {
   constructor(private readonly deps: InterestProfileDeps) {}
 
   /**
+   * Saving a picture to a board is the strongest thing anybody does in this
+   * app, and it already has an event. Listening for it means the profile keeps
+   * up with ordinary use without the interface having to report anything.
+   */
+  listen(events: EventBus): () => void {
+    return events.subscribe('item.added', (event) => {
+      void this.recordInteraction({
+        userId: event.payload.actorId,
+        itemId: event.payload.itemId,
+        type: 'save',
+      });
+    });
+  }
+
+  /**
    * One act, folded into the profile. Recording it and learning from it are
    * separate: an act on a picture that has not been embedded yet is still
    * written down, so the profile can be rebuilt from history later.
@@ -71,16 +87,18 @@ export class InterestProfileService {
     // Clicking like twice is one like.
     if (!fresh) return;
 
-    const vector = await this.deps.profiles.findItemVector(input.itemId);
+    await this.applyToProfile(input.userId, input.itemId, weight);
+  }
+
+  /** The learning half, shared by an act as it happens and one caught up with later. */
+  private async applyToProfile(userId: string, itemId: string, weight: number): Promise<void> {
+    const vector = await this.deps.profiles.findItemVector(itemId);
     if (!vector) {
-      this.deps.logger.debug(
-        { itemId: input.itemId },
-        'Interaction recorded before the picture was embedded',
-      );
+      this.deps.logger.debug({ itemId }, 'Interaction recorded before the picture was embedded');
       return;
     }
 
-    const centroids = await this.deps.profiles.findCentroids(input.userId);
+    const centroids = await this.deps.profiles.findCentroids(userId);
     const nearest = nearestCentroid(centroids, vector);
     const step = stepSize(alpha, weight);
 
@@ -107,7 +125,21 @@ export class InterestProfileService {
       return;
     }
 
-    await this.spawn(input.userId, centroids, vector, weight);
+    await this.spawn(userId, centroids, vector, weight);
+  }
+
+  /**
+   * A picture saved before it was embedded taught the profile nothing at the
+   * time, because there was no vector to learn from. The embedding worker calls
+   * this the moment there is one, and the acts already on record are folded in
+   * as if they had landed a second later. This is why interactions are written
+   * down even when they cannot be used yet.
+   */
+  async foldInPending(itemIds: string[]): Promise<void> {
+    const pending = await this.deps.profiles.findInteractionsForItems(itemIds);
+    for (const entry of pending) {
+      await this.applyToProfile(entry.userId, entry.itemId, entry.weight);
+    }
   }
 
   /**

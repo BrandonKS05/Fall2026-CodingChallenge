@@ -2,8 +2,12 @@ import type { Notification } from '@wumboo/shared';
 
 /** One sentence per notification, from the perspective of the reader. */
 export function describeNotification(notification: Notification, readerId: string): string {
-  const actor = notification.actor.displayName;
-  const board = notification.collection.title;
+  // The only one that comes from nobody, about no board.
+  if (notification.type === 'welcome') {
+    return 'Welcome to Wumboo. Make a board and start keeping what you find.';
+  }
+  const actor = notification.actor?.displayName ?? 'Someone';
+  const board = notification.collection?.title ?? 'a board';
   switch (notification.type) {
     case 'item_added':
       return `${actor} added an image to ${board}`;

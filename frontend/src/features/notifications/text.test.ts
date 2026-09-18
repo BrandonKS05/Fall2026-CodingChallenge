@@ -32,3 +32,22 @@ describe('describeNotification', () => {
     expect(describeNotification({ ...base, ...overrides } as Notification, 'me')).toBe(expected);
   });
 });
+
+describe('describeNotification, for a welcome', () => {
+  it('greets the reader without naming anybody or any board', () => {
+    const sentence = describeNotification(
+      {
+        id: 'n1',
+        type: 'welcome',
+        actor: null,
+        collection: null,
+        payload: {},
+        readAt: null,
+        createdAt: new Date().toISOString(),
+      },
+      'me',
+    );
+    expect(sentence).toMatch(/^Welcome to Wumboo/);
+    expect(sentence).not.toMatch(/undefined|null/);
+  });
+});

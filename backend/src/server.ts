@@ -23,6 +23,20 @@ const server = app.listen(env.PORT, () => {
   } else {
     container.logger.warn('No OPENAI_API_KEY: pictures will not be embedded');
   }
+  // What the feed has shown people is bounded by a retention window rather
+  // than by use, so something has to do the forgetting. Daily, unref'd, so it
+  // never holds the process open.
+  const sweep = setInterval(
+    () => {
+      void container.services.recommendations.forgetOld().catch((error: unknown) => {
+        container.logger.warn({ err: error }, 'Could not sweep old impressions');
+      });
+    },
+    24 * 60 * 60 * 1000,
+  );
+  sweep.unref();
+  void container.services.recommendations.forgetOld().catch(() => undefined);
+
   if (env.SEED_DEMO) {
     // After listen, so the host's health check passes while the seed downloads
     // images. The seed is idempotent and resumable, so the flag can stay on and

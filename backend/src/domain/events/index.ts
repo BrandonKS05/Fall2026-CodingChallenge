@@ -39,7 +39,11 @@ export type CollectionLikedEvent = BaseEvent<
   BoardActivity & { ownerId: string }
 >;
 
-export type DomainEvent =
+/** Not about a board at all: an account became real. */
+export type UserJoinedEvent = BaseEvent<'user.joined', { userId: string }>;
+
+/** Everything that happens to a board, which is most of what happens. */
+export type BoardEvent =
   | ItemAddedEvent
   | ItemUpdatedEvent
   | ItemRemovedEvent
@@ -47,6 +51,9 @@ export type DomainEvent =
   | MemberAddedEvent
   | CollectionLikedEvent;
 
+export type DomainEvent = BoardEvent | UserJoinedEvent;
+
+export type BoardEventName = BoardEvent['name'];
 export type DomainEventName = DomainEvent['name'];
 export type EventOf<TName extends DomainEventName> = Extract<DomainEvent, { name: TName }>;
 

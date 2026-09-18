@@ -38,6 +38,7 @@ import {
 import { pluralize } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { BoardCard } from '../components/BoardCard';
+import { RecommendedRow } from '@/features/recommendations';
 import { BoardCarousel } from '../components/BoardCarousel';
 import { CoverMosaic } from '../components/CoverMosaic';
 import { useBoards, useBoardSearch, useCreateBoard, useExploreBoards } from '../queries';
@@ -269,11 +270,14 @@ export default function ExplorePage() {
         )}
 
         {!searching && (
-          <CategoryGrid
-            className="mt-10"
-            heading="Browse by category"
-            categories={ALL_CATEGORIES}
-          />
+          <>
+            <RecommendedRow className="mt-10" signedIn={user !== null} onOpen={setOpenBoard} />
+            <CategoryGrid
+              className="mt-10"
+              heading="Browse by category"
+              categories={ALL_CATEGORIES}
+            />
+          </>
         )}
       </main>
 

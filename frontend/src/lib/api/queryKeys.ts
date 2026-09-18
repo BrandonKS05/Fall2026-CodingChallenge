@@ -25,6 +25,7 @@ export const queryKeys = {
   peopleSearch: (term: string) => ['profiles', 'search', term] as const,
   /** Explore's gallery of images from public boards. */
   exploreImages: (params: { limit: number }) => ['explore', 'images', params] as const,
+  recommendations: (params: { limit: number }) => ['recommendations', params] as const,
   /** The landing stage's fixed curation. Nothing anyone posts can change it. */
   landingImages: (params: { limit: number }) => ['landing', 'images', params] as const,
   shared: (slug: string) => ['shared', slug] as const,

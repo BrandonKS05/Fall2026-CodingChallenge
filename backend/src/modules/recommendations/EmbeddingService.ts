@@ -23,6 +23,12 @@ export interface EmbeddingServiceDeps {
   repository: EmbeddingRepository;
   client: EmbeddingClient;
   logger: Logger;
+  /**
+   * Called with the pictures that have just been given a vector for the first
+   * time. Somebody may already have saved one of them, and that act could not
+   * teach the profile anything until now.
+   */
+  onFirstEmbedded?: (itemIds: string[]) => Promise<void>;
   /** Injected in tests so an idle loop does not really wait. */
   sleep?: (ms: number) => Promise<void>;
 }
@@ -86,6 +92,10 @@ export class EmbeddingService {
         inputHash: embeddingInputHash(texts.get(row.id) ?? ''),
       }));
       await this.deps.repository.save(saved);
+      // First time only: a re-embed after an edit must not count the same
+      // save twice.
+      const firstTime = work.filter((row) => row.inputHash === null).map((row) => row.id);
+      if (firstTime.length > 0) await this.deps.onFirstEmbedded?.(firstTime);
       return { embedded: saved.length, failed: 0, skipped: empty.length, invalidated };
     } catch (error) {
       // The batch keeps its place in the queue; only its attempt count moves.

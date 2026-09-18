@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { idSchema, timestampSchema, userSummarySchema } from './common.js';
 
 export const notificationTypeSchema = z.enum([
+  'welcome',
   'item_added',
   'item_removed',
   'item_updated',
@@ -18,8 +19,10 @@ export type NotificationType = z.infer<typeof notificationTypeSchema>;
 export const notificationSchema = z.object({
   id: idSchema,
   type: notificationTypeSchema,
-  collection: z.object({ id: idSchema, title: z.string() }),
-  actor: userSummarySchema,
+  /** Null for a welcome, which is about the place rather than one board. */
+  collection: z.object({ id: idSchema, title: z.string() }).nullable(),
+  /** Null when nobody did it. */
+  actor: userSummarySchema.nullable(),
   /** Type-specific extras, e.g. { itemCount: 3 } for a batch of item_added. */
   payload: z.record(z.string(), z.unknown()),
   readAt: timestampSchema.nullable(),

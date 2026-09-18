@@ -11,12 +11,10 @@ export const notifications = pgTable(
     recipientId: uuid()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    actorId: uuid()
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    collectionId: uuid()
-      .notNull()
-      .references(() => collections.id, { onDelete: 'cascade' }),
+    /** Null when nobody did it: a welcome comes from the app, not a person. */
+    actorId: uuid().references(() => users.id, { onDelete: 'cascade' }),
+    /** Null when it is not about one board. */
+    collectionId: uuid().references(() => collections.id, { onDelete: 'cascade' }),
     type: notificationType().notNull(),
     payload: jsonb().$type<Record<string, unknown>>().notNull().default({}),
     readAt: timestamp({ withTimezone: true }),

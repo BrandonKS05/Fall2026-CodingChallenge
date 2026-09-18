@@ -42,4 +42,10 @@ export interface InterestProfileRepository {
    */
   recordInteraction(entry: InteractionEntry): Promise<boolean>;
   findItemVector(itemId: string): Promise<number[] | null>;
+  /**
+   * Everything done to these pictures, oldest first. Acts are recorded whether
+   * or not the picture had a vector at the time, so this is how the profile
+   * catches up on the ones that were saved before they were embedded.
+   */
+  findInteractionsForItems(itemIds: string[]): Promise<InteractionEntry[]>;
 }

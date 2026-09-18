@@ -43,11 +43,17 @@ describe('notifications routes', () => {
     const friendInbox = await request(app).get('/api/notifications').set('Cookie', friend);
     expect(friendInbox.status).toBe(200);
     expect(notificationListResponseSchema.safeParse(friendInbox.body).success).toBe(true);
-    expect(friendInbox.body.unreadCount).toBe(1);
+    // The welcome from signing up, and being added to a board. Newest first.
+    expect(friendInbox.body.unreadCount).toBe(2);
     expect(friendInbox.body.notifications[0]).toMatchObject({
       type: 'member_added',
       actor: { displayName: 'owner' },
       collection: { title: 'Kitchens' },
+    });
+    expect(friendInbox.body.notifications.at(-1)).toMatchObject({
+      type: 'welcome',
+      actor: null,
+      collection: null,
     });
 
     await request(app)
@@ -56,7 +62,7 @@ describe('notifications routes', () => {
       .send({ provider: 'pixabay', providerImageId: '101' });
 
     const ownerInbox = await request(app).get('/api/notifications').set('Cookie', owner);
-    expect(ownerInbox.body.unreadCount).toBe(1);
+    expect(ownerInbox.body.unreadCount).toBe(2);
     expect(ownerInbox.body.notifications[0]).toMatchObject({
       type: 'item_added',
       actor: { displayName: 'friend' },
@@ -78,5 +84,25 @@ describe('notifications routes', () => {
       (await request(app).get('/api/notifications').set('Cookie', owner)).body.unreadCount,
     ).toBe(0);
     expect((await request(app).get('/api/notifications')).status).toBe(401);
+  });
+
+  it('greets a new account once, from nobody and about no board', async () => {
+    const newcomer = await signUp(app, 'newcomer@example.com');
+
+    const inbox = await request(app).get('/api/notifications').set('Cookie', newcomer);
+    expect(notificationListResponseSchema.safeParse(inbox.body).success).toBe(true);
+    expect(inbox.body.notifications).toHaveLength(1);
+    expect(inbox.body.notifications[0]).toMatchObject({
+      type: 'welcome',
+      actor: null,
+      collection: null,
+    });
+
+    // Coming back is not joining again.
+    await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'newcomer@example.com', password: 'password-123' });
+    const again = await request(app).get('/api/notifications').set('Cookie', newcomer);
+    expect(again.body.notifications).toHaveLength(1);
   });
 });

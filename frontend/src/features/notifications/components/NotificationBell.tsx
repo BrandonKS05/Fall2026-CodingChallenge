@@ -70,7 +70,8 @@ export function NotificationBell({ user }: { user: User | null }) {
                   onClick={() => {
                     if (isUnread) markRead.mutate([notification.id]);
                     setOpen(false);
-                    navigate(`/boards/${notification.collection.id}`);
+                    // A welcome is not about a board, so there is nowhere to go.
+                    if (notification.collection) navigate(`/boards/${notification.collection.id}`);
                   }}
                 >
                   <span

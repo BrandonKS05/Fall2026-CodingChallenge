@@ -20,7 +20,7 @@ export function presentItem(detail: ItemDetail): ItemDto {
   };
 }
 
-function presentSavedItem(saved: SavedItem): SavedItemDto {
+export function presentSavedItem(saved: SavedItem): SavedItemDto {
   return {
     ...presentItem(saved),
     collection: { id: saved.collectionId, title: saved.collectionTitle },

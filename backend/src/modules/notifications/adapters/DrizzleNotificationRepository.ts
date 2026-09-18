@@ -28,8 +28,10 @@ export class DrizzleNotificationRepository implements NotificationRepository {
         collectionTitle: collections.title,
       })
       .from(notifications)
-      .innerJoin(users, eq(users.id, notifications.actorId))
-      .innerJoin(collections, eq(collections.id, notifications.collectionId))
+      // Left, not inner: a welcome has neither an actor nor a board, and an
+      // inner join would quietly drop it from the list.
+      .leftJoin(users, eq(users.id, notifications.actorId))
+      .leftJoin(collections, eq(collections.id, notifications.collectionId))
       .where(eq(notifications.recipientId, userId))
       .orderBy(desc(notifications.createdAt))
       .limit(limit);
