@@ -47,9 +47,13 @@ the next time it is requested. The volume is still what keeps a redeploy from re
 
 ## Assistant (Railway)
 
-`services/wumbo-ai` is a second Railway service from the same repository, root directory
-`services/wumbo-ai`, start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. It needs
-only `OPENAI_API_KEY`.
+`services/wumbo-ai` is a second Railway service from the same repository, with its root
+directory set to `services/wumbo-ai`. It needs only `OPENAI_API_KEY`; the build and start
+commands come from `nixpacks.toml` in that folder.
+
+That file is there for a reason: the folder also contains a `package.json`, purely as a hook so
+`pnpm dev` starts the service with everything else. Without `providers = ["python"]` the builder
+sees that file and tries to build a Node service, which fails.
 
 It does not need a public domain. The browser never calls it: the API forwards `/api/chat` to
 whatever `WUMBO_AI_URL` points at, so the internal `.railway.internal` host is enough and there
