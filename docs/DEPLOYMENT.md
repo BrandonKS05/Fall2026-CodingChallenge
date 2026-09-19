@@ -55,6 +55,16 @@ That file is there for a reason: the folder also contains a `package.json`, pure
 `pnpm dev` starts the service with everything else. Without `providers = ["python"]` the builder
 sees that file and tries to build a Node service, which fails.
 
+Set `PORT=8000` on the service so the address is predictable, give it **no public domain**, and
+point the backend at it:
+
+```
+WUMBO_AI_URL = http://<private-network-name>.railway.internal:8000
+```
+
+The start command binds `::` rather than `0.0.0.0` on purpose: Railway's private network is
+IPv6, and a service listening only on IPv4 is unreachable from inside the project.
+
 It does not need a public domain. The browser never calls it: the API forwards `/api/chat` to
 whatever `WUMBO_AI_URL` points at, so the internal `.railway.internal` host is enough and there
 is no CORS to configure. With the service missing or asleep the widget says it cannot reach its
