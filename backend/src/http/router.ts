@@ -14,6 +14,7 @@ import { createSearchRouter } from '../modules/images/search.routes.js';
 import { createSharedRouter } from '../modules/sharing/share.routes.js';
 import { createUsersRouter } from '../modules/social/social.routes.js';
 import { createRecommendationsRouter } from '../modules/recommendations/recommendations.routes.js';
+import { createAssistantRouter } from '../modules/assistant/assistant.routes.js';
 
 /** Mounts every resource router under /api. */
 export function createApiRouter(container: Container): Router {
@@ -27,6 +28,7 @@ export function createApiRouter(container: Container): Router {
   api.use('/collections', createCollectionsRouter(container));
   api.use('/explore', createExploreRouter(container));
   api.use('/recommendations', createRecommendationsRouter(container));
+  api.use('/chat', createAssistantRouter(container));
   api.use('/shared', createSharedRouter(container));
   api.use('/search', createSearchRouter(container));
   api.use('/images', createImagesRouter(container));

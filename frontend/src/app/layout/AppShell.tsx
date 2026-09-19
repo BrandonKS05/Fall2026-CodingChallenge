@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react';
 import { StageChrome } from '@/components/common/StageChrome';
-import { ThemeToggle } from './ThemeToggle';
 import { UserMenu } from './UserMenu';
 import { useSession } from '@/features/auth';
 import { MessagesLink } from '@/features/messaging';
@@ -27,7 +26,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         }
         trailing={
           <span className="stage-surface ml-1 flex items-center gap-1">
-            <ThemeToggle />
             <UserMenu />
           </span>
         }

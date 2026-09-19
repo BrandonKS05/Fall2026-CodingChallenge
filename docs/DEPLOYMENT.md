@@ -19,17 +19,20 @@ imports `@wumboo/shared` from the workspace, so a service rooted at `backend/` c
 
 Add a **Postgres** service and a **Volume** mounted at `/data` on the backend service, then set:
 
-| Variable                                   | Value                                                                                   |
-| ------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `NODE_ENV`                                 | `production`                                                                            |
-| `DATABASE_URL`                             | reference the Postgres service's `DATABASE_URL` (the internal `.railway.internal` host) |
-| `JWT_SECRET`                               | 32+ random characters, e.g. `openssl rand -hex 32`                                      |
-| `PIXABAY_API_KEY`                          | your key                                                                                |
-| `APP_URL`                                  | the frontend origin, `https://wumbo.brandonnlee.com` (no trailing slash)                |
-| `CORS_ORIGIN`                              | same value as `APP_URL`                                                                 |
-| `STORAGE_DRIVER`                           | `local`                                                                                 |
-| `STORAGE_LOCAL_DIR`                        | `/data/images` (inside the volume, so images survive deploys)                           |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | optional; add `<APP_URL>/api/auth/google/callback` as a redirect URI in Google Cloud    |
+| Variable                                   | Value                                                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                                 | `production`                                                                                |
+| `DATABASE_URL`                             | reference the Postgres service's `DATABASE_URL` (the internal `.railway.internal` host)     |
+| `JWT_SECRET`                               | 32+ random characters, e.g. `openssl rand -hex 32`                                          |
+| `PIXABAY_API_KEY`                          | your key                                                                                    |
+| `APP_URL`                                  | the frontend origin, `https://wumbo.brandonnlee.com` (no trailing slash)                    |
+| `CORS_ORIGIN`                              | same value as `APP_URL`                                                                     |
+| `STORAGE_DRIVER`                           | `local`                                                                                     |
+| `STORAGE_LOCAL_DIR`                        | `/data/images` (inside the volume, so images survive deploys)                               |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | optional; add `<APP_URL>/api/auth/google/callback` as a redirect URI in Google Cloud        |
+| `OPENAI_API_KEY`                           | optional; embeddings for the recommendation feed. Without it the feed is popularity-ordered |
+| `RESEND_API_KEY`, `EMAIL_FROM`             | optional, but both or neither; without them sign-up cannot send a verification code         |
+| `WUMBO_AI_URL`                             | the assistant service's internal Railway URL; `/api/chat` is forwarded there                |
 
 `PORT` is injected by Railway and read automatically. Do not set `PIXABAY_BASE_URL`.
 
@@ -41,6 +44,17 @@ because the seed is idempotent and resumable: it creates only what is missing, s
 
 Saved images live on the volume; if a file is ever lost anyway, the API re-downloads it from the provider
 the next time it is requested. The volume is still what keeps a redeploy from re-downloading every image.
+
+## Assistant (Railway)
+
+`services/wumbo-ai` is a second Railway service from the same repository, root directory
+`services/wumbo-ai`, start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. It needs
+only `OPENAI_API_KEY`.
+
+It does not need a public domain. The browser never calls it: the API forwards `/api/chat` to
+whatever `WUMBO_AI_URL` points at, so the internal `.railway.internal` host is enough and there
+is no CORS to configure. With the service missing or asleep the widget says it cannot reach its
+brain and nothing else is affected.
 
 ## Frontend (Vercel)
 

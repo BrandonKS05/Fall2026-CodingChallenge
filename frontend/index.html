@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en">
+<!-- Wumboo is a dark room with pictures in it; there is no light mode to switch to. -->
+<html lang="en" class="dark" style="color-scheme: dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,19 +16,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      // Apply the saved or system theme before React renders, so reloads never flash.
-      (function () {
-        try {
-          var stored = localStorage.getItem('wumboo-theme');
-          var dark =
-            stored === 'dark' ||
-            (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          document.documentElement.classList.toggle('dark', dark);
-          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-        } catch (error) {}
-      })();
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

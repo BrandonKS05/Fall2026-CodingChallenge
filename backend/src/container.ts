@@ -12,6 +12,8 @@ import type { Env } from './config/env.js';
 import { SESSION_TTL_SECONDS } from './config/session.js';
 import { Argon2PasswordHasher } from './modules/auth/adapters/Argon2PasswordHasher.js';
 import { createEmailSender } from './modules/auth/adapters/emailSenderFactory.js';
+import { HttpAssistantClient } from './modules/assistant/adapters/HttpAssistantClient.js';
+import type { AssistantClient } from './modules/assistant/ports/AssistantClient.js';
 import type { EmailSender } from './modules/auth/ports/CodeSender.js';
 import { VerificationService } from './modules/auth/VerificationService.js';
 import { GoogleOAuthProvider } from './modules/auth/adapters/GoogleOAuthProvider.js';
@@ -92,6 +94,8 @@ export interface Container {
   tokens: TokenService;
   oauth: OAuthProviders;
   services: Services;
+  /** The chat widget's way to the Wumbo AI service. */
+  assistant: AssistantClient;
   /** Releases pooled connections. Called once on shutdown. */
   dispose(): Promise<void>;
 }
@@ -281,6 +285,7 @@ export function createContainer(env: Env, overrides: ContainerOverrides = {}): C
     tokens,
     oauth,
     services,
+    assistant: new HttpAssistantClient(env.WUMBO_AI_URL, fetchFn, logger),
     dispose: async () => {
       embeddings?.stop();
       await database.close();

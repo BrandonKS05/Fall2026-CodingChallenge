@@ -1,9 +1,9 @@
 /**
- * The Wumbo AI service lives outside this app, so it is reached by its own URL
- * rather than through the /api rewrite. Set VITE_WUMBO_AI_URL when it is not on
- * localhost; nothing else about the widget changes.
+ * The Wumbo AI service runs as its own process, but the browser never talks to
+ * it directly: the API forwards /api/chat to it. That keeps this to one origin,
+ * so there is no CORS to configure and no service URL baked into the bundle at
+ * build time, which is exactly what broke it in production before.
  */
-const BASE_URL = import.meta.env.VITE_WUMBO_AI_URL ?? 'http://localhost:8000';
 
 export interface ChatTurn {
   role: 'user' | 'assistant';
@@ -37,7 +37,7 @@ export class ChatUnavailableError extends Error {
 }
 
 export async function askWumbo(message: string, history: ChatTurn[]): Promise<string> {
-  const response = await fetch(`${BASE_URL}/api/chat`, {
+  const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Session-Id': sessionId() },
     body: JSON.stringify({ message, conversation_history: history }),

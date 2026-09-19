@@ -70,6 +70,13 @@ const envSchema = z
      */
     OPENAI_API_KEY: z.string().optional(),
 
+    /**
+     * The Wumbo AI service. The API forwards /api/chat to it so the browser
+     * only ever talks to one origin; with the service down the widget says so
+     * and nothing else is affected.
+     */
+    WUMBO_AI_URL: z.url().default('http://localhost:8000'),
+
     /** Selects the StorageBackend strategy. See infrastructure/storage. */
     STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
     STORAGE_LOCAL_DIR: z.string().default('./storage'),

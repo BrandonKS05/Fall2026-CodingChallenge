@@ -4,7 +4,6 @@ import { render, type RenderOptions } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { ThemeProvider } from '@/hooks/useTheme';
 import { AuthDialogProvider } from '@/app/AuthDialogProvider';
 import { createQueryClient } from '@/app/providers';
 
@@ -18,15 +17,13 @@ export function renderWithProviders(ui: ReactElement, { route = '/', ...options 
 
   function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <MemoryRouter initialEntries={[route]}>
-              <AuthDialogProvider>{children}</AuthDialogProvider>
-            </MemoryRouter>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <MemoryRouter initialEntries={[route]}>
+            <AuthDialogProvider>{children}</AuthDialogProvider>
+          </MemoryRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
     );
   }
 

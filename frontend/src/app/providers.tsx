@@ -8,7 +8,6 @@ import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { ThemeProvider } from '@/hooks/useTheme';
 import { ApiError } from '@/lib/api';
 
 declare module '@tanstack/react-query' {
@@ -50,11 +49,9 @@ export function createQueryClient(): QueryClient {
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient);
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>{children}</TooltipProvider>
-        <Toaster position="bottom-right" richColors closeButton />
-      </QueryClientProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>{children}</TooltipProvider>
+      <Toaster position="bottom-right" richColors closeButton />
+    </QueryClientProvider>
   );
 }
