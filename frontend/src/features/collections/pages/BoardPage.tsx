@@ -29,6 +29,17 @@ import {
 } from '@/features/items';
 import { SharePanel } from '@/features/sharing';
 
+/**
+ * "Add images" goes to Explore already searching for the board's own name.
+ * Explore shows boards until something is searched for, and a board is not a
+ * thing you can save into a board — arriving on that grid with "saving into
+ * Cyberpunk" at the top and nothing to save is a dead end.
+ */
+function addImagesTo(collection: { id: string; title: string }): string {
+  const params = new URLSearchParams({ board: collection.id, q: collection.title, in: 'images' });
+  return `/explore?${params.toString()}`;
+}
+
 export default function BoardPage() {
   const { id = '' } = useParams();
   const board = useBoard(id);
@@ -136,10 +147,7 @@ export default function BoardPage() {
           {canEdit && (
             <>
               <UploadButton collectionId={collection.id} />
-              <Link
-                to={`/explore?board=${collection.id}`}
-                className={buttonVariants({ variant: 'outline' })}
-              >
+              <Link to={addImagesTo(collection)} className={buttonVariants({ variant: 'outline' })}>
                 <ImagePlusIcon /> Add images
               </Link>
             </>
@@ -162,7 +170,7 @@ export default function BoardPage() {
           }
           action={
             canEdit && (
-              <Link to={`/explore?board=${collection.id}`} className={buttonVariants()}>
+              <Link to={addImagesTo(collection)} className={buttonVariants()}>
                 Find images
               </Link>
             )
